@@ -92,7 +92,7 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
         ],
         div![
             class!["title-bar-container"],
-            div![class!["title"], text![&m.name]]
+            div![class!["title"], &m.name]
         ],
     ]
 }
