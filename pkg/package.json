@@ -1,0 +1,14 @@
+{
+  "name": "stremio-example-seed",
+  "collaborators": [
+    "Ivo Georgiev <ivo@stremio.com>"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "package_bg.wasm",
+    "package.js",
+    "package.d.ts"
+  ],
+  "browser": "package.js",
+  "types": "package.d.ts"
+}
