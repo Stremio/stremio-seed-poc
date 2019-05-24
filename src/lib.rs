@@ -41,22 +41,59 @@ fn update(msg: Msg, model: &mut Model, _: &mut Orders<Msg>) {
 
 // View
 fn view(model: &Model) -> El<Msg> {
-    let content = div![
-        class!["board-content"],
-        button![
-            raw_ev(Ev::Click, |_| Msg::Action(Model::default_load())),
-            "Refresh"
-        ],
-        h3![format!("Loaded groups: {}", model.catalog.groups.iter().filter(|x| x.1.is_ready()).count())]
-    ];
-
-    content
-    // board-container board-content
+    let groups: Vec<El<Msg>> = model
+        .catalog
+        .groups
+        .iter()
+        .map(|group| {
+            let el = match group.as_ref() {
+                (_, Loadable::Message(m)) => h3![m],
+                (_, Loadable::Loading) => h3!["Loading"],
+                (_, Loadable::Ready(items)) => div![class!["meta-items-container"],
+                    items
+                        .iter()
+                        .take(7)
+                        .map(meta_item)
+                        .collect::<Vec<El<Msg>>>()
+                ],
+                (_, Loadable::ReadyEmpty) => div![],
+            };
+            div![class!["board-row"], class!["addon-catalog-row"], el]
+        })
+        .collect();
+    let content = div![class!["board-content"], groups];
+    div![class!["board-container"], content]
 }
 
 fn meta_item(m: &MetaPreview) -> El<Msg> {
+    let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
+    let default_shape = "poster".to_owned();
+    let poster_shape = m.poster_shape.as_ref().unwrap_or(&default_shape);
+
+    let poster = m.poster
+        .as_ref()
+        .unwrap_or(&default_poster);
+
     div![
-        class!["meta-item"]
+        attrs! {
+            At::Class => format!("meta-item meta-item-container poster-shape-{}", poster_shape);
+            At::Title => &m.name
+        },
+        div![
+            class!["poster-image-container"],
+            div![
+                class!["poster-image-layer"],
+                div![
+                    class!["poster-image"],
+                    style! { "background-image" => format!("url({})", poster) },
+                    raw_ev(Ev::Click, |_| Msg::Action(Model::default_load()))
+                ]
+            ]
+        ],
+        div![
+            class!["title-bar-container"],
+            div![class!["title"], text![&m.name]]
+        ],
     ]
 }
 
