@@ -40,8 +40,9 @@ fn update(msg: Msg, model: &mut Model, _: &mut Orders<Msg>) {
 
 // View
 fn view(model: &Model) -> El<Msg> {
-    h3![
-        format!("Hello, World × {}", model.catalog.groups.len())
+    button![
+        raw_ev(Ev::Click, |_| Msg::Action(Model::default_load())),
+        format!("Hello, World × {}", model.catalog.groups.iter().filter(|x| x.1.is_ready()).count())
     ]
 }
 
@@ -70,13 +71,7 @@ pub fn render() {
         ],
         Box::new(move |ev| {
             if let MuxerEvent::NewState(_) = ev {
-                let state = container.get_state_owned();
-                if state.groups.iter().all(|x| match x.1 {
-                    Loadable::Loading => false,
-                    _ => true
-                }) {
-                    app_state.update(Msg::CatalogUpdated(state));
-                }
+                app_state.update(Msg::CatalogUpdated(container.get_state_owned()));
             }
         }),
     );
