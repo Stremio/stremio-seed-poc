@@ -2,6 +2,7 @@
 extern crate seed;
 use seed::prelude::*;
 use stremio_core::state_types::*;
+use stremio_core::types::{MetaPreview};
 use stremio_core::middlewares::*;
 use std::rc::Rc;
 use futures::sync::mpsc::*;
@@ -40,9 +41,22 @@ fn update(msg: Msg, model: &mut Model, _: &mut Orders<Msg>) {
 
 // View
 fn view(model: &Model) -> El<Msg> {
-    button![
-        raw_ev(Ev::Click, |_| Msg::Action(Model::default_load())),
-        format!("Hello, World × {}", model.catalog.groups.iter().filter(|x| x.1.is_ready()).count())
+    let content = div![
+        class!["board-content"],
+        button![
+            raw_ev(Ev::Click, |_| Msg::Action(Model::default_load())),
+            "Refresh"
+        ],
+        h3![format!("Loaded groups: {}", model.catalog.groups.iter().filter(|x| x.1.is_ready()).count())]
+    ];
+
+    content
+    // board-container board-content
+}
+
+fn meta_item(m: &MetaPreview) -> El<Msg> {
+    div![
+        class!["meta-item"]
     ]
 }
 
