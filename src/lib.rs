@@ -87,6 +87,7 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
                     class!["poster-image"],
                     style! { "background-image" => format!("url({})", poster) },
                     raw_ev(Ev::Click, |_| Msg::Action(Model::default_load()))
+                    //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
                 ]
             ]
         ],
