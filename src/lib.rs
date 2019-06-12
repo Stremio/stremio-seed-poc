@@ -42,7 +42,7 @@ fn view(model: &Model) -> El<Msg> {
             let el = match &group.content {
                 Loadable::Err(m) => h3![m],
                 Loadable::Loading => h3!["Loading"],
-                Loadable::Ready(items) if items.len() == 0 => div![],
+                Loadable::Ready(items) if items.is_empty() => div![],
                 Loadable::Ready(items) => div![class!["meta-items-container"],
                     items
                         .iter()
