@@ -1,40 +1,32 @@
 #[macro_use]
 extern crate seed;
 use seed::prelude::*;
+pub use stremio_core::state_types;
 use stremio_core::state_types::*;
 use stremio_core::types::{MetaPreview};
-use stremio_core::middlewares::*;
-use std::rc::Rc;
-use futures::sync::mpsc::*;
-use futures::stream::Stream;
-use futures::future;
-
+use stremio_derive::*;
 mod env;
 use env::*;
 
 // Model
+#[derive(Model, Default)]
 struct Model {
-    action_tx: Sender<Action>,
+    ctx: Ctx<Env>,
     catalog: CatalogGrouped,
 }
-impl Model {
-    fn default_load() -> Action {
-        Action::Load(ActionLoad::CatalogGrouped { extra: vec![] })
-    }
-}
 
+fn default_load() -> Msg {
+    Action::Load(ActionLoad::CatalogGrouped { extra: vec![] }).into()
+}
 
 // Update
-#[derive(Clone)]
-enum Msg {
-    Action(Action),
-    CatalogUpdated(CatalogGrouped),
-}
-
-fn update(msg: Msg, model: &mut Model, _: &mut Orders<Msg>) {
-    match msg {
-        Msg::Action(a) => model.action_tx.clone().try_send(a.to_owned()).unwrap(),
-        Msg::CatalogUpdated(c) => model.catalog = c,
+fn update(msg: Msg, model: &mut Model, orders: &mut Orders<Msg>) {
+    let fx = model.update(&msg);
+    if !fx.has_changed {
+        orders.skip();
+    }
+    for fut in fx.effects.into_iter() {
+        orders.perform_cmd(fut);
     }
 }
 
@@ -46,17 +38,17 @@ fn view(model: &Model) -> El<Msg> {
         .groups
         .iter()
         .map(|group| {
-            let el = match group.as_ref() {
-                (_, Loadable::Message(m)) => h3![m],
-                (_, Loadable::Loading) => h3!["Loading"],
-                (_, Loadable::Ready(items)) => div![class!["meta-items-container"],
+            let el = match &group.content {
+                Loadable::Err(m) => h3![m],
+                Loadable::Loading => h3!["Loading"],
+                Loadable::Ready(items) if items.len() == 0 => div![],
+                Loadable::Ready(items) => div![class!["meta-items-container"],
                     items
                         .iter()
                         .take(7)
                         .map(meta_item)
                         .collect::<Vec<El<Msg>>>()
                 ],
-                (_, Loadable::ReadyEmpty) => div![],
             };
             div![class!["board-row"], class!["addon-catalog-row"], el]
         })
@@ -86,7 +78,7 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
                 div![
                     class!["poster-image"],
                     style! { "background-image" => format!("url({})", poster) },
-                    raw_ev(Ev::Click, |_| Msg::Action(Model::default_load()))
+                    raw_ev(Ev::Click, |_| default_load())
                     //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
                 ]
             ]
@@ -100,41 +92,11 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
 
 #[wasm_bindgen]
 pub fn render() {
-    let (action_tx, rx) = channel(1000);
-
-    let model = Model {
-        catalog: Default::default(),
-        action_tx: action_tx.clone()
-    };
+    let model = Model::default();
 
     let app_state = seed::App::build(model, update, view)
         .finish()
         .run();
 
-    let middlewares: Vec<Box<dyn Handler>> = vec![
-        Box::new(ContextMiddleware::<Env>::new()),
-        Box::new(AddonsMiddleware::<Env>::new()),
-    ];
-    let container = Rc::new(ContainerHolder::new(CatalogGrouped::new()));
-    let muxer = ContainerMuxer::new(
-        middlewares,
-        vec![
-            ((), container.clone() as Rc<dyn ContainerInterface>)
-        ],
-        Box::new(move |ev| {
-            if let MuxerEvent::NewState(_) = ev {
-                app_state.update(Msg::CatalogUpdated(container.get_state_owned()));
-            }
-        }),
-    );
-
-    Env::exec(Box::new(
-        rx
-            .for_each(move |action| {
-                muxer.dispatch(&action);
-                future::ok(())
-            })
-    ));
-
-    action_tx.clone().try_send(Model::default_load()).unwrap();
+    app_state.update(default_load());
 }
