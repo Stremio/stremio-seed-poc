@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate seed;
 use seed::prelude::*;
+// required to make stremio_derive work :(
 pub use stremio_core::state_types;
 use stremio_core::state_types::*;
 use stremio_core::types::{MetaPreview};
