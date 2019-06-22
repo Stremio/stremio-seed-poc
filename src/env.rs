@@ -69,7 +69,7 @@ impl Env {
             None => None,
         })
     }
-    fn set_storage_sync<T: 'static + Serialize>(key: &str, value: Option<&T>) -> Result<(), EnvError> {
+    fn set_storage_sync<T: Serialize>(key: &str, value: Option<&T>) -> Result<(), EnvError> {
         let storage = Self::get_storage()?;
         Ok(match value {
             Some(v) => {
@@ -138,7 +138,7 @@ impl Environment for Env {
     fn get_storage<T: 'static + DeserializeOwned>(key: &str) -> EnvFuture<Option<T>> {
         Self::wrap_to_fut(Self::get_storage_sync(key))
     }
-    fn set_storage<T: 'static + Serialize>(key: &str, value: Option<&T>) -> EnvFuture<()> {
+    fn set_storage<T: Serialize>(key: &str, value: Option<&T>) -> EnvFuture<()> {
         Self::wrap_to_fut(Self::set_storage_sync(key, value))
     }
 }
