@@ -4,10 +4,9 @@ use seed::prelude::*;
 // required to make stremio_derive work :(
 pub use stremio_core::state_types;
 use stremio_core::state_types::*;
-use stremio_core::types::{MetaPreview};
+use stremio_core::types::MetaPreview;
 use stremio_derive::*;
-mod env;
-use env::*;
+use env_web::*;
 
 // Model
 #[derive(Model, Default)]
@@ -31,7 +30,6 @@ fn update(msg: Msg, model: &mut Model, orders: &mut Orders<Msg>) {
     }
 }
 
-
 // View
 fn view(model: &Model) -> El<Msg> {
     let groups: Vec<El<Msg>> = model
@@ -43,7 +41,8 @@ fn view(model: &Model) -> El<Msg> {
                 Loadable::Err(m) => h3![m],
                 Loadable::Loading => h3!["Loading"],
                 Loadable::Ready(items) if items.is_empty() => div![],
-                Loadable::Ready(items) => div![class!["meta-items-container"],
+                Loadable::Ready(items) => div![
+                    class!["meta-items-container"],
                     items
                         .iter()
                         .take(7)
@@ -60,12 +59,8 @@ fn view(model: &Model) -> El<Msg> {
 
 fn meta_item(m: &MetaPreview) -> El<Msg> {
     let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
-    let default_shape = "poster".to_owned();
-    let poster_shape = m.poster_shape.as_ref().unwrap_or(&default_shape);
-
-    let poster = m.poster
-        .as_ref()
-        .unwrap_or(&default_poster);
+    let poster = m.poster.as_ref().unwrap_or(&default_poster);
+    let poster_shape = m.poster_shape.to_str();
 
     div![
         attrs! {
@@ -79,8 +74,7 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
                 div![
                     class!["poster-image"],
                     style! { "background-image" => format!("url({})", poster) },
-                    raw_ev(Ev::Click, |_| default_load())
-                    //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
+                    raw_ev(Ev::Click, |_| default_load()) //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
                 ]
             ]
         ],
@@ -95,9 +89,7 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
 pub fn render() {
     let model = Model::default();
 
-    let app_state = seed::App::build(model, update, view)
-        .finish()
-        .run();
+    let app_state = seed::App::build(model, update, view).finish().run();
 
     app_state.update(default_load());
 }

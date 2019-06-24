@@ -21,6 +21,7 @@ serde_json = "1.0.16"
 wasm-bindgen-futures = "0.3"
 js-sys = "0.3"
 enclose = "0.1.3"
+env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
 
 [profile.release]
 lto = true
