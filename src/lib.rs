@@ -1,71 +1,83 @@
+#![allow(clippy::needless_pass_by_value)]
+
 #[macro_use]
 extern crate seed;
-use seed::prelude::*;
-// required to make stremio_derive work :(
-pub use stremio_core::state_types;
-use stremio_core::state_types::*;
+use env_web::Env;
+use seed::{prelude::*, App};
+use stremio_core::state_types::{Action, ActionLoad, CatalogGrouped, Ctx, Loadable, Msg, Update};
 use stremio_core::types::MetaPreview;
-use stremio_derive::*;
-use env_web::*;
+use stremio_derive::Model;
 
-// Model
+// ------ ------
+//     Model
+// ------ ------
+
 #[derive(Model, Default)]
 struct Model {
     ctx: Ctx<Env>,
     catalog: CatalogGrouped,
 }
 
+// ------ ------
+//     Init
+// ------ ------
+
+fn init(_url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
+    orders.send_msg(default_load());
+    Init::default()
+}
+
+// ------ ------
+//    Update
+// ------ ------
+
 fn default_load() -> Msg {
     Action::Load(ActionLoad::CatalogGrouped { extra: vec![] }).into()
 }
 
-// Update
-fn update(msg: Msg, model: &mut Model, orders: &mut Orders<Msg>) {
+fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     let fx = model.update(&msg);
     if !fx.has_changed {
         orders.skip();
     }
-    for fut in fx.effects.into_iter() {
-        orders.perform_cmd(fut);
+    for cmd in fx.effects {
+        orders.perform_cmd(cmd);
     }
 }
 
-// View
-fn view(model: &Model) -> El<Msg> {
-    let groups: Vec<El<Msg>> = model
-        .catalog
-        .groups
-        .iter()
-        .map(|group| {
-            let el = match &group.content {
-                Loadable::Err(m) => h3![m],
-                Loadable::Loading => h3!["Loading"],
-                Loadable::Ready(items) if items.is_empty() => div![],
-                Loadable::Ready(items) => div![
-                    class!["meta-items-container"],
-                    items
-                        .iter()
-                        .take(7)
-                        .map(meta_item)
-                        .collect::<Vec<El<Msg>>>()
-                ],
-            };
-            div![class!["board-row"], class!["addon-catalog-row"], el]
-        })
-        .collect();
-    let content = div![class!["board-content"], groups];
-    div![class!["board-container"], content]
+// ------ ------
+//     View
+// ------ ------
+
+fn view(model: &Model) -> Node<Msg> {
+    let groups = model.catalog.groups.iter().map(|group| {
+        let el = match &group.content {
+            Loadable::Err(catalog_error) => h3![format!("{:#?}", catalog_error)],
+            Loadable::Loading => h3!["Loading"],
+            Loadable::Ready(meta_previews) if meta_previews.is_empty() => div![],
+            Loadable::Ready(meta_previews) => div![
+                class!["meta-items-container"],
+                meta_previews.iter().take(7).map(view_meta_preview)
+            ],
+        };
+        div![class!["board-row"], class!["addon-catalog-row"], el]
+    });
+
+    div![
+        class!["board-container"],
+        div![class!["board-content"], groups]
+    ]
 }
 
-fn meta_item(m: &MetaPreview) -> El<Msg> {
+fn view_meta_preview(meta_preview: &MetaPreview) -> Node<Msg> {
     let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
-    let poster = m.poster.as_ref().unwrap_or(&default_poster);
-    let poster_shape = m.poster_shape.to_str();
+    let poster = meta_preview.poster.as_ref().unwrap_or(&default_poster);
+    let poster_shape = meta_preview.poster_shape.to_str();
 
     div![
         attrs! {
             At::Class => format!("meta-item meta-item-container poster-shape-{}", poster_shape);
-            At::Title => &m.name
+            At::Title => meta_preview.name
         },
         div![
             class!["poster-image-container"],
@@ -80,16 +92,16 @@ fn meta_item(m: &MetaPreview) -> El<Msg> {
         ],
         div![
             class!["title-bar-container"],
-            div![class!["title"], &m.name]
+            div![class!["title"], meta_preview.name]
         ],
     ]
 }
 
-#[wasm_bindgen]
-pub fn render() {
-    let model = Model::default();
+// ------ ------
+//     Start
+// ------ ------
 
-    let app_state = seed::App::build(model, update, view).finish().run();
-
-    app_state.update(default_load());
+#[wasm_bindgen(start)]
+pub fn start() {
+    App::build(init, update, view).build_and_start();
 }
