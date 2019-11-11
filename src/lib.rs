@@ -4,7 +4,7 @@
 extern crate seed;
 use env_web::Env;
 use seed::{prelude::*, App, *};
-use stremio_core::state_types::{Action, ActionLoad, CatalogFiltered, Ctx, Loadable, Msg, Update};
+use stremio_core::state_types::{Action, ActionLoad, CatalogFiltered, Ctx, Loadable, Msg, Update, TypeEntry, CatalogEntry};
 use stremio_core::types::MetaPreview;
 use stremio_core::types::addons::{ResourceRequest, ResourceRef};
 use stremio_derive::Model;
@@ -37,7 +37,7 @@ fn default_load() -> Msg {
         base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
         path: ResourceRef::without_extra("catalog", "movie", "top"),
     };
-    Action::Load(ActionLoad::CatalogFiltered(req)).into()
+    Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -56,28 +56,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
 fn view(model: &Model) -> Node<Msg> {
 //    log!("TYPES:", model.catalog.types);
-    log!("CATALOGS:", model.catalog.catalogs);
+//    log!("CATALOGS:", model.catalog.catalogs);
 
     div![
-        select![
-            model.catalog.types.iter().map(|type_| {
-                option![
-                    type_.type_name
-                ]
-            })
-        ],
-        if let Some(resource_request) = &model.catalog.selected {
-            let type_name = &resource_request.path.type_name;
-            select![
-                model.catalog.catalogs.iter().filter(|catalog| &catalog.load.path.type_name == type_name).map(|catalog| {
-                    option![
-                        catalog.name,
-                    ]
-                })
-            ]
-        } else {
-            empty![]
-        }
+        view_type_selector(&model.catalog.types),
+        view_catalog_selector(&model.catalog.catalogs, model.catalog.selected.as_ref()).unwrap_or_else(|| empty![])
     ]
 
 
@@ -98,6 +81,41 @@ fn view(model: &Model) -> Node<Msg> {
 //        class!["board-container"],
 //        div![class!["board-content"], groups]
 //    ]
+}
+
+fn view_type_selector(type_entries: &[TypeEntry]) -> Node<Msg> {
+    select![
+        type_entries.iter().map(|type_entry| {
+            let req = type_entry.load.clone();
+            option![
+                attrs!{
+                    At::Selected => type_entry.is_selected.as_at_value(),
+                },
+                raw_ev(Ev::Click, |_| Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))),
+                type_entry.type_name
+            ]
+        })
+    ]
+}
+
+fn view_catalog_selector(catalog_entries: &[CatalogEntry], selected_req: Option<&ResourceRequest>) -> Option<Node<Msg>> {
+    selected_req.map(|selected_req| {
+        select![
+            catalog_entries
+                .iter()
+                .filter(|catalog_entry| &catalog_entry.load.path.type_name == &selected_req.path.type_name)
+                .map(|catalog_entry| {
+                    let req = catalog_entry.load.clone();
+                    option![
+                        attrs!{
+                            At::Selected => catalog_entry.is_selected.as_at_value(),
+                        },
+                        raw_ev(Ev::Click, |_| Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))),
+                        catalog_entry.name,
+                    ]
+                })
+        ]
+    })
 }
 
 fn view_meta_preview(meta_preview: &MetaPreview) -> Node<Msg> {
