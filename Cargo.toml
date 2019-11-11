@@ -23,14 +23,14 @@ enclose = "1.1.8"
 seed = "0.4.2"
 #seed = { git = "ssh://git@github.com/David-OConnor/Seed.git" }
 
-stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
-#stremio-core = { path = "../stremio-core" }
+#stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
+stremio-core = { path = "../stremio-core" }
 
-stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
-#stremio-derive = { path = "../stremio-core/stremio-derive" }
+#stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
+stremio-derive = { path = "../stremio-core/stremio-derive" }
 
-env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
-#env-web = { path = "../stremio-core/env-web" }
+#env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
+env-web = { path = "../stremio-core/env-web" }
 
 [dependencies.web-sys]
 version = "0.3.30"
