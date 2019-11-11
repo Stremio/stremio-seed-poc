@@ -19,6 +19,7 @@ serde_json = "1.0.41"
 wasm-bindgen-futures = "0.3"
 js-sys = "0.3"
 enclose = "1.1.8"
+itertools = "0.8.1"
 
 seed = "0.4.2"
 #seed = { git = "ssh://git@github.com/David-OConnor/Seed.git" }
