@@ -60,15 +60,23 @@ fn view(model: &Model) -> Node<Msg> {
 //    log!("TYPES:", model.catalog.types);
 //    log!("CATALOGS:", model.catalog.catalogs);
 //    log!("Extra:", model.catalog.selectable_extra);
-//    log!("CONTENT", model.catalog.content);
+    log!("CONTENT", model.catalog.content);
 
     div![
+        id!("discover"),
         div![
             view_type_selector(&model.catalog.types),
             view_catalog_selector(&model.catalog.catalogs, model.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
             view_extra_prop_selector(&model.catalog.selectable_extra, model.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
         ],
         div![
+            id!("discover_holder"),
+            style!{
+                St::Top => px(40),
+            },
+            class![
+                "holder",
+            ],
             view_content(&model.catalog.content),
         ]
     ]
@@ -79,9 +87,17 @@ fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>) -> Node<Msg>
         Loadable::Err(catalog_error) => h3![format!("{:#?}", catalog_error)],
         Loadable::Loading => h3!["Loading"],
         Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
-        Loadable::Ready(meta_previews) => div![
-            meta_previews.iter().map(view_meta_preview).collect::<Vec<_>>()
-        ],
+        Loadable::Ready(meta_previews) => {
+            ul![
+                id!("discover-port"),
+                class![
+                    "items",
+                    "scroll-pane",
+                    "square",
+                ],
+                meta_previews.iter().map(view_meta_preview).collect::<Vec<_>>()
+            ]
+        }
     }
 }
 
@@ -90,28 +106,70 @@ fn view_meta_preview(meta_preview: &MetaPreview) -> Node<Msg> {
     let poster = meta_preview.poster.as_ref().unwrap_or(&default_poster);
     let poster_shape = meta_preview.poster_shape.to_str();
 
-    div![
-        attrs! {
-            At::Class => format!("meta-item meta-item-container poster-shape-{}", poster_shape);
-            At::Title => meta_preview.name
-        },
+    li![
+        class![
+            "selected" => true,
+            "item"
+        ],
         div![
-            class!["poster-image-container"],
-            div![
-                class!["poster-image-layer"],
-                div![
-                    class!["poster-image"],
-                    style! { "background-image" => format!("url({})", poster) },
-//                    raw_ev(Ev::Click, |_| default_load()) //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
-                ]
+            class![
+                "name",
+            ],
+             meta_preview.name
+        ],
+        a![
+            class![
+                "thumb"
+            ],
+            style!{
+                St::BackgroundImage => format!("url({})", poster)
+            }
+        ],
+        div![
+            class![
+                "icon",
+                "icon-ic_play",
+                "button"
             ]
-        ],
-        div![
-            class!["title-bar-container"],
-            div![class!["title"], meta_preview.name]
-        ],
+        ]
     ]
+
+//    div![
+//        attrs! {
+//            At::Class => format!("meta-item meta-item-container poster-shape-{}", poster_shape);
+//            At::Title => meta_preview.name
+//        },
+//        div![
+//            class!["poster-image-container"],
+//            div![
+//                class!["poster-image-layer"],
+//                div![
+//                    class!["poster-image"],
+//                    style! { "background-image" => format!("url({})", poster) },
+////                    raw_ev(Ev::Click, |_| default_load()) //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
+//                ]
+//            ]
+//        ],
+//        div![
+//            class!["title-bar-container"],
+//            div![class!["title"], meta_preview.name]
+//        ],
+//    ]
 }
+
+//<li ng-repeat="item in resp.metas track by item._id" ng-click="selectItem(item)" ng-class="{ inLib: libraryItem.byId[item.id], selected: item._id == info._id }" spatial-nav-enter="open({ metaItem: item })" spatial-nav-focus="$parent.info = item" tabindex="-1" class="item ng-scope">
+//    <div class="name ng-binding">
+//        Cocomelon - Nursery Rhymes
+//    </div>
+//
+//    <a stremio-image="::{ url: item.poster }" class="thumb" data-image="https://yt3.ggpht.com/a/AGF-l79wZ6qBUvS5bcIe_XVWu7cUdHEEZRUnK18Pcg=s800-c-k-c0xffffffff-no-rj-mo" style="background-image: url(&quot;https://yt3.ggpht.com/a/AGF-l79wZ6qBUvS5bcIe_XVWu7cUdHEEZRUnK18Pcg=s800-c-k-c0xffffffff-no-rj-mo&quot;);">
+//    </a>
+//
+//    <div class="icon icon-ic_play button">
+//    </div>
+//
+//    <!-- ngIf: ::item.featured --><!-- ngIf: ::!item.featured && item.isInTheaterOnly() -->
+//</li>
 
 fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Option<&ResourceRequest>) -> Option<Node<Msg>> {
     let selected_req = selected_req?;
