@@ -9,6 +9,7 @@ use stremio_derive::Model;
 use itertools::Itertools;
 use futures::future::Future;
 use std::rc::Rc;
+use wasm_bindgen::JsCast;
 
 // ------ ------
 //     Model
@@ -54,9 +55,11 @@ enum Msg {
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
     MetaPreviewClicked(MetaPreviewId),
+    SetSelectorValues,
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+    let mut set_selector_values = true;
     match msg {
         Msg::Core(core_msg) => {
             let fx = model.core.update(&core_msg);
@@ -70,6 +73,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 orders.perform_cmd(cmd);
             }
         },
+        Msg::CoreError(core_error) => log!("core_error", core_error),
         Msg::MetaPreviewClicked(meta_preview_id) => {
             if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
                 if selected_meta_preview_id == &meta_preview_id {
@@ -78,7 +82,35 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
             model.selected_meta_preview_id = Some(meta_preview_id);
         },
-        Msg::CoreError(core_error) => log!("core_error", core_error)
+        // @TODO resolve properly
+        Msg::SetSelectorValues => {
+            set_selector_values = false;
+            if let Some(selected) = &model.core.catalog.selected {
+                if let Some(type_selector) = document().get_element_by_id("type_selector") {
+                    let type_selector = type_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+                    type_selector.set_value(&selected.path.type_name);
+                }
+                if let Some(catalog_selector) = document().get_element_by_id("catalog_selector") {
+                    let catalog_selector = catalog_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+                    catalog_selector.set_value(&selected.path.id);
+                }
+                if let Some(extra_prop_selector) = document().get_element_by_id("extra_prop_selector") {
+                    let extra_prop_selector = extra_prop_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+                    let value = selected.path.extra.iter().map(|(_, value)| value).join(", ");
+                    let value = if value.is_empty() {
+                        "None"
+                    } else {
+                        &value
+                    };
+                    extra_prop_selector.set_value(value);
+                }
+            }
+        }
+    }
+    if set_selector_values {
+        orders
+            .force_render_now()
+            .send_msg(Msg::SetSelectorValues);
     }
 }
 
@@ -86,7 +118,6 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-// @TODO reset button?
 fn view(model: &Model) -> Node<Msg> {
 //    log!("TYPES:", model.catalog.types);
 //    log!("CATALOGS:", model.catalog.catalogs);
@@ -99,6 +130,7 @@ fn view(model: &Model) -> Node<Msg> {
             view_type_selector(&model.core.catalog.types),
             view_catalog_selector(&model.core.catalog.catalogs, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
             view_extra_prop_selector(&model.core.catalog.selectable_extra, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
+            view_reset_button(),
         ],
         div![
             id!("discover_holder"),
@@ -110,6 +142,18 @@ fn view(model: &Model) -> Node<Msg> {
             ],
             view_content(&model.core.catalog.content, model.selected_meta_preview_id.as_ref()),
         ]
+    ]
+}
+
+fn view_reset_button() -> Node<Msg> {
+    div![
+        style!{
+            St::Padding => "3px 20px",
+            St::Cursor => "pointer",
+            St::Display => "inline-block",
+        },
+        simple_ev(Ev::Click, default_load()),
+        "Reset",
     ]
 }
 
@@ -179,11 +223,22 @@ fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Opt
 //    log!("selected_req", selected_req);
 
     let mut select_is_empty = true;
+
+    let dummy_option_value = selected_req.path.extra.iter().map(|(_, value)| value).join(", ");
+    let dummy_option = option![
+        style!{
+            St::Display => "none",
+        },
+        if dummy_option_value.is_empty() {
+            "None"
+        } else {
+            &dummy_option_value
+        }
+    ];
+
     let select =
         select![
-            attrs!{
-                At::Value => "sef",
-            },
+            id!("extra_prop_selector"),
             extra_props
                 .iter()
                 .map(|extra_prop| {
@@ -195,7 +250,8 @@ fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Opt
                         attrs!{
                             At::Label => extra_prop.name
                         },
-                        option_nodes
+                        option_nodes,
+                        dummy_option.clone(),
                     ]
                 }).collect::<Vec<_>>()
         ];
@@ -232,7 +288,6 @@ fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: 
         option![
             attrs!{
                 At::Selected => option_is_selected.as_at_value(),
-                At::Value => option,
             },
             simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
             option,
@@ -243,6 +298,7 @@ fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: 
 
 fn view_type_selector(type_entries: &[TypeEntry]) -> Node<Msg> {
     select![
+        id!("type_selector"),
         type_entries.iter().map(|type_entry| {
             let req = type_entry.load.clone();
             option![
@@ -267,6 +323,7 @@ fn view_catalog_selector(catalog_entries: &[CatalogEntry], selected_req: Option<
     let catalog_groups = catalog_entries.group_by(|catalog_entry| &catalog_entry.addon_name);
 
     Some(select![
+        id!("catalog_selector"),
         catalog_groups
             .into_iter()
             .map(|(addon_name, catalog_entries)| {
@@ -285,7 +342,7 @@ fn view_catalog_selector_item(catalog_entry: &CatalogEntry) -> Node<Msg> {
     option![
         attrs!{
             At::Selected => catalog_entry.is_selected.as_at_value(),
-            At::Value => catalog_entry.name,
+            At::Value => catalog_entry.load.path.id,
         },
         simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
         catalog_entry.name,
