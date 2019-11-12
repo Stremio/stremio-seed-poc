@@ -262,12 +262,14 @@ fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Opt
     Some(select)
 }
 
-// @TODO: respect limit, handle required/optional, show custom value, don't hide on click? ...
+// @TODO: don't hide on click? ...
 fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: &ResourceRequest) -> Vec<Node<Msg>> {
     let options = match &extra_prop.options {
         Some(options) => options,
         None => return Vec::new()
     };
+
+//    log!(extra_prop);
 
     options.iter().map(|option| {
         let option_is_selected = selected_req.path.extra
@@ -276,12 +278,26 @@ fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: 
                 selected_name == &extra_prop.name && selected_option == option
             });
 
+        let selected_count = selected_req.path.extra
+            .iter()
+            .filter(|(selected_name, _)| selected_name == &extra_prop.name)
+            .count();
+
         let mut req = selected_req.clone();
         if option_is_selected {
-            req.path.extra.retain(|(selected_name, selected_option)| {
-                selected_name != &extra_prop.name || selected_option != option
-            });
+            if !extra_prop.is_required || selected_count > 1 {
+                req.path.extra.retain(|(selected_name, selected_option)| {
+                    selected_name != &extra_prop.name || selected_option != option
+                });
+            }
         } else {
+            // TODO: if selected_count == extra_prop.options_limit {
+            if selected_count == 1 {
+                let position = req.path.extra.iter().position(|(selected_name, _)| selected_name == &extra_prop.name);
+                if let Some(position) = position {
+                    req.path.extra.remove(position);
+                }
+            }
             req.path.extra.push((extra_prop.name.clone(), option.clone()));
         }
 
@@ -307,7 +323,7 @@ fn view_type_selector(type_entries: &[TypeEntry]) -> Node<Msg> {
                     At::Value => type_entry.type_name,
                 },
                 simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
-                type_entry.type_name
+                type_entry.type_name,
             ]
         }).collect::<Vec<_>>()
     ]
