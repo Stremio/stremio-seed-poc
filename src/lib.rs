@@ -1,21 +1,29 @@
 #![allow(clippy::needless_pass_by_value)]
 
-#[macro_use]
-extern crate seed;
 use env_web::Env;
 use seed::{prelude::*, App, *};
-use stremio_core::state_types::{Action, ActionLoad, CatalogFiltered, Ctx, Loadable, Msg, Update, TypeEntry, CatalogEntry, CatalogError};
+use stremio_core::state_types::{Action, ActionLoad, CatalogFiltered, Ctx, Loadable, Msg as CoreMsg, Update, TypeEntry, CatalogEntry, CatalogError};
 use stremio_core::types::MetaPreview;
-use stremio_core::types::addons::{ResourceRequest, ResourceRef, ManifestExtraProp, ExtraProp};
+use stremio_core::types::addons::{ResourceRequest, ResourceRef, ManifestExtraProp};
 use stremio_derive::Model;
 use itertools::Itertools;
+use futures::future::Future;
+use std::rc::Rc;
 
 // ------ ------
 //     Model
 // ------ ------
 
-#[derive(Model, Default)]
+type MetaPreviewId = String;
+
+#[derive(Default)]
 struct Model {
+    core: CoreModel,
+    selected_meta_preview_id: Option<MetaPreviewId>,
+}
+
+#[derive(Model, Default)]
+struct CoreModel {
     ctx: Ctx<Env>,
     catalog: CatalogFiltered<MetaPreview>,
 }
@@ -23,6 +31,14 @@ struct Model {
 // ------ ------
 //     Init
 // ------ ------
+
+fn default_load() -> Msg {
+    let req = ResourceRequest {
+        base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
+        path: ResourceRef::without_extra("catalog", "movie", "top"),
+    };
+    Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
+}
 
 fn init(_url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
     orders.send_msg(default_load());
@@ -33,21 +49,36 @@ fn init(_url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
 //    Update
 // ------ ------
 
-fn default_load() -> Msg {
-    let req = ResourceRequest {
-        base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
-        path: ResourceRef::without_extra("catalog", "movie", "top"),
-    };
-    Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))
+#[derive(Clone)]
+enum Msg {
+    Core(Rc<CoreMsg>),
+    CoreError(Rc<CoreMsg>),
+    MetaPreviewClicked(MetaPreviewId),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    let fx = model.update(&msg);
-    if !fx.has_changed {
-        orders.skip();
-    }
-    for cmd in fx.effects {
-        orders.perform_cmd(cmd);
+    match msg {
+        Msg::Core(core_msg) => {
+            let fx = model.core.update(&core_msg);
+            if !fx.has_changed {
+                orders.skip();
+            }
+            for cmd in fx.effects {
+                let cmd = cmd
+                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
+                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
+                orders.perform_cmd(cmd);
+            }
+        },
+        Msg::MetaPreviewClicked(meta_preview_id) => {
+            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
+                if selected_meta_preview_id == &meta_preview_id {
+                    // @TODO go to player
+                }
+            }
+            model.selected_meta_preview_id = Some(meta_preview_id);
+        },
+        Msg::CoreError(core_error) => log!("core_error", core_error)
     }
 }
 
@@ -60,14 +91,14 @@ fn view(model: &Model) -> Node<Msg> {
 //    log!("TYPES:", model.catalog.types);
 //    log!("CATALOGS:", model.catalog.catalogs);
 //    log!("Extra:", model.catalog.selectable_extra);
-    log!("CONTENT", model.catalog.content);
+//    log!("CONTENT", model.core.catalog.content);
 
     div![
         id!("discover"),
         div![
-            view_type_selector(&model.catalog.types),
-            view_catalog_selector(&model.catalog.catalogs, model.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
-            view_extra_prop_selector(&model.catalog.selectable_extra, model.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
+            view_type_selector(&model.core.catalog.types),
+            view_catalog_selector(&model.core.catalog.catalogs, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
+            view_extra_prop_selector(&model.core.catalog.selectable_extra, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
         ],
         div![
             id!("discover_holder"),
@@ -77,12 +108,12 @@ fn view(model: &Model) -> Node<Msg> {
             class![
                 "holder",
             ],
-            view_content(&model.catalog.content),
+            view_content(&model.core.catalog.content, model.selected_meta_preview_id.as_ref()),
         ]
     ]
 }
 
-fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>) -> Node<Msg> {
+fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
     match content {
         Loadable::Err(catalog_error) => h3![format!("{:#?}", catalog_error)],
         Loadable::Loading => h3!["Loading"],
@@ -95,22 +126,28 @@ fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>) -> Node<Msg>
                     "scroll-pane",
                     "square",
                 ],
-                meta_previews.iter().map(view_meta_preview).collect::<Vec<_>>()
+                meta_previews.iter().map(|meta_preview| view_meta_preview(meta_preview, selected_meta_preview_id)).collect::<Vec<_>>()
             ]
         }
     }
 }
 
-fn view_meta_preview(meta_preview: &MetaPreview) -> Node<Msg> {
+fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
     let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
     let poster = meta_preview.poster.as_ref().unwrap_or(&default_poster);
-    let poster_shape = meta_preview.poster_shape.to_str();
+//    let poster_shape = meta_preview.poster_shape.to_str();
+
+    let is_selected = match selected_meta_preview_id {
+        Some(selected_meta_preview_id) => selected_meta_preview_id == &meta_preview.id,
+        None => false,
+    };
 
     li![
         class![
-            "selected" => true,
+            "selected" => is_selected,
             "item"
         ],
+        simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.id.clone())),
         div![
             class![
                 "name",
@@ -133,50 +170,13 @@ fn view_meta_preview(meta_preview: &MetaPreview) -> Node<Msg> {
             ]
         ]
     ]
-
-//    div![
-//        attrs! {
-//            At::Class => format!("meta-item meta-item-container poster-shape-{}", poster_shape);
-//            At::Title => meta_preview.name
-//        },
-//        div![
-//            class!["poster-image-container"],
-//            div![
-//                class!["poster-image-layer"],
-//                div![
-//                    class!["poster-image"],
-//                    style! { "background-image" => format!("url({})", poster) },
-////                    raw_ev(Ev::Click, |_| default_load()) //raw_ev(Ev::Click, |_| Msg::Action(Action::UserOp(ActionUser::Login{ email, password })))
-//                ]
-//            ]
-//        ],
-//        div![
-//            class!["title-bar-container"],
-//            div![class!["title"], meta_preview.name]
-//        ],
-//    ]
 }
-
-//<li ng-repeat="item in resp.metas track by item._id" ng-click="selectItem(item)" ng-class="{ inLib: libraryItem.byId[item.id], selected: item._id == info._id }" spatial-nav-enter="open({ metaItem: item })" spatial-nav-focus="$parent.info = item" tabindex="-1" class="item ng-scope">
-//    <div class="name ng-binding">
-//        Cocomelon - Nursery Rhymes
-//    </div>
-//
-//    <a stremio-image="::{ url: item.poster }" class="thumb" data-image="https://yt3.ggpht.com/a/AGF-l79wZ6qBUvS5bcIe_XVWu7cUdHEEZRUnK18Pcg=s800-c-k-c0xffffffff-no-rj-mo" style="background-image: url(&quot;https://yt3.ggpht.com/a/AGF-l79wZ6qBUvS5bcIe_XVWu7cUdHEEZRUnK18Pcg=s800-c-k-c0xffffffff-no-rj-mo&quot;);">
-//    </a>
-//
-//    <div class="icon icon-ic_play button">
-//    </div>
-//
-//    <!-- ngIf: ::item.featured --><!-- ngIf: ::!item.featured && item.isInTheaterOnly() -->
-//</li>
 
 fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Option<&ResourceRequest>) -> Option<Node<Msg>> {
     let selected_req = selected_req?;
-    let selected_extra_props = &selected_req.path.extra;
 
-    log!("extra_props", extra_props);
-    log!("selected_req", selected_req);
+//    log!("extra_props", extra_props);
+//    log!("selected_req", selected_req);
 
     let mut select_is_empty = true;
     let select =
@@ -234,7 +234,7 @@ fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: 
                 At::Selected => option_is_selected.as_at_value(),
                 At::Value => option,
             },
-            raw_ev(Ev::Click, |_| Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))),
+            simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
             option,
             if option_is_selected { " ✓" } else { "" },
         ]
@@ -250,7 +250,7 @@ fn view_type_selector(type_entries: &[TypeEntry]) -> Node<Msg> {
                     At::Selected => type_entry.is_selected.as_at_value(),
                     At::Value => type_entry.type_name,
                 },
-                raw_ev(Ev::Click, |_| Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))),
+                simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
                 type_entry.type_name
             ]
         }).collect::<Vec<_>>()
@@ -287,7 +287,7 @@ fn view_catalog_selector_item(catalog_entry: &CatalogEntry) -> Node<Msg> {
             At::Selected => catalog_entry.is_selected.as_at_value(),
             At::Value => catalog_entry.name,
         },
-        raw_ev(Ev::Click, |_| Msg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))),
+        simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
         catalog_entry.name,
     ]
 }
