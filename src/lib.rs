@@ -10,6 +10,7 @@ use itertools::Itertools;
 use futures::future::Future;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
+use std::borrow::Cow;
 
 // ------ ------
 //     Model
@@ -17,16 +18,64 @@ use wasm_bindgen::JsCast;
 
 type MetaPreviewId = String;
 
-#[derive(Default)]
 struct Model {
     core: CoreModel,
     selected_meta_preview_id: Option<MetaPreviewId>,
+    page: Page,
 }
 
 #[derive(Model, Default)]
 struct CoreModel {
     ctx: Ctx<Env>,
     catalog: CatalogFiltered<MetaPreview>,
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub enum Page {
+    Board,
+//    Discover(ResourceRequest),
+    Discover,
+    Detail,
+    Player,
+    NotFound,
+}
+
+impl Page {
+    pub fn to_href(self) -> Cow<'static, str> {
+        match self {
+            Self::Board => "#/board".into(),
+            Self::Discover => format!("#/discover/{}", "TODO").into(),
+            Self::Detail => format!("#/detail/{}", "TODO").into(),
+            Self::Player => "#/player".into(),
+            Self::NotFound => "#/404".into(),
+        }
+    }
+}
+
+impl From<Url> for Page {
+    fn from(url: Url) -> Self {
+        let hash = match url.hash {
+            Some(hash) => hash,
+            None => {
+                match url.path.first().map(String::as_str) {
+                    None | Some("") => return Self::Board,
+                    _ => return Self::NotFound,
+                }
+            },
+        };
+        log!("HASH", hash);
+        let mut hash = hash.split('/');
+        // skip the part before the first `/`
+        hash.next();
+
+        match hash.next() {
+            Some("") | Some("board") => Self::Board,
+            Some("discover") => Self::Discover,
+            Some("detail") => Self::Detail,
+            Some("player") => Self::Player,
+            _ => Self::NotFound,
+        }
+    }
 }
 
 // ------ ------
@@ -41,9 +90,28 @@ fn default_load() -> Msg {
     Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
 }
 
-fn init(_url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
+fn init(url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
     orders.send_msg(default_load());
-    Init::default()
+
+    log!("URL IN INIT", url);
+
+    let model = Model {
+        core: CoreModel::default(),
+        page: url.into(),
+        selected_meta_preview_id: None,
+    };
+
+    Init::new_with_url_handling(model, UrlHandling::None)
+}
+
+// ------ ------
+//    Routes
+// ------ ------
+
+fn routes(url: Url) -> Option<Msg> {
+    log!("URL IN ROUTES", url);
+
+    Some(Msg::RouteChanged(url))
 }
 
 // ------ ------
@@ -56,6 +124,7 @@ enum Msg {
     CoreError(Rc<CoreMsg>),
     MetaPreviewClicked(MetaPreviewId),
     SetSelectorValues,
+    RouteChanged(Url),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -105,6 +174,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     extra_prop_selector.set_value(value);
                 }
             }
+        },
+        Msg::RouteChanged(url) => {
+            model.page = url.into();
         }
     }
     if set_selector_values {
@@ -119,10 +191,38 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 
 fn view(model: &Model) -> Node<Msg> {
-//    log!("TYPES:", model.catalog.types);
-//    log!("CATALOGS:", model.catalog.catalogs);
-//    log!("Extra:", model.catalog.selectable_extra);
-//    log!("CONTENT", model.core.catalog.content);
+    match model.page {
+        Page::Board => {
+            div![
+                "Board"
+            ]
+        },
+        Page::Discover => {
+            view_discover_page(&model)
+        }      ,
+        Page::Detail => {
+            div![
+                "Detail"
+            ]
+        },
+        Page::Player => {
+            div![
+                "Player"
+            ]
+        },
+        Page::NotFound => {
+            div![
+                "Not Found"
+            ]
+        }
+    }
+}
+
+fn view_discover_page(model: &Model) -> Node<Msg> {
+    //    log!("TYPES:", model.catalog.types);
+    //    log!("CATALOGS:", model.catalog.catalogs);
+    //    log!("Extra:", model.catalog.selectable_extra);
+    //    log!("CONTENT", model.core.catalog.content);
 
     div![
         id!("discover"),
@@ -371,5 +471,7 @@ fn view_catalog_selector_item(catalog_entry: &CatalogEntry) -> Node<Msg> {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    App::build(init, update, view).build_and_start();
+    App::build(init, update, view)
+        .routes(routes)
+        .build_and_start();
 }
