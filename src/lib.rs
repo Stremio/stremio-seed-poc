@@ -4,7 +4,7 @@ use env_web::Env;
 use seed::{prelude::*, App, *};
 use stremio_core::state_types::{Action, ActionLoad, CatalogFiltered, Ctx, Loadable, Msg as CoreMsg, Update, TypeEntry, CatalogEntry, CatalogError};
 use stremio_core::types::MetaPreview;
-use stremio_core::types::addons::{ResourceRequest, ResourceRef, ManifestExtraProp};
+use stremio_core::types::addons::{ResourceRequest, ResourceRef, ManifestExtraProp, OptionsLimit};
 use stremio_derive::Model;
 use itertools::Itertools;
 use futures::future::Future;
@@ -93,7 +93,7 @@ fn default_load() -> Msg {
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
     orders.send_msg(default_load());
 
-    log!("URL IN INIT", url);
+//    log!("URL IN INIT", url);
 
     let model = Model {
         core: CoreModel::default(),
@@ -109,7 +109,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
 // ------ ------
 
 fn routes(url: Url) -> Option<Msg> {
-    log!("URL IN ROUTES", url);
+//    log!("URL IN ROUTES", url);
 
     Some(Msg::RouteChanged(url))
 }
@@ -391,8 +391,7 @@ fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: 
                 });
             }
         } else {
-            // TODO: if selected_count == extra_prop.options_limit {
-            if selected_count == 1 {
+            if OptionsLimit(selected_count) == extra_prop.options_limit {
                 let position = req.path.extra.iter().position(|(selected_name, _)| selected_name == &extra_prop.name);
                 if let Some(position) = position {
                     req.path.extra.remove(position);
