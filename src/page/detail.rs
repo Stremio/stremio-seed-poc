@@ -1,7 +1,11 @@
 use seed::{prelude::*, *};
-use crate::Msg;
+use crate::{CoreModel, MetaPreviewId};
 
-pub fn view() -> Node<Msg> {
+// ------ ------
+//     View
+// ------ ------
+
+pub fn view<Ms>() -> Node<Ms> {
     div![
         "Detail"
     ]

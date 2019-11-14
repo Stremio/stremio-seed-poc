@@ -1,14 +1,18 @@
 use seed::{prelude::*, *};
-use crate::{default_resource_request, Page, Msg};
+use crate::{default_resource_request, Route, CoreModel, MetaPreviewId};
 
-pub fn view() -> Node<Msg> {
+// ------ ------
+//     View
+// ------ ------
+
+pub fn view<Ms>() -> Node<Ms> {
     div![
         h1![
             "Board",
         ],
         a![
             attrs!{
-                At::Href => Page::Discover(default_resource_request()).to_href()
+                At::Href => Route::Discover(default_resource_request()).to_href()
             },
             "Go to Discover"
         ]

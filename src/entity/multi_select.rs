@@ -9,16 +9,16 @@ pub struct Model<T> {
 }
 
 pub struct Group<T> {
-    label: Option<String>,
-    items: Vec<GroupItem<T>>,
-    limit: usize,
-    required: bool,
+    pub label: Option<String>,
+    pub items: Vec<GroupItem<T>>,
+    pub limit: usize,
+    pub required: bool,
 }
 
 pub struct GroupItem<T> {
-    label: String,
-    value: T,
-    selected: bool,
+    pub label: String,
+    pub value: T,
+    pub selected: bool,
 }
 
 // ------ ------
@@ -35,6 +35,7 @@ pub fn init<T>(groups: Vec<Group<T>>) -> Model<T> {
 //    Update
 // ------ ------
 
+#[derive(Clone)]
 pub enum Msg {
 }
 
@@ -51,6 +52,7 @@ pub fn update<T>(msg: Msg, model: &mut Model<T>, orders: &mut impl Orders<Msg>) 
 pub fn view<T>(model: &Model<T>) -> Node<Msg> {
     div![
         class!["multi-select"],
+        "MULTISELEDT",
         model.groups.iter().map(view_group)
     ]
 }
