@@ -2,6 +2,7 @@
 
 mod page;
 mod entity;
+mod helper;
 
 use env_web::Env;
 use seed::{prelude::*, App, *};
@@ -15,7 +16,7 @@ use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use std::borrow::Cow;
 use std::str::FromStr;
-use crate::Page::NotFound;
+use helper::take;
 
 // ------ ------
 //     Model
@@ -23,10 +24,37 @@ use crate::Page::NotFound;
 
 pub type MetaPreviewId = String;
 
-pub struct Model {
+pub enum Model {
+    Redirect,
+    Board(SharedModel),
+    Detail(SharedModel),
+    Discover(page::discover::Model),
+    NotFound(SharedModel),
+    Player(SharedModel),
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self::Redirect
+    }
+}
+
+#[derive(Default)]
+pub struct SharedModel {
     core: CoreModel,
-    selected_meta_preview_id: Option<MetaPreviewId>,
-    page: Page,
+}
+
+impl From<Model> for SharedModel {
+    fn from(model: Model) -> Self {
+        match model {
+            Model::Redirect => Self::default(),
+            Model::Board(shared_model) => shared_model,
+            Model::Detail(shared_model) => shared_model,
+            Model::Discover(module_model) => module_model.into(),
+            Model::NotFound(shared_model) => shared_model,
+            Model::Player(shared_model) => shared_model,
+        }
+    }
 }
 
 #[derive(Model, Default)]
@@ -36,7 +64,7 @@ struct CoreModel {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub enum Page {
+pub enum Route {
     Board,
     Discover(ResourceRequest),
     Detail,
@@ -44,7 +72,7 @@ pub enum Page {
     NotFound,
 }
 
-impl Page {
+impl Route {
     pub fn to_href(self) -> Cow<'static, str> {
         match self {
             Self::Board => "#/board".into(),
@@ -56,7 +84,7 @@ impl Page {
     }
 }
 
-impl From<Url> for Page {
+impl From<Url> for Route {
     fn from(url: Url) -> Self {
         let hash = match url.hash {
             Some(hash) => hash,
@@ -95,7 +123,7 @@ impl From<Url> for Page {
                     Ok(req) => req,
                     Err(error) => {
                         error!(error);
-                        return NotFound
+                        return Self::NotFound
                     }
                 };
 
@@ -150,19 +178,21 @@ fn default_resource_request() -> ResourceRequest {
     }
 }
 
-fn init(url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
-    let model = Model {
-        core: CoreModel::default(),
-        page: url.into(),
-        selected_meta_preview_id: None,
-    };
-
-    if let Some(msg) = handle_page_change(&model.page) {
-        orders.send_msg(msg);
-    }
-
-    Init::new_with_url_handling(model, UrlHandling::None)
-}
+//fn init(url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
+//    orders.send_msg(Msg::RouteChanged(url.into()));
+//    let model = Model {
+//        core: CoreModel::default(),
+//        page: url.into(),
+//        selected_meta_preview_id: None,
+//    };
+//
+//    if let Some(msg) = handle_page_change(&model.page) {
+//        orders.send_msg(msg);
+//    }
+//
+//    Init::new_with_url_handling(model, UrlHandling::None)
+//    Init::default()
+//}
 
 // ------ ------
 //    Routes
@@ -171,89 +201,114 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Init<Model> {
 fn routes(url: Url) -> Option<Msg> {
 //    log!("URL IN ROUTES", url);
 
-    Some(Msg::RouteChanged(url))
+    Some(Msg::RouteChanged(url.into()))
 }
 
-fn handle_page_change(page: &Page) -> Option<Msg> {
-    match page {
-        Page::Discover(req) =>  Some(Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req.clone())))))),
-        _ => None
-    }
-}
+//fn handle_page_change(page: &Page) -> Option<Msg> {
+//    match page {
+//        Route::Discover(req) =>  Some(Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req.clone())))))),
+//        _ => None
+//    }
+//}
 
 // ------ ------
 //    Update
 // ------ ------
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone)]
 pub enum Msg {
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
-    MetaPreviewClicked(MetaPreviewId),
-    SetSelectorValues,
-    RouteChanged(Url),
+//    MetaPreviewClicked(MetaPreviewId),
+//    SetSelectorValues,
+    RouteChanged(Route),
+    DiscoverMsg(page::discover::Msg),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    let mut set_selector_values = true;
+//    let mut set_selector_values = true;
     match msg {
         Msg::Core(core_msg) => {
-            let fx = model.core.update(&core_msg);
-            if !fx.has_changed {
-                orders.skip();
-            }
-            for cmd in fx.effects {
-                let cmd = cmd
-                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
-                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
-                orders.perform_cmd(cmd);
-            }
+//            let fx = model.core.update(&core_msg);
+//            if !fx.has_changed {
+//                orders.skip();
+//            }
+//            for cmd in fx.effects {
+//                let cmd = cmd
+//                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
+//                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
+//                orders.perform_cmd(cmd);
+//            }
         },
         Msg::CoreError(core_error) => log!("core_error", core_error),
-        Msg::MetaPreviewClicked(meta_preview_id) => {
-            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
-                if selected_meta_preview_id == &meta_preview_id {
-                    // @TODO go to player
-                }
-            }
-            model.selected_meta_preview_id = Some(meta_preview_id);
+//        Msg::MetaPreviewClicked(meta_preview_id) => {
+//            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
+//                if selected_meta_preview_id == &meta_preview_id {
+//                    // @TODO go to player
+//                }
+//            }
+//            model.selected_meta_preview_id = Some(meta_preview_id);
+//        },
+//        // @TODO resolve properly
+//        Msg::SetSelectorValues => {
+//            set_selector_values = false;
+//            if let Some(selected) = &model.core.catalog.selected {
+//                if let Some(type_selector) = document().get_element_by_id("type_selector") {
+//                    let type_selector = type_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+//                    type_selector.set_value(&selected.path.type_name);
+//                }
+//                if let Some(catalog_selector) = document().get_element_by_id("catalog_selector") {
+//                    let catalog_selector = catalog_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+//                    catalog_selector.set_value(&selected.path.id);
+//                }
+//                if let Some(extra_prop_selector) = document().get_element_by_id("extra_prop_selector") {
+//                    let extra_prop_selector = extra_prop_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
+//                    let value = selected.path.extra.iter().map(|(_, value)| value).join(", ");
+//                    let value = if value.is_empty() {
+//                        "None"
+//                    } else {
+//                        &value
+//                    };
+//                    extra_prop_selector.set_value(value);
+//                }
+//            }
+//        },
+        Msg::RouteChanged(route) => {
+            change_model_by_route(route, model, orders);
+//            model.page = url.into();
+//            if let Some(msg) = handle_page_change(&model.page) {
+//                orders.send_msg(msg);
+//            }
         },
-        // @TODO resolve properly
-        Msg::SetSelectorValues => {
-            set_selector_values = false;
-            if let Some(selected) = &model.core.catalog.selected {
-                if let Some(type_selector) = document().get_element_by_id("type_selector") {
-                    let type_selector = type_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
-                    type_selector.set_value(&selected.path.type_name);
-                }
-                if let Some(catalog_selector) = document().get_element_by_id("catalog_selector") {
-                    let catalog_selector = catalog_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
-                    catalog_selector.set_value(&selected.path.id);
-                }
-                if let Some(extra_prop_selector) = document().get_element_by_id("extra_prop_selector") {
-                    let extra_prop_selector = extra_prop_selector.dyn_into::<web_sys::HtmlSelectElement>().unwrap();
-                    let value = selected.path.extra.iter().map(|(_, value)| value).join(", ");
-                    let value = if value.is_empty() {
-                        "None"
-                    } else {
-                        &value
-                    };
-                    extra_prop_selector.set_value(value);
-                }
-            }
-        },
-        Msg::RouteChanged(url) => {
-            model.page = url.into();
-            if let Some(msg) = handle_page_change(&model.page) {
-                orders.send_msg(msg);
+        Msg::DiscoverMsg(module_msg) => {
+            if let Model::Discover(module_model) = model {
+                page::discover::update(module_msg, module_model, &mut orders.proxy(Msg::DiscoverMsg));
             }
         }
     }
-    if set_selector_values {
-        orders
-            .force_render_now()
-            .send_msg(Msg::SetSelectorValues);
-    }
+//    if set_selector_values {
+//        orders
+//            .force_render_now()
+//            .send_msg(Msg::SetSelectorValues);
+//    }
+}
+
+fn change_model_by_route<'a>(
+    route: Route,
+    model: &mut Model,
+    orders: &mut impl Orders<Msg>,
+) {
+    let shared_model = SharedModel::from(take(model));
+    *model = match route {
+        Route::Board => Model::Board(shared_model),
+        Route::Detail => Model::Detail(shared_model),
+        Route::Discover(resource_request) => Model::Discover(page::discover::init(
+            shared_model, resource_request, &mut orders.proxy(Msg::DiscoverMsg)
+        )),
+        Route::NotFound => Model::NotFound(shared_model),
+        Route::Player => Model::Player(shared_model),
+    };
 }
 
 // ------ ------
@@ -261,12 +316,13 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 
 fn view(model: &Model) -> Node<Msg> {
-    match model.page {
-        Page::Board => page::board::view(),
-        Page::Discover(_) => page::discover::view(&model),
-        Page::Detail => page::detail::view(),
-        Page::Player => page::player::view(),
-        Page::NotFound => page::not_found::view()
+    match &model {
+        Model::Redirect => page::blank::view(),
+        Model::Board(_) => page::board::view(),
+        Model::Discover(model) => page::discover::view(&model).map_message(Msg::DiscoverMsg),
+        Model::Detail(_) => page::detail::view(),
+        Model::Player(_) => page::player::view(),
+        Model::NotFound(_) => page::not_found::view()
     }
 }
 
@@ -278,7 +334,7 @@ fn view(model: &Model) -> Node<Msg> {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    App::build(init, update, view)
+    App::build(|_, _| Init::default(), update, view)
         .routes(routes)
         .build_and_start();
 }

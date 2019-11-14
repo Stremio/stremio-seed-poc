@@ -1,12 +1,10 @@
 use seed::{prelude::*, *};
-use crate::{CoreModel, MetaPreviewId};
+use crate::{default_resource_request, Route, CoreModel, MetaPreviewId};
 
 // ------ ------
 //     View
 // ------ ------
 
 pub fn view<Ms>() -> Node<Ms> {
-    div![
-        "Player"
-    ]
+    empty![]
 }
