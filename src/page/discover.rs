@@ -1,10 +1,32 @@
 use seed::{prelude::*, *};
 use itertools::Itertools;
 use std::rc::Rc;
-use stremio_core::state_types::{Action, ActionLoad, Loadable, TypeEntry, CatalogEntry, CatalogError};
+use stremio_core::state_types::{Action, ActionLoad, Loadable, TypeEntry, CatalogEntry, CatalogError, Msg as CoreMsg, Update};
 use stremio_core::types::MetaPreview;
 use stremio_core::types::addons::{ResourceRequest, ManifestExtraProp, OptionsLimit};
-use crate::{default_resource_request, MetaPreviewId, entity::multi_select, Model as AppModel, SharedModel};
+use crate::{default_resource_request, MetaPreviewId, entity::multi_select, SharedModel};
+use futures::future::Future;
+
+fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>> {
+    let items = type_entries.iter().map(|type_entry| {
+        multi_select::GroupItem {
+            id: type_entry.type_name.clone(),
+            label: type_entry.type_name.clone(),
+            selected: type_entry.is_selected,
+            value: type_entry.clone()
+        }
+    }).collect::<Vec<_>>();
+
+    vec![
+        multi_select::Group {
+            id: "default".to_owned(),
+            label: None,
+            items,
+            limit: 1,
+            required: true
+        }
+    ]
+}
 
 // ------ ------
 //     Model
@@ -27,32 +49,15 @@ impl From<Model> for SharedModel {
 // ------ ------
 
 pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut impl Orders<Msg>) -> Model {
+    orders.send_msg(
+        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(resource_request.clone())))))
+    );
+
     Model {
-        type_selector_model: init_type_selector(&shared.core.catalog.types),
+        type_selector_model: multi_select::init(type_selector_groups(&shared.core.catalog.types)),
         resource_request,
         shared,
     }
-}
-
-fn init_type_selector(type_entries: &[TypeEntry]) -> multi_select::Model<TypeEntry> {
-    let items = type_entries.iter().map(|type_entry| {
-        multi_select::GroupItem {
-            label: type_entry.type_name.clone(),
-            selected: type_entry.is_selected,
-            value: type_entry.clone()
-        }
-    }).collect::<Vec<_>>();
-
-    let groups = vec![
-        multi_select::Group {
-            label: None,
-            items,
-            limit: 1,
-            required: true
-        }
-    ];
-
-    multi_select::init(groups)
 }
 
 // ------ ------
@@ -61,15 +66,58 @@ fn init_type_selector(type_entries: &[TypeEntry]) -> multi_select::Model<TypeEnt
 
 #[derive(Clone)]
 pub enum Msg {
+    Core(Rc<CoreMsg>),
+    CoreError(Rc<CoreMsg>),
+    CoreChanged,
     TypeSelectorMsg(multi_select::Msg),
+    OnChange,
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::Core(core_msg) => {
+            let fx = model.shared.core.update(&core_msg);
+
+            if fx.has_changed {
+                orders.send_msg(Msg::CoreChanged);
+            } else {
+                orders.skip();
+            }
+
+            for cmd in fx.effects {
+                let cmd = cmd
+                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
+                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
+                orders.perform_cmd(cmd);
+            }
+        },
+        Msg::CoreError(core_error) => log!("core_error", core_error),
+        Msg::CoreChanged => {
+            multi_select::set_groups(
+                type_selector_groups(&model.shared.core.catalog.types),
+                &mut model.type_selector_model,
+                &mut orders.proxy(Msg::TypeSelectorMsg)
+            )
+        }
         Msg::TypeSelectorMsg(msg) => {
-            multi_select::update(msg, &mut model.type_selector_model, &mut orders.proxy(Msg::TypeSelectorMsg))
+            let msg_to_parent = multi_select::update(
+                msg,
+                &mut model.type_selector_model,
+                &mut orders.proxy(Msg::TypeSelectorMsg),
+                on_change
+            );
+            if let Some(msg) = msg_to_parent {
+                orders.send_msg(msg);
+            }
+        },
+        Msg::OnChange => {
+            log!("ON_CHANGE");
         }
     }
+}
+
+fn on_change() -> Msg {
+    Msg::OnChange
 }
 
 // ------ ------

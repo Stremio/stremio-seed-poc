@@ -1,3 +1,5 @@
+// @TODO: Remove once `std::mem::take` is stable.
+
 use std::mem;
 
 pub fn take<T: Default>(source: &mut T) -> T {
