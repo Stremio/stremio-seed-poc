@@ -181,6 +181,9 @@ pub fn view(model: &Model) -> Node<Msg> {
     div![
         id!("discover"),
         div![
+            style! {
+                St::Display => "flex",
+            },
             // type selector
             type_selector::view(
                 &model.type_selector_model,
@@ -205,7 +208,7 @@ pub fn view(model: &Model) -> Node<Msg> {
         div![
             id!("discover_holder"),
             style! {
-                St::Top => px(350),
+                St::Top => px(60),
             },
             class!["holder",],
             view_content(
@@ -222,6 +225,8 @@ fn view_reset_button() -> Node<Msg> {
             St::Padding => "3px 20px",
             St::Cursor => "pointer",
             St::Display => "inline-block",
+            St::Margin => px(5),
+            St::Cursor => "pointer",
         },
         attrs! {
             At::Href => Route::Discover(default_resource_request()).to_href()
