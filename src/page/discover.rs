@@ -305,8 +305,8 @@ pub fn view(model: &Model) -> Node<Msg> {
             // @TODO refactor
             multi_select::view(&model.type_selector_model, &type_selector_groups(&model.shared.core.catalog.types)).map_message(Msg::TypeSelectorMsg),
             multi_select::view(&model.catalog_selector_model, &catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected)).map_message(Msg::CatalogSelectorMsg),
-            multi_select::view(&model.extra_prop_selector_model, &extra_prop_selector_groups(&model.shared.core.catalog.selectable_extra, &model.shared.core.catalog.selected)).map_message(Msg::ExtraPropSelectorMsg)
-//            view_reset_button(),
+            multi_select::view(&model.extra_prop_selector_model, &extra_prop_selector_groups(&model.shared.core.catalog.selectable_extra, &model.shared.core.catalog.selected)).map_message(Msg::ExtraPropSelectorMsg),
+            view_reset_button(),
         ],
         div![
             id!("discover_holder"),
@@ -321,19 +321,19 @@ pub fn view(model: &Model) -> Node<Msg> {
     ]
 }
 
-//fn view_reset_button() -> Node<Msg> {
-//    a![
-//        style!{
-//            St::Padding => "3px 20px",
-//            St::Cursor => "pointer",
-//            St::Display => "inline-block",
-//        },
-//        attrs!{
-//            At::Href => Page::Discover(default_resource_request()).to_href()
-//        },
-//        "Reset",
-//    ]
-//}
+fn view_reset_button() -> Node<Msg> {
+    a![
+        style!{
+            St::Padding => "3px 20px",
+            St::Cursor => "pointer",
+            St::Display => "inline-block",
+        },
+        attrs!{
+            At::Href => Route::Discover(default_resource_request()).to_href()
+        },
+        "Reset",
+    ]
+}
 
 fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
     match content {
