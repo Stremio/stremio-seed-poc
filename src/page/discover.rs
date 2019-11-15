@@ -84,11 +84,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         },
         Msg::CoreError(core_error) => log!("core_error", core_error),
         Msg::MetaPreviewClicked(meta_preview_id) => {
-            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
-                if selected_meta_preview_id == &meta_preview_id {
-                    // @TODO go to player
-                }
-            }
             model.selected_meta_preview_id = Some(meta_preview_id);
         },
         Msg::TypeSelectorMsg(msg) => {
@@ -376,20 +371,23 @@ fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Optio
             ],
              meta_preview.name
         ],
-        a![
+        div![
             class![
                 "thumb"
             ],
             style!{
                 St::BackgroundImage => format!("url({})", poster)
-            }
+            },
         ],
-        div![
+        a![
             class![
                 "icon",
                 "icon-ic_play",
                 "button"
-            ]
+            ],
+            attrs!{
+                At::Href => if is_selected { AtValue::Some(Route::Player.to_href().to_string()) } else { AtValue::Ignored }
+            }
         ]
     ]
 }
