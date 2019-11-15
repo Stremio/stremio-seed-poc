@@ -1,5 +1,5 @@
 use seed::{prelude::*, *};
-use crate::{default_resource_request, Route};
+use crate::{default_resource_request, route::Route};
 
 // ------ ------
 //     View

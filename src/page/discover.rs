@@ -1,14 +1,18 @@
 use seed::{prelude::*, *};
-use itertools::Itertools;
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Loadable, TypeEntry, CatalogEntry, CatalogError, Msg as CoreMsg, Update};
 use stremio_core::types::MetaPreview;
-use stremio_core::types::addons::{ResourceRequest, ManifestExtraProp, OptionsLimit};
-use crate::{default_resource_request, entity::multi_select, SharedModel, Route};
+use stremio_core::types::addons::ResourceRequest;
+use crate::{default_resource_request, entity::multi_select, SharedModel, route::Route};
 use futures::future::Future;
 use std::convert::TryFrom;
 
+mod type_selector;
+mod catalog_selector;
+mod extra_prop_selector;
+
 type MetaPreviewId = String;
+// @TODO add into stremio-core?
 type ExtraPropOption = String;
 
 // ------ ------
@@ -17,11 +21,10 @@ type ExtraPropOption = String;
 
 pub struct Model {
     shared: SharedModel,
-    resource_request: ResourceRequest,
     selected_meta_preview_id: Option<MetaPreviewId>,
-    type_selector_model: multi_select::Model,
-    catalog_selector_model: multi_select::Model,
-    extra_prop_selector_model: multi_select::Model,
+    type_selector_model: type_selector::Model,
+    catalog_selector_model: catalog_selector::Model,
+    extra_prop_selector_model: extra_prop_selector::Model,
 }
 
 impl From<Model> for SharedModel {
@@ -36,14 +39,14 @@ impl From<Model> for SharedModel {
 
 pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut impl Orders<Msg>) -> Model {
     orders.send_msg(
-        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(resource_request.clone())))))
+        // @TODO try to remove `Clone` requiremnt from Seed or add it into stremi-core? Implement intos, from etc.?
+        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(resource_request)))))
     );
 
     Model {
-        type_selector_model: multi_select::init(),
-        catalog_selector_model: multi_select::init(),
-        extra_prop_selector_model: multi_select::init(),
-        resource_request,
+        type_selector_model: type_selector::init(),
+        catalog_selector_model: catalog_selector::init(),
+        extra_prop_selector_model: extra_prop_selector::init(),
         selected_meta_preview_id: None,
         shared,
     }
@@ -55,19 +58,37 @@ pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut
 
 #[derive(Clone)]
 pub enum Msg {
+    MetaPreviewClicked(MetaPreviewId),
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
-    MetaPreviewClicked(MetaPreviewId),
-    TypeSelectorMsg(multi_select::Msg),
+    TypeSelectorMsg(type_selector::Msg),
     TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
-    CatalogSelectorMsg(multi_select::Msg),
+    CatalogSelectorMsg(catalog_selector::Msg),
     CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
-    ExtraPropSelectorMsg(multi_select::Msg),
+    ExtraPropSelectorMsg(extra_prop_selector::Msg),
     ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
 }
 
+fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
+    let route = Route::Discover(req.clone());
+    let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Discover`");
+    seed::push_route(url);
+
+    orders.send_msg(
+        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
+    );
+}
+
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+    let catalog = &model.shared.core.catalog;
+
     match msg {
+        Msg::MetaPreviewClicked(meta_preview_id) => {
+            model.selected_meta_preview_id = Some(meta_preview_id);
+        },
+
+        // ------ Core  ------
+
         Msg::Core(core_msg) => {
             let fx = model.shared.core.update(&core_msg);
 
@@ -83,210 +104,65 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         },
         Msg::CoreError(core_error) => log!("core_error", core_error),
-        Msg::MetaPreviewClicked(meta_preview_id) => {
-            model.selected_meta_preview_id = Some(meta_preview_id);
-        },
+
+        // ------ TypeSelector  ------
+
         Msg::TypeSelectorMsg(msg) => {
-            let msg_to_parent = multi_select::update(
+            let msg_to_parent = type_selector::update(
                 msg,
                 &mut model.type_selector_model,
                 &mut orders.proxy(Msg::TypeSelectorMsg),
-                type_selector_groups(&model.shared.core.catalog.types),
-                on_type_selector_change
+                type_selector::groups(&catalog.types),
+                Msg::TypeSelectorChanged
             );
             if let Some(msg) = msg_to_parent {
                 orders.send_msg(msg);
             }
         },
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
-            let req = groups_with_selected_items
-                .first()
-                .expect("type selector's group `default`")
-                .items
-                .first()
-                .expect("type selector's selected item")
-                .value
-                .load
-                .clone();
-
-            push_route(req.clone());
-            orders.send_msg(
-                Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
-            );
+            let req = type_selector::resource_request(groups_with_selected_items);
+            push_resource_request(req, orders)
         },
+
+        // ------ CatalogSelector  ------
+
         Msg::CatalogSelectorMsg(msg) => {
-            let msg_to_parent = multi_select::update(
+            let msg_to_parent = catalog_selector::update(
                 msg,
                 &mut model.catalog_selector_model,
                 &mut orders.proxy(Msg::CatalogSelectorMsg),
-                catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected),
-                on_catalog_selector_change
+                catalog_selector::groups(&catalog.catalogs, &catalog.selected),
+                Msg::CatalogSelectorChanged
             );
             if let Some(msg) = msg_to_parent {
                 orders.send_msg(msg);
             }
         },
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-            let req = groups_with_selected_items
-                .first()
-                .expect("catalog selector's group `default`")
-                .items
-                .first()
-                .expect("catalog selector's selected item")
-                .value
-                .load
-                .clone();
-
-            push_route(req.clone());
-            orders.send_msg(
-                Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
-            );
+            let req = catalog_selector::resource_request(groups_with_selected_items);
+            push_resource_request(req, orders)
         },
+
+        // ------ ExtraPropSelector  ------
+
         Msg::ExtraPropSelectorMsg(msg) => {
-            let msg_to_parent = multi_select::update(
+            let msg_to_parent = extra_prop_selector::update(
                 msg,
                 &mut model.extra_prop_selector_model,
                 &mut orders.proxy(Msg::ExtraPropSelectorMsg),
-                extra_prop_selector_groups(&model.shared.core.catalog.selectable_extra, &model.shared.core.catalog.selected),
-                on_extra_prop_selector_change
+                extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected),
+                Msg::ExtraPropSelectorChanged
             );
             if let Some(msg) = msg_to_parent {
                 orders.send_msg(msg);
             }
         },
         Msg::ExtraPropSelectorChanged(groups_with_selected_items) => {
-            let selected_pairs = groups_with_selected_items
-                .into_iter()
-                .flat_map(|group| {
-                    let group_id = group.id.clone();
-                    let pairs = group
-                       .items
-                       .into_iter()
-                       .map(|item| (group_id.clone(), item.value))
-                       .collect::<Vec<_>>();
-                    pairs
-                }).collect::<Vec<_>>();
-
-            if let Some(selected_req) = &model.shared.core.catalog.selected {
-                let mut req = selected_req.clone();
-                req.path.extra = selected_pairs;
-
-                push_route(req.clone());
-                orders.send_msg(
-                    Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
-                );
+            if let Some(req) = extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected) {
+                push_resource_request(req, orders)
             }
         },
     }
-}
-
-fn push_route(req: ResourceRequest) {
-    let route = Route::Discover(req.clone());
-    let url = Url::try_from(route.to_href().to_string()).expect("`Url` from `Route::Discover`");
-    seed::push_route(url);
-}
-
-fn on_type_selector_change(groups_with_selected_items: Vec<multi_select::Group<TypeEntry>>) -> Msg {
-    Msg::TypeSelectorChanged(groups_with_selected_items)
-}
-
-fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>> {
-    let items = type_entries.iter().map(|type_entry| {
-        multi_select::GroupItem {
-            id: type_entry.type_name.clone(),
-            label: type_entry.type_name.clone(),
-            selected: type_entry.is_selected,
-            value: type_entry.clone()
-        }
-    }).collect::<Vec<_>>();
-
-    vec![
-        multi_select::Group {
-            id: "default".to_owned(),
-            label: None,
-            items,
-            limit: 1,
-            required: true
-        }
-    ]
-}
-
-fn on_catalog_selector_change(groups_with_selected_items: Vec<multi_select::Group<CatalogEntry>>) -> Msg {
-    Msg::CatalogSelectorChanged(groups_with_selected_items)
-}
-
-fn catalog_selector_groups(catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRequest>) -> Vec<multi_select::Group<CatalogEntry>> {
-    let selected_req = match selected_req {
-        Some(selected_req) => selected_req,
-        None => return Vec::new()
-    };
-
-    let catalog_entries = catalog_entries
-        .iter()
-        .filter(|catalog_entry| &catalog_entry.load.path.type_name == &selected_req.path.type_name);
-
-    let catalog_groups = catalog_entries.group_by(|catalog_entry| &catalog_entry.addon_name);
-
-    catalog_groups
-        .into_iter()
-        .map(|(addon_name, catalog_entries)| {
-            let items = catalog_entries.map(|catalog_entry| {
-                multi_select::GroupItem {
-                    id: catalog_entry.name.clone(),
-                    label: catalog_entry.name.clone(),
-                    selected: catalog_entry.is_selected,
-                    value: catalog_entry.clone(),
-                }
-            }).collect::<Vec<_>>();
-
-            multi_select::Group {
-                id: "default".to_owned(),
-                label: Some(addon_name.clone()),
-                limit: 1,
-                required: true,
-                items
-            }
-        }).collect()
-}
-
-fn on_extra_prop_selector_change(groups_with_selected_items: Vec<multi_select::Group<ExtraPropOption>>) -> Msg {
-    Msg::ExtraPropSelectorChanged(groups_with_selected_items)
-}
-
-fn extra_prop_selector_groups(extra_props: &[ManifestExtraProp], selected_req: &Option<ResourceRequest>) -> Vec<multi_select::Group<ExtraPropOption>> {
-    let selected_req = match selected_req {
-        Some(selected_req) => selected_req,
-        None => return Vec::new()
-    };
-
-    extra_props
-        .into_iter()
-        .map(|extra_prop| {
-            let group_id = extra_prop.name.clone();
-
-            let items = if let Some(options) = &extra_prop.options {
-                options.iter().map(|option| {
-                    let item_id =  option.clone();
-                    multi_select::GroupItem {
-                        id: item_id.clone(),
-                        label: option.clone(),
-                        selected: selected_req.path.extra.contains(&(group_id.clone(), item_id.clone())),
-                        value: option.clone(),
-                    }
-                }).collect()
-            } else {
-                Vec::new()
-            };
-
-            multi_select::Group {
-                id: group_id,
-                label: Some(extra_prop.name.clone()),
-                // @TODO OptionsLimit?
-                limit: extra_prop.options_limit.0,
-                required: extra_prop.is_required,
-                items
-            }
-        }).collect()
 }
 
 // ------ ------
@@ -294,13 +170,30 @@ fn extra_prop_selector_groups(extra_props: &[ManifestExtraProp], selected_req: &
 // ------ ------
 
 pub fn view(model: &Model) -> Node<Msg> {
+    let catalog = &model.shared.core.catalog;
+
     div![
         id!("discover"),
         div![
-            // @TODO refactor
-            multi_select::view(&model.type_selector_model, &type_selector_groups(&model.shared.core.catalog.types)).map_message(Msg::TypeSelectorMsg),
-            multi_select::view(&model.catalog_selector_model, &catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected)).map_message(Msg::CatalogSelectorMsg),
-            multi_select::view(&model.extra_prop_selector_model, &extra_prop_selector_groups(&model.shared.core.catalog.selectable_extra, &model.shared.core.catalog.selected)).map_message(Msg::ExtraPropSelectorMsg),
+            // type selector
+            type_selector::view(
+                &model.type_selector_model,
+                &type_selector::groups(&catalog.types)
+            ).map_message(Msg::TypeSelectorMsg),
+
+            // catalog selector
+            catalog_selector::view(
+                &model.catalog_selector_model,
+                &catalog_selector::groups(&catalog.catalogs, &catalog.selected))
+            .map_message(Msg::CatalogSelectorMsg),
+
+            // extra prop selector
+            extra_prop_selector::view(
+                &model.extra_prop_selector_model,
+                &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected))
+            .map_message(Msg::ExtraPropSelectorMsg),
+
+            // reset button
             view_reset_button(),
         ],
         div![
@@ -352,7 +245,7 @@ fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>, selected_met
 fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
     let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
     let poster = meta_preview.poster.as_ref().unwrap_or(&default_poster);
-//    let poster_shape = meta_preview.poster_shape.to_str();
+    //let poster_shape = meta_preview.poster_shape.to_str();
 
     let is_selected = match selected_meta_preview_id {
         Some(selected_meta_preview_id) => selected_meta_preview_id == &meta_preview.id,
@@ -386,7 +279,7 @@ fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Optio
                 "button"
             ],
             attrs!{
-                At::Href => if is_selected { AtValue::Some(Route::Player.to_href().to_string()) } else { AtValue::Ignored }
+                At::Href => if is_selected { AtValue::Some(Route::Player.to_href()) } else { AtValue::Ignored }
             }
         ]
     ]
