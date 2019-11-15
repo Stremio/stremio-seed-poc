@@ -1,6 +1,6 @@
-use stremio_core::types::addons::{ResourceRequest, ResourceRef, ParseResourceErr};
-use std::str::FromStr;
 use seed::{prelude::*, *};
+use std::str::FromStr;
+use stremio_core::types::addons::{ParseResourceErr, ResourceRef, ResourceRequest};
 
 // ------ Route ------
 
@@ -29,11 +29,9 @@ impl From<Url> for Route {
     fn from(url: Url) -> Self {
         let hash = match url.hash {
             Some(hash) => hash,
-            None => {
-                match url.path.first().map(String::as_str) {
-                    None | Some("") => return Self::Board,
-                    _ => return Self::NotFound,
-                }
+            None => match url.path.first().map(String::as_str) {
+                None | Some("") => return Self::Board,
+                _ => return Self::NotFound,
             },
         };
         let mut hash = hash.split('/');
@@ -47,28 +45,28 @@ impl From<Url> for Route {
                     Some(base) => base,
                     None => {
                         error!("cannot find request base");
-                        return Self::NotFound
-                    },
+                        return Self::NotFound;
+                    }
                 };
 
                 let encoded_path = match hash.next() {
                     Some(base) => base,
                     None => {
                         error!("cannot find request path");
-                        return Self::NotFound
-                    },
+                        return Self::NotFound;
+                    }
                 };
 
                 let req = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
                     Ok(req) => req,
                     Err(error) => {
                         error!(error);
-                        return Self::NotFound
+                        return Self::NotFound;
                     }
                 };
 
                 Self::Discover(req)
-            },
+            }
             Some("detail") => Self::Detail,
             Some("player") => Self::Player,
             _ => Self::NotFound,
@@ -89,24 +87,27 @@ fn resource_request_to_url_path(req: &ResourceRequest) -> String {
 #[derive(Debug)]
 enum ParseResourceRequestError {
     UriDecode(String),
-    Resource(ParseResourceErr)
+    Resource(ParseResourceErr),
 }
 
-fn resource_request_try_from_url_parts(uri_encoded_base: &str, uri_encoded_path: &str) -> Result<ResourceRequest, ParseResourceRequestError> {
+fn resource_request_try_from_url_parts(
+    uri_encoded_base: &str,
+    uri_encoded_path: &str,
+) -> Result<ResourceRequest, ParseResourceRequestError> {
     let base: String = {
         js_sys::decode_uri_component(uri_encoded_base)
-            .map_err(|_|  ParseResourceRequestError::UriDecode(uri_encoded_base.to_owned()))?
+            .map_err(|_| ParseResourceRequestError::UriDecode(uri_encoded_base.to_owned()))?
             .into()
     };
 
     let path: String = {
         js_sys::decode_uri_component(uri_encoded_path)
-            .map_err(|_|  ParseResourceRequestError::UriDecode(uri_encoded_path.to_owned()))?
+            .map_err(|_| ParseResourceRequestError::UriDecode(uri_encoded_path.to_owned()))?
             .into()
     };
 
     Ok(ResourceRequest {
         base,
-        path: ResourceRef::from_str(&path).map_err( ParseResourceRequestError::Resource)?
+        path: ResourceRef::from_str(&path).map_err(ParseResourceRequestError::Resource)?,
     })
 }

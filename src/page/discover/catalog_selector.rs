@@ -1,8 +1,8 @@
 use crate::entity::multi_select;
-use stremio_core::state_types::CatalogEntry;
-use stremio_core::types::addons::ResourceRequest;
 use itertools::Itertools;
 use seed::prelude::*;
+use stremio_core::state_types::CatalogEntry;
+use stremio_core::types::addons::ResourceRequest;
 
 // ------ ------
 //     Model
@@ -25,8 +25,20 @@ pub fn init() -> Model {
 #[derive(Clone)]
 pub struct Msg(multi_select::Msg);
 
-pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>, groups: Vec<multi_select::Group<T>>, on_change: impl FnOnce(Vec<multi_select::Group<T>>) -> ParentMsg) -> Option<ParentMsg> {
-    multi_select::update(msg.0, &mut model.0, &mut orders.proxy(Msg), groups, on_change)
+pub fn update<T: 'static, ParentMsg>(
+    msg: Msg,
+    model: &mut Model,
+    orders: &mut impl Orders<Msg>,
+    groups: Vec<multi_select::Group<T>>,
+    on_change: impl FnOnce(Vec<multi_select::Group<T>>) -> ParentMsg,
+) -> Option<ParentMsg> {
+    multi_select::update(
+        msg.0,
+        &mut model.0,
+        &mut orders.proxy(Msg),
+        groups,
+        on_change,
+    )
 }
 
 // ------ ------
@@ -41,10 +53,13 @@ pub fn view<T: Clone>(model: &Model, groups: &[multi_select::Group<T>]) -> Node<
 //  Conversion
 // ------ ------
 
-pub fn groups(catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRequest>) -> Vec<multi_select::Group<CatalogEntry>> {
+pub fn groups(
+    catalog_entries: &[CatalogEntry],
+    selected_req: &Option<ResourceRequest>,
+) -> Vec<multi_select::Group<CatalogEntry>> {
     let selected_req = match selected_req {
         Some(selected_req) => selected_req,
-        None => return Vec::new()
+        None => return Vec::new(),
     };
 
     let catalog_entries = catalog_entries
@@ -56,26 +71,29 @@ pub fn groups(catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRe
     catalog_groups
         .into_iter()
         .map(|(addon_name, catalog_entries)| {
-            let items = catalog_entries.map(|catalog_entry| {
-                multi_select::GroupItem {
+            let items = catalog_entries
+                .map(|catalog_entry| multi_select::GroupItem {
                     id: catalog_entry.name.clone(),
                     label: catalog_entry.name.clone(),
                     selected: catalog_entry.is_selected,
                     value: catalog_entry.clone(),
-                }
-            }).collect::<Vec<_>>();
+                })
+                .collect::<Vec<_>>();
 
             multi_select::Group {
                 id: "default".to_owned(),
                 label: Some(addon_name.clone()),
                 limit: 1,
                 required: true,
-                items
+                items,
             }
-        }).collect()
+        })
+        .collect()
 }
 
-pub fn resource_request(groups_with_selected_items: Vec<multi_select::Group<CatalogEntry>>) -> ResourceRequest {
+pub fn resource_request(
+    groups_with_selected_items: Vec<multi_select::Group<CatalogEntry>>,
+) -> ResourceRequest {
     groups_with_selected_items
         .into_iter()
         .next()

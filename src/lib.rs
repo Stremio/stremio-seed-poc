@@ -1,18 +1,18 @@
 #![allow(clippy::needless_pass_by_value)]
 
-mod page;
 mod entity;
 mod helper;
+mod page;
 mod route;
 
 use env_web::Env;
-use seed::{prelude::*, App};
-use stremio_core::state_types::{CatalogFiltered, Ctx};
-use stremio_core::types::MetaPreview;
-use stremio_core::types::addons::{ResourceRequest, ResourceRef};
-use stremio_derive::Model;
 use helper::take;
 use route::Route;
+use seed::{prelude::*, App};
+use stremio_core::state_types::{CatalogFiltered, Ctx};
+use stremio_core::types::addons::{ResourceRef, ResourceRequest};
+use stremio_core::types::MetaPreview;
+use stremio_derive::Model;
 
 fn default_resource_request() -> ResourceRequest {
     ResourceRequest {
@@ -91,26 +91,28 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::RouteChanged(route) => {
             change_model_by_route(route, model, orders);
-        },
+        }
         Msg::DiscoverMsg(module_msg) => {
             if let Model::Discover(module_model) = model {
-                page::discover::update(module_msg, module_model, &mut orders.proxy(Msg::DiscoverMsg));
+                page::discover::update(
+                    module_msg,
+                    module_model,
+                    &mut orders.proxy(Msg::DiscoverMsg),
+                );
             }
         }
     }
 }
 
-fn change_model_by_route<'a>(
-    route: Route,
-    model: &mut Model,
-    orders: &mut impl Orders<Msg>,
-) {
+fn change_model_by_route<'a>(route: Route, model: &mut Model, orders: &mut impl Orders<Msg>) {
     let shared_model = SharedModel::from(take(model));
     *model = match route {
         Route::Board => Model::Board(shared_model),
         Route::Detail => Model::Detail(shared_model),
         Route::Discover(resource_request) => Model::Discover(page::discover::init(
-            shared_model, resource_request, &mut orders.proxy(Msg::DiscoverMsg)
+            shared_model,
+            resource_request,
+            &mut orders.proxy(Msg::DiscoverMsg),
         )),
         Route::NotFound => Model::NotFound(shared_model),
         Route::Player => Model::Player(shared_model),
@@ -128,11 +130,9 @@ fn view(model: &Model) -> Node<Msg> {
         Model::Discover(model) => page::discover::view(&model).map_message(Msg::DiscoverMsg),
         Model::Detail(_) => page::detail::view(),
         Model::Player(_) => page::player::view(),
-        Model::NotFound(_) => page::not_found::view()
+        Model::NotFound(_) => page::not_found::view(),
     }
 }
-
-
 
 // ------ ------
 //     Start
