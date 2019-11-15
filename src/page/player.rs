@@ -6,6 +6,20 @@ use seed::{prelude::*, *};
 
 pub fn view<Ms>() -> Node<Ms> {
     div![
-        "Player"
+        video![
+            style!{
+                St::MaxWidth => unit!(100, %),
+                St::Height => "auto",
+            },
+            attrs!{
+                At::Controls => AtValue::None,
+            },
+            source![
+                attrs!{
+                    At::Src => "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                    At::Type => "video/mp4",
+                }
+            ]
+        ]
     ]
 }
