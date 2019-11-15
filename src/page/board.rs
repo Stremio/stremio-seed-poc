@@ -1,5 +1,5 @@
-use seed::{prelude::*, *};
 use crate::{default_resource_request, route::Route};
+use seed::{prelude::*, *};
 
 // ------ ------
 //     View
@@ -7,11 +7,9 @@ use crate::{default_resource_request, route::Route};
 
 pub fn view<Ms>() -> Node<Ms> {
     div![
-        h1![
-            "Board",
-        ],
+        h1!["Board",],
         a![
-            attrs!{
+            attrs! {
                 At::Href => Route::Discover(default_resource_request()).to_href()
             },
             "Go to Discover"
