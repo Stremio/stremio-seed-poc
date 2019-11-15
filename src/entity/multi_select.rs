@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use seed::{prelude::*, *};
 
 #[derive(Clone, Debug)]
@@ -24,14 +25,17 @@ pub struct GroupItem<T> {
 pub type GroupId = String;
 pub type GroupItemId = String;
 
-pub struct Model {}
+#[derive(Default)]
+pub struct Model {
+    opened: bool,
+}
 
 // ------ ------
 //     Init
 // ------ ------
 
 pub fn init() -> Model {
-    Model {}
+    Model::default()
 }
 
 // ------ ------
@@ -40,19 +44,27 @@ pub fn init() -> Model {
 
 #[derive(Clone)]
 pub enum Msg {
+    ToggleMenu,
     ItemClicked(GroupId, GroupItemId),
+    NoOp,
 }
 
 pub fn update<T: 'static, ParentMsg>(
     msg: Msg,
-    _model: &mut Model,
-    _orders: &mut impl Orders<Msg>,
+    model: &mut Model,
+    orders: &mut impl Orders<Msg>,
     mut groups: Vec<Group<T>>,
     on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {
     match msg {
+        Msg::ToggleMenu => {
+            model.opened = !model.opened;
+            None
+        }
         // @TODO: Refactor + comments
         Msg::ItemClicked(group_id, item_id) => {
+            orders.send_msg(Msg::ToggleMenu);
+
             let first_selected_address =
                 groups.iter().enumerate().find_map(|(group_index, group)| {
                     if group.id == group_id {
@@ -133,6 +145,7 @@ pub fn update<T: 'static, ParentMsg>(
                 None
             }
         }
+        Msg::NoOp => None,
     }
 }
 
@@ -140,25 +153,69 @@ pub fn update<T: 'static, ParentMsg>(
 //     View
 // ------ ------
 
-pub fn view<T: Clone>(_model: &Model, groups: &[Group<T>]) -> Node<Msg> {
+pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
+    let selected_items = groups
+        .iter()
+        .flat_map(|group| group.items.iter().filter(|item| item.selected))
+        .collect::<Vec<_>>();
+
     div![
         class!["multi-select"],
         style! {
-            St::Float => "left",
-            St::Margin => px(5),
+            St::Position => "relative",
+            St::Width => px(150),
+            St::Margin => px(10),
         },
-        groups.iter().map(view_group)
+        div![
+            class!["multi-select-title"],
+            style! {
+                St::Padding => px(5),
+                St::Cursor => "pointer",
+            },
+            simple_ev(
+                Ev::Click,
+                if selected_items.is_empty() {
+                    Msg::NoOp
+                } else {
+                    Msg::ToggleMenu
+                }
+            ),
+            selected_items.iter().map(|item| &item.label).join(", "),
+            if selected_items.is_empty() {
+                "---"
+            } else {
+                if model.opened {
+                    " ▲"
+                } else {
+                    " ▼"
+                }
+            }
+        ],
+        div![
+            class!["multi-select-menu"],
+            style! {
+                St::Display => if model.opened { None } else { Some("none") },
+                St::Position => "absolute",
+                St::Top => unit!(100, %),
+                St::Left => 0,
+                St::Right => 0,
+                St::PaddingTop => px(20),
+                St::ZIndex => 9999,
+                St::Background => "#201f32",
+            },
+            groups.iter().map(view_group).collect::<Vec<_>>()
+        ]
     ]
 }
 
 pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
     div![
-        class!["group"],
+        class!["multi-select-group"],
         match &group.label {
             Some(label) => {
                 div![
                     style! {
-                        St::MarginLeft => px(5),
+                        St::MarginLeft => px(20),
                         St::FontWeight => "bold",
                     },
                     label,
@@ -170,14 +227,17 @@ pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
             .items
             .iter()
             .map(|item| view_group_item(&group.id, item))
+            .collect::<Vec<_>>()
     ]
 }
 
 pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Msg> {
     div![
-        class!["group-item"],
+        class!["multi-select-item"],
         style! {
-            St::Background => if item.selected { "green" } else { "initial" }
+            St::Background => if item.selected { Some("green") } else { None },
+            St::Padding => px(15),
+            St::Cursor => "pointer",
         },
         simple_ev(
             Ev::Click,
