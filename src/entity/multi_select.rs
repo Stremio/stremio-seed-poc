@@ -1,16 +1,6 @@
 use seed::{prelude::*, *};
 
-// ------ ------
-//     Model
-// ------ ------
-
-pub type GroupId = String;
-pub type GroupItemId = String;
-
-pub struct Model<T> {
-    groups: Vec<Group<T>>
-}
-
+#[derive(Clone, Debug)]
 pub struct Group<T> {
     pub id: GroupId,
     pub label: Option<String>,
@@ -19,6 +9,7 @@ pub struct Group<T> {
     pub required: bool,
 }
 
+#[derive(Clone, Debug)]
 pub struct GroupItem<T> {
     pub id: GroupItemId,
     pub label: String,
@@ -27,12 +18,21 @@ pub struct GroupItem<T> {
 }
 
 // ------ ------
+//     Model
+// ------ ------
+
+pub type GroupId = String;
+pub type GroupItemId = String;
+
+pub struct Model {
+}
+
+// ------ ------
 //     Init
 // ------ ------
 
-pub fn init<T>(groups: Vec<Group<T>>) -> Model<T> {
+pub fn init() -> Model {
     Model {
-        groups
     }
 }
 
@@ -45,45 +45,58 @@ pub enum Msg {
     ItemClicked(GroupId, GroupItemId)
 }
 
-pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model<T>, orders: &mut impl Orders<Msg>, on_change: impl FnOnce() -> ParentMsg) -> Option<ParentMsg> {
+pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>, mut groups: Vec<Group<T>>, on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg) -> Option<ParentMsg> {
     match msg {
         Msg::ItemClicked(group_id, item_id) => {
-            let group = model.groups.iter_mut().find(|group| group.id == group_id).unwrap();
+            let group = groups.iter_mut().find(|group| group.id == group_id).unwrap();
             let selected_count = group.items.iter().filter(|item| item.selected).count();
             let first_selected_position = group.items.iter_mut().position(|item| item.selected);
             let item = group.items.iter_mut().find(|item| item.id == item_id).unwrap();
 
-            if item.selected {
+            // @TODO: Refactor + comments
+            let changed = if item.selected {
                 if !group.required || selected_count > 1 {
                     item.selected = false;
+                    true
+                } else {
+                    false
                 }
             } else {
                 if selected_count < group.limit {
                     item.selected = true;
+                    true
                 } else {
                     if let Some(first_selected_position) = first_selected_position {
                         item.selected = true;
                         group.items.get_mut(first_selected_position).unwrap().selected = false;
+                        true
+                    } else {
+                        false
                     }
                 }
+            };
+
+            if changed {
+                let groups_with_selected_items = groups.into_iter().map(|mut group| {
+                    group.items = group.items.into_iter().filter(|item| item.selected).collect();
+                    group
+                }).collect::<Vec<_>>();
+                Some(on_change(groups_with_selected_items))
+            } else {
+                None
             }
-            Some(on_change())
         }
     }
-}
-
-pub fn set_groups<T: 'static>(groups: Vec<Group<T>>, model: &mut Model<T>, orders: &mut impl Orders<Msg>) {
-    model.groups = groups;
 }
 
 // ------ ------
 //     View
 // ------ ------
 
-pub fn view<T: Clone>(model: &Model<T>) -> Node<Msg> {
+pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
     div![
         class!["multi-select"],
-        model.groups.iter().map(view_group)
+        groups.iter().map(view_group)
     ]
 }
 

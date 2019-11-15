@@ -4,10 +4,124 @@ use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Loadable, TypeEntry, CatalogEntry, CatalogError, Msg as CoreMsg, Update};
 use stremio_core::types::MetaPreview;
 use stremio_core::types::addons::{ResourceRequest, ManifestExtraProp, OptionsLimit};
-use crate::{default_resource_request, entity::multi_select, SharedModel};
+use crate::{default_resource_request, entity::multi_select, SharedModel, Route};
 use futures::future::Future;
+use std::convert::TryFrom;
 
 type MetaPreviewId = String;
+
+// ------ ------
+//     Model
+// ------ ------
+
+pub struct Model {
+    shared: SharedModel,
+    resource_request: ResourceRequest,
+    selected_meta_preview_id: Option<MetaPreviewId>,
+    type_selector_model: multi_select::Model
+}
+
+impl From<Model> for SharedModel {
+    fn from(model: Model) -> Self {
+        model.shared
+    }
+}
+
+// ------ ------
+//     Init
+// ------ ------
+
+pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut impl Orders<Msg>) -> Model {
+    orders.send_msg(
+        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(resource_request.clone())))))
+    );
+
+    Model {
+        type_selector_model: multi_select::init(),
+        resource_request,
+        selected_meta_preview_id: None,
+        shared,
+    }
+}
+
+// ------ ------
+//    Update
+// ------ ------
+
+#[derive(Clone)]
+pub enum Msg {
+    Core(Rc<CoreMsg>),
+    CoreError(Rc<CoreMsg>),
+    MetaPreviewClicked(MetaPreviewId),
+    TypeSelectorMsg(multi_select::Msg),
+    OnTypeSelectorChange(Vec<multi_select::Group<TypeEntry>>),
+}
+
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+    match msg {
+        Msg::Core(core_msg) => {
+            let fx = model.shared.core.update(&core_msg);
+
+            if !fx.has_changed {
+                orders.skip();
+            }
+
+            for cmd in fx.effects {
+                let cmd = cmd
+                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
+                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
+                orders.perform_cmd(cmd);
+            }
+        },
+        Msg::CoreError(core_error) => log!("core_error", core_error),
+        Msg::MetaPreviewClicked(meta_preview_id) => {
+            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
+                if selected_meta_preview_id == &meta_preview_id {
+                    // @TODO go to player
+                }
+            }
+            model.selected_meta_preview_id = Some(meta_preview_id);
+        },
+        Msg::TypeSelectorMsg(msg) => {
+            let msg_to_parent = multi_select::update(
+                msg,
+                &mut model.type_selector_model,
+                &mut orders.proxy(Msg::TypeSelectorMsg),
+                type_selector_groups(&model.shared.core.catalog.types),
+                on_type_selector_change
+            );
+            if let Some(msg) = msg_to_parent {
+                orders.send_msg(msg);
+            }
+        },
+        Msg::OnTypeSelectorChange(groups_with_selected_items) => {
+            let req = groups_with_selected_items
+                .first()
+                .expect("type selector's group `default`")
+                .items
+                .first()
+                .expect("type selector's selected item")
+                .value
+                .load
+                .clone();
+
+            push_route(req.clone());
+            orders.send_msg(
+                Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
+            );
+        },
+    }
+}
+
+fn push_route(req: ResourceRequest) {
+    let route = Route::Discover(req.clone());
+    let url = Url::try_from(route.to_href().to_string()).expect("`Url` from `Route::Discover`");
+    seed::push_route(url);
+}
+
+fn on_type_selector_change(groups_with_selected_items: Vec<multi_select::Group<TypeEntry>>) -> Msg {
+    Msg::OnTypeSelectorChange(groups_with_selected_items)
+}
 
 fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>> {
     let items = type_entries.iter().map(|type_entry| {
@@ -31,109 +145,6 @@ fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<T
 }
 
 // ------ ------
-//     Model
-// ------ ------
-
-pub struct Model {
-    shared: SharedModel,
-    resource_request: ResourceRequest,
-    selected_meta_preview_id: Option<MetaPreviewId>,
-    type_selector_model: multi_select::Model<TypeEntry>
-}
-
-impl From<Model> for SharedModel {
-    fn from(model: Model) -> Self {
-        model.shared
-    }
-}
-
-// ------ ------
-//     Init
-// ------ ------
-
-pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut impl Orders<Msg>) -> Model {
-    orders.send_msg(
-        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(resource_request.clone())))))
-    );
-
-    Model {
-        type_selector_model: multi_select::init(type_selector_groups(&shared.core.catalog.types)),
-        resource_request,
-        selected_meta_preview_id: None,
-        shared,
-    }
-}
-
-// ------ ------
-//    Update
-// ------ ------
-
-#[derive(Clone)]
-pub enum Msg {
-    Core(Rc<CoreMsg>),
-    CoreError(Rc<CoreMsg>),
-    CoreChanged,
-    MetaPreviewClicked(MetaPreviewId),
-    TypeSelectorMsg(multi_select::Msg),
-    OnChange,
-}
-
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    match msg {
-        Msg::Core(core_msg) => {
-            let fx = model.shared.core.update(&core_msg);
-
-            if fx.has_changed {
-                orders.send_msg(Msg::CoreChanged);
-            } else {
-                orders.skip();
-            }
-
-            for cmd in fx.effects {
-                let cmd = cmd
-                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
-                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
-                orders.perform_cmd(cmd);
-            }
-        },
-        Msg::CoreError(core_error) => log!("core_error", core_error),
-        Msg::CoreChanged => {
-            multi_select::set_groups(
-                type_selector_groups(&model.shared.core.catalog.types),
-                &mut model.type_selector_model,
-                &mut orders.proxy(Msg::TypeSelectorMsg)
-            )
-        },
-        Msg::MetaPreviewClicked(meta_preview_id) => {
-            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
-                if selected_meta_preview_id == &meta_preview_id {
-                    // @TODO go to player
-                }
-            }
-            model.selected_meta_preview_id = Some(meta_preview_id);
-        },
-        Msg::TypeSelectorMsg(msg) => {
-            let msg_to_parent = multi_select::update(
-                msg,
-                &mut model.type_selector_model,
-                &mut orders.proxy(Msg::TypeSelectorMsg),
-                on_change
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        },
-        Msg::OnChange => {
-            log!("ON_CHANGE");
-        },
-    }
-}
-
-fn on_change() -> Msg {
-    Msg::OnChange
-}
-
-// ------ ------
 //     View
 // ------ ------
 
@@ -146,7 +157,7 @@ pub fn view(model: &Model) -> Node<Msg> {
     div![
         id!("discover"),
         div![
-            multi_select::view(&model.type_selector_model).map_message(Msg::TypeSelectorMsg)
+            multi_select::view(&model.type_selector_model, &type_selector_groups(&model.shared.core.catalog.types)).map_message(Msg::TypeSelectorMsg)
 //            view_catalog_selector(&model.core.catalog.catalogs, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
 //            view_extra_prop_selector(&model.core.catalog.selectable_extra, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
 //            view_reset_button(),
