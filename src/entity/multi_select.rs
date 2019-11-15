@@ -67,9 +67,10 @@ pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut i
 
             let group = groups.iter_mut().find(|group| {
                 group.id == group_id && group.items.iter().any(|item| item.id == item_id)
-            }).unwrap();
+            }).expect("`Group` with given `group_id`, which contains `GroupItem` with given `item_id`");
 
-            let item = group.items.iter_mut().find(|item| item.id == item_id).unwrap();
+            let item = group.items.iter_mut().find(|item| item.id == item_id)
+                .expect("`GroupItem` with given `item_id`");
 
             let changed = if item.selected {
                 if !group.required || selected_count > 1 {

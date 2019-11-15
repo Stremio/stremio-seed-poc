@@ -9,6 +9,7 @@ use futures::future::Future;
 use std::convert::TryFrom;
 
 type MetaPreviewId = String;
+type ExtraPropOption = String;
 
 // ------ ------
 //     Model
@@ -19,7 +20,8 @@ pub struct Model {
     resource_request: ResourceRequest,
     selected_meta_preview_id: Option<MetaPreviewId>,
     type_selector_model: multi_select::Model,
-    catalog_selector_model: multi_select::Model
+    catalog_selector_model: multi_select::Model,
+    extra_prop_selector_model: multi_select::Model,
 }
 
 impl From<Model> for SharedModel {
@@ -40,6 +42,7 @@ pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut
     Model {
         type_selector_model: multi_select::init(),
         catalog_selector_model: multi_select::init(),
+        extra_prop_selector_model: multi_select::init(),
         resource_request,
         selected_meta_preview_id: None,
         shared,
@@ -59,6 +62,8 @@ pub enum Msg {
     TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
     CatalogSelectorMsg(multi_select::Msg),
     CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
+    ExtraPropSelectorMsg(multi_select::Msg),
+    ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -118,7 +123,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             let msg_to_parent = multi_select::update(
                 msg,
                 &mut model.catalog_selector_model,
-                &mut orders.proxy(Msg::TypeSelectorMsg),
+                &mut orders.proxy(Msg::CatalogSelectorMsg),
                 catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected),
                 on_catalog_selector_change
             );
@@ -141,6 +146,41 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             orders.send_msg(
                 Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
             );
+        },
+        Msg::ExtraPropSelectorMsg(msg) => {
+            let msg_to_parent = multi_select::update(
+                msg,
+                &mut model.extra_prop_selector_model,
+                &mut orders.proxy(Msg::ExtraPropSelectorMsg),
+                extra_prop_selector_groups(&model.shared.core.catalog.selectable_extra, &model.shared.core.catalog.selected),
+                on_extra_prop_selector_change
+            );
+            if let Some(msg) = msg_to_parent {
+                orders.send_msg(msg);
+            }
+        },
+        Msg::ExtraPropSelectorChanged(groups_with_selected_items) => {
+            let selected_pairs = groups_with_selected_items
+                .into_iter()
+                .flat_map(|group| {
+                    let group_id = group.id.clone();
+                    let pairs = group
+                       .items
+                       .into_iter()
+                       .map(|item| (group_id.clone(), item.value))
+                       .collect::<Vec<_>>();
+                    pairs
+                }).collect::<Vec<_>>();
+
+            if let Some(selected_req) = &model.shared.core.catalog.selected {
+                let mut req = selected_req.clone();
+                req.path.extra = selected_pairs;
+
+                push_route(req.clone());
+                orders.send_msg(
+                    Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
+                );
+            }
         },
     }
 }
@@ -214,29 +254,64 @@ fn catalog_selector_groups(catalog_entries: &[CatalogEntry], selected_req: &Opti
         }).collect()
 }
 
+fn on_extra_prop_selector_change(groups_with_selected_items: Vec<multi_select::Group<ExtraPropOption>>) -> Msg {
+    Msg::ExtraPropSelectorChanged(groups_with_selected_items)
+}
+
+fn extra_prop_selector_groups(extra_props: &[ManifestExtraProp], selected_req: &Option<ResourceRequest>) -> Vec<multi_select::Group<ExtraPropOption>> {
+    let selected_req = match selected_req {
+        Some(selected_req) => selected_req,
+        None => return Vec::new()
+    };
+
+    extra_props
+        .into_iter()
+        .map(|extra_prop| {
+            let group_id = extra_prop.name.clone();
+
+            let items = if let Some(options) = &extra_prop.options {
+                options.iter().map(|option| {
+                    let item_id =  option.clone();
+                    multi_select::GroupItem {
+                        id: item_id.clone(),
+                        label: option.clone(),
+                        selected: selected_req.path.extra.contains(&(group_id.clone(), item_id.clone())),
+                        value: option.clone(),
+                    }
+                }).collect()
+            } else {
+                Vec::new()
+            };
+
+            multi_select::Group {
+                id: group_id,
+                label: Some(extra_prop.name.clone()),
+                // @TODO OptionsLimit?
+                limit: extra_prop.options_limit.0,
+                required: extra_prop.is_required,
+                items
+            }
+        }).collect()
+}
+
 // ------ ------
 //     View
 // ------ ------
 
 pub fn view(model: &Model) -> Node<Msg> {
-    //    log!("TYPES:", model.catalog.types);
-    //    log!("CATALOGS:", model.catalog.catalogs);
-    //    log!("Extra:", model.catalog.selectable_extra);
-    //    log!("CONTENT", model.core.catalog.content);
-
     div![
         id!("discover"),
         div![
+            // @TODO refactor
             multi_select::view(&model.type_selector_model, &type_selector_groups(&model.shared.core.catalog.types)).map_message(Msg::TypeSelectorMsg),
-            multi_select::view(&model.catalog_selector_model, &catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected)).map_message(Msg::CatalogSelectorMsg)
-//            view_catalog_selector(&model.core.catalog.catalogs, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
-//            view_extra_prop_selector(&model.core.catalog.selectable_extra, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
+            multi_select::view(&model.catalog_selector_model, &catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected)).map_message(Msg::CatalogSelectorMsg),
+            multi_select::view(&model.extra_prop_selector_model, &extra_prop_selector_groups(&model.shared.core.catalog.selectable_extra, &model.shared.core.catalog.selected)).map_message(Msg::ExtraPropSelectorMsg)
 //            view_reset_button(),
         ],
         div![
             id!("discover_holder"),
             style!{
-                St::Top => px(40),
+                St::Top => px(350),
             },
             class![
                 "holder",
@@ -318,99 +393,3 @@ fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Optio
         ]
     ]
 }
-
-//fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Option<&ResourceRequest>) -> Option<Node<Msg>> {
-//    let selected_req = selected_req?;
-//
-////    log!("extra_props", extra_props);
-////    log!("selected_req", selected_req);
-//
-//    let mut select_is_empty = true;
-//
-//    let dummy_option_value = selected_req.path.extra.iter().map(|(_, value)| value).join(", ");
-//    let dummy_option = option![
-//        style!{
-//            St::Display => "none",
-//        },
-//        if dummy_option_value.is_empty() {
-//            "None"
-//        } else {
-//            &dummy_option_value
-//        }
-//    ];
-//
-//    let select =
-//        select![
-//            id!("extra_prop_selector"),
-//            extra_props
-//                .iter()
-//                .map(|extra_prop| {
-//                    let option_nodes = view_extra_prop_selector_items(extra_prop, selected_req);
-//                    if !option_nodes.is_empty() {
-//                        select_is_empty = false;
-//                    }
-//                    optgroup![
-//                        attrs!{
-//                            At::Label => extra_prop.name
-//                        },
-//                        option_nodes,
-//                        dummy_option.clone(),
-//                    ]
-//                }).collect::<Vec<_>>()
-//        ];
-//
-//    if select_is_empty {
-//        return None
-//    }
-//    Some(select)
-//}
-//
-//// @TODO: don't hide on click? ...
-//fn view_extra_prop_selector_items(extra_prop: &ManifestExtraProp, selected_req: &ResourceRequest) -> Vec<Node<Msg>> {
-//    let options = match &extra_prop.options {
-//        Some(options) => options,
-//        None => return Vec::new()
-//    };
-//
-////    log!(extra_prop);
-//
-//    options.iter().map(|option| {
-//        let option_is_selected = selected_req.path.extra
-//            .iter()
-//            .any(|(selected_name, selected_option)| {
-//                selected_name == &extra_prop.name && selected_option == option
-//            });
-//
-//        let selected_count = selected_req.path.extra
-//            .iter()
-//            .filter(|(selected_name, _)| selected_name == &extra_prop.name)
-//            .count();
-//
-//        let mut req = selected_req.clone();
-//        if option_is_selected {
-//            if !extra_prop.is_required || selected_count > 1 {
-//                req.path.extra.retain(|(selected_name, selected_option)| {
-//                    selected_name != &extra_prop.name || selected_option != option
-//                });
-//            }
-//        } else {
-//            if OptionsLimit(selected_count) == extra_prop.options_limit {
-//                let position = req.path.extra.iter().position(|(selected_name, _)| selected_name == &extra_prop.name);
-//                if let Some(position) = position {
-//                    req.path.extra.remove(position);
-//                }
-//            }
-//            req.path.extra.push((extra_prop.name.clone(), option.clone()));
-//        }
-//
-//        option![
-//            attrs!{
-//                At::Selected => option_is_selected.as_at_value(),
-//            },
-//            simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
-//            option,
-//            if option_is_selected { " ✓" } else { "" },
-//        ]
-//    }).collect()
-//}
-
