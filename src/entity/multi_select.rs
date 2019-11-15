@@ -45,7 +45,7 @@ pub enum Msg {
     ItemClicked(GroupId, GroupItemId)
 }
 
-pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>, mut groups: Vec<Group<T>>, on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg) -> Option<ParentMsg> {
+pub fn update<T: 'static, ParentMsg>(msg: Msg, _model: &mut Model, _orders: &mut impl Orders<Msg>, mut groups: Vec<Group<T>>, on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg) -> Option<ParentMsg> {
     match msg {
         // @TODO: Refactor + comments
         Msg::ItemClicked(group_id, item_id) => {
@@ -120,7 +120,7 @@ pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut i
 //     View
 // ------ ------
 
-pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
+pub fn view<T: Clone>(_model: &Model, groups: &[Group<T>]) -> Node<Msg> {
     div![
         class!["multi-select"],
         style!{
