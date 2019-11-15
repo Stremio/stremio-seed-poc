@@ -47,13 +47,30 @@ pub enum Msg {
 
 pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>, mut groups: Vec<Group<T>>, on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg) -> Option<ParentMsg> {
     match msg {
+        // @TODO: Refactor + comments
         Msg::ItemClicked(group_id, item_id) => {
-            let group = groups.iter_mut().find(|group| group.id == group_id).unwrap();
-            let selected_count = group.items.iter().filter(|item| item.selected).count();
-            let first_selected_position = group.items.iter_mut().position(|item| item.selected);
+            let first_selected_address = groups.iter().enumerate().find_map(|(group_index, group)| {
+                if group.id == group_id {
+                    if let Some(item_index) = group.items.iter().position(|item| item.selected) {
+                        Some((group_index, item_index))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            });
+
+            let selected_count: usize = groups.iter().map(|group| {
+                group.items.iter().filter(|item| item.selected).count()
+            }).sum();
+
+            let group = groups.iter_mut().find(|group| {
+                group.id == group_id && group.items.iter().any(|item| item.id == item_id)
+            }).unwrap();
+
             let item = group.items.iter_mut().find(|item| item.id == item_id).unwrap();
 
-            // @TODO: Refactor + comments
             let changed = if item.selected {
                 if !group.required || selected_count > 1 {
                     item.selected = false;
@@ -66,9 +83,14 @@ pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut i
                     item.selected = true;
                     true
                 } else {
-                    if let Some(first_selected_position) = first_selected_position {
+                    if let Some((first_selected_group_index, first_selected_item_index)) = first_selected_address {
                         item.selected = true;
-                        group.items.get_mut(first_selected_position).unwrap().selected = false;
+                        groups
+                            .get_mut(first_selected_group_index)
+                            .unwrap()
+                            .items
+                            .get_mut(first_selected_item_index)
+                            .unwrap().selected = false;
                         true
                     } else {
                         false
@@ -77,9 +99,13 @@ pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut i
             };
 
             if changed {
-                let groups_with_selected_items = groups.into_iter().map(|mut group| {
+                let groups_with_selected_items = groups.into_iter().filter_map(|mut group| {
                     group.items = group.items.into_iter().filter(|item| item.selected).collect();
-                    group
+                    if group.items.is_empty() {
+                        None
+                    } else {
+                        Some(group)
+                    }
                 }).collect::<Vec<_>>();
                 Some(on_change(groups_with_selected_items))
             } else {
@@ -96,6 +122,10 @@ pub fn update<T: 'static, ParentMsg>(msg: Msg, model: &mut Model, orders: &mut i
 pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
     div![
         class!["multi-select"],
+        style!{
+            St::Float => "left",
+            St::Margin => px(5),
+        },
         groups.iter().map(view_group)
     ]
 }
@@ -104,8 +134,16 @@ pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
     div![
         class!["group"],
         match &group.label {
-            Some(label) => label,
-            None => "",
+            Some(label) => {
+                div![
+                    style!{
+                        St::MarginLeft => px(5),
+                        St::FontWeight => "bold",
+                    },
+                    label,
+                ]
+            },
+            None => empty![],
         },
         group.items.iter().map(|item| view_group_item(&group.id, item))
     ]

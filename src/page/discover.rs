@@ -18,7 +18,8 @@ pub struct Model {
     shared: SharedModel,
     resource_request: ResourceRequest,
     selected_meta_preview_id: Option<MetaPreviewId>,
-    type_selector_model: multi_select::Model
+    type_selector_model: multi_select::Model,
+    catalog_selector_model: multi_select::Model
 }
 
 impl From<Model> for SharedModel {
@@ -38,6 +39,7 @@ pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut
 
     Model {
         type_selector_model: multi_select::init(),
+        catalog_selector_model: multi_select::init(),
         resource_request,
         selected_meta_preview_id: None,
         shared,
@@ -54,7 +56,9 @@ pub enum Msg {
     CoreError(Rc<CoreMsg>),
     MetaPreviewClicked(MetaPreviewId),
     TypeSelectorMsg(multi_select::Msg),
-    OnTypeSelectorChange(Vec<multi_select::Group<TypeEntry>>),
+    TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
+    CatalogSelectorMsg(multi_select::Msg),
+    CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -94,13 +98,41 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 orders.send_msg(msg);
             }
         },
-        Msg::OnTypeSelectorChange(groups_with_selected_items) => {
+        Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let req = groups_with_selected_items
                 .first()
                 .expect("type selector's group `default`")
                 .items
                 .first()
                 .expect("type selector's selected item")
+                .value
+                .load
+                .clone();
+
+            push_route(req.clone());
+            orders.send_msg(
+                Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))
+            );
+        },
+        Msg::CatalogSelectorMsg(msg) => {
+            let msg_to_parent = multi_select::update(
+                msg,
+                &mut model.catalog_selector_model,
+                &mut orders.proxy(Msg::TypeSelectorMsg),
+                catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected),
+                on_catalog_selector_change
+            );
+            if let Some(msg) = msg_to_parent {
+                orders.send_msg(msg);
+            }
+        },
+        Msg::CatalogSelectorChanged(groups_with_selected_items) => {
+            let req = groups_with_selected_items
+                .first()
+                .expect("catalog selector's group `default`")
+                .items
+                .first()
+                .expect("catalog selector's selected item")
                 .value
                 .load
                 .clone();
@@ -120,7 +152,7 @@ fn push_route(req: ResourceRequest) {
 }
 
 fn on_type_selector_change(groups_with_selected_items: Vec<multi_select::Group<TypeEntry>>) -> Msg {
-    Msg::OnTypeSelectorChange(groups_with_selected_items)
+    Msg::TypeSelectorChanged(groups_with_selected_items)
 }
 
 fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>> {
@@ -144,6 +176,44 @@ fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<T
     ]
 }
 
+fn on_catalog_selector_change(groups_with_selected_items: Vec<multi_select::Group<CatalogEntry>>) -> Msg {
+    Msg::CatalogSelectorChanged(groups_with_selected_items)
+}
+
+fn catalog_selector_groups(catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRequest>) -> Vec<multi_select::Group<CatalogEntry>> {
+    let selected_req = match selected_req {
+        Some(selected_req) => selected_req,
+        None => return Vec::new()
+    };
+
+    let catalog_entries = catalog_entries
+        .iter()
+        .filter(|catalog_entry| &catalog_entry.load.path.type_name == &selected_req.path.type_name);
+
+    let catalog_groups = catalog_entries.group_by(|catalog_entry| &catalog_entry.addon_name);
+
+    catalog_groups
+        .into_iter()
+        .map(|(addon_name, catalog_entries)| {
+            let items = catalog_entries.map(|catalog_entry| {
+                multi_select::GroupItem {
+                    id: catalog_entry.name.clone(),
+                    label: catalog_entry.name.clone(),
+                    selected: catalog_entry.is_selected,
+                    value: catalog_entry.clone(),
+                }
+            }).collect::<Vec<_>>();
+
+            multi_select::Group {
+                id: "default".to_owned(),
+                label: Some(addon_name.clone()),
+                limit: 1,
+                required: true,
+                items
+            }
+        }).collect()
+}
+
 // ------ ------
 //     View
 // ------ ------
@@ -157,7 +227,8 @@ pub fn view(model: &Model) -> Node<Msg> {
     div![
         id!("discover"),
         div![
-            multi_select::view(&model.type_selector_model, &type_selector_groups(&model.shared.core.catalog.types)).map_message(Msg::TypeSelectorMsg)
+            multi_select::view(&model.type_selector_model, &type_selector_groups(&model.shared.core.catalog.types)).map_message(Msg::TypeSelectorMsg),
+            multi_select::view(&model.catalog_selector_model, &catalog_selector_groups(&model.shared.core.catalog.catalogs, &model.shared.core.catalog.selected)).map_message(Msg::CatalogSelectorMsg)
 //            view_catalog_selector(&model.core.catalog.catalogs, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
 //            view_extra_prop_selector(&model.core.catalog.selectable_extra, model.core.catalog.selected.as_ref()).unwrap_or_else(|| empty![]),
 //            view_reset_button(),
@@ -343,55 +414,3 @@ fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Optio
 //    }).collect()
 //}
 
-//fn view_type_selector(type_entries: &[TypeEntry]) -> Node<Msg> {
-//    select![
-//        id!("type_selector"),
-//        type_entries.iter().map(|type_entry| {
-//            let req = type_entry.load.clone();
-//            option![
-//                attrs!{
-//                    At::Selected => type_entry.is_selected.as_at_value(),
-//                    At::Value => type_entry.type_name,
-//                },
-//                simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
-//                type_entry.type_name,
-//            ]
-//        }).collect::<Vec<_>>()
-//    ]
-//}
-
-//fn view_catalog_selector(catalog_entries: &[CatalogEntry], selected_req: Option<&ResourceRequest>) -> Option<Node<Msg>> {
-//    let selected_req = selected_req?;
-//
-//    let catalog_entries = catalog_entries
-//        .iter()
-//        .filter(|catalog_entry| &catalog_entry.load.path.type_name == &selected_req.path.type_name);
-//
-//    let catalog_groups = catalog_entries.group_by(|catalog_entry| &catalog_entry.addon_name);
-//
-//    Some(select![
-//        id!("catalog_selector"),
-//        catalog_groups
-//            .into_iter()
-//            .map(|(addon_name, catalog_entries)| {
-//                optgroup![
-//                    attrs!{
-//                        At::Label => addon_name
-//                    },
-//                    catalog_entries.map(view_catalog_selector_item).collect::<Vec<_>>()
-//                ]
-//            }).collect::<Vec<_>>()
-//    ])
-//}
-//
-//fn view_catalog_selector_item(catalog_entry: &CatalogEntry) -> Node<Msg> {
-//    let req = catalog_entry.load.clone();
-//    option![
-//        attrs!{
-//            At::Selected => catalog_entry.is_selected.as_at_value(),
-//            At::Value => catalog_entry.load.path.id,
-//        },
-//        simple_ev(Ev::Click, Msg::Core(Rc::new(CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(req)))))),
-//        catalog_entry.name,
-//    ]
-//}
