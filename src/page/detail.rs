@@ -1,5 +1,4 @@
 use seed::{prelude::*, *};
-use crate::{CoreModel, MetaPreviewId};
 
 // ------ ------
 //     View

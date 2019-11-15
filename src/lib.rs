@@ -22,8 +22,6 @@ use helper::take;
 //     Model
 // ------ ------
 
-pub type MetaPreviewId = String;
-
 pub enum Model {
     Redirect,
     Board(SharedModel),

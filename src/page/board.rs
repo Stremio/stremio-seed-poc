@@ -1,5 +1,5 @@
 use seed::{prelude::*, *};
-use crate::{default_resource_request, Route, CoreModel, MetaPreviewId};
+use crate::{default_resource_request, Route};
 
 // ------ ------
 //     View

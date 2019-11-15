@@ -4,8 +4,10 @@ use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Loadable, TypeEntry, CatalogEntry, CatalogError, Msg as CoreMsg, Update};
 use stremio_core::types::MetaPreview;
 use stremio_core::types::addons::{ResourceRequest, ManifestExtraProp, OptionsLimit};
-use crate::{default_resource_request, MetaPreviewId, entity::multi_select, SharedModel};
+use crate::{default_resource_request, entity::multi_select, SharedModel};
 use futures::future::Future;
+
+type MetaPreviewId = String;
 
 fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>> {
     let items = type_entries.iter().map(|type_entry| {
@@ -35,6 +37,7 @@ fn type_selector_groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<T
 pub struct Model {
     shared: SharedModel,
     resource_request: ResourceRequest,
+    selected_meta_preview_id: Option<MetaPreviewId>,
     type_selector_model: multi_select::Model<TypeEntry>
 }
 
@@ -56,6 +59,7 @@ pub fn init(shared: SharedModel, resource_request: ResourceRequest, orders: &mut
     Model {
         type_selector_model: multi_select::init(type_selector_groups(&shared.core.catalog.types)),
         resource_request,
+        selected_meta_preview_id: None,
         shared,
     }
 }
@@ -69,6 +73,7 @@ pub enum Msg {
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
     CoreChanged,
+    MetaPreviewClicked(MetaPreviewId),
     TypeSelectorMsg(multi_select::Msg),
     OnChange,
 }
@@ -98,7 +103,15 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 &mut model.type_selector_model,
                 &mut orders.proxy(Msg::TypeSelectorMsg)
             )
-        }
+        },
+        Msg::MetaPreviewClicked(meta_preview_id) => {
+            if let Some(selected_meta_preview_id) = &model.selected_meta_preview_id {
+                if selected_meta_preview_id == &meta_preview_id {
+                    // @TODO go to player
+                }
+            }
+            model.selected_meta_preview_id = Some(meta_preview_id);
+        },
         Msg::TypeSelectorMsg(msg) => {
             let msg_to_parent = multi_select::update(
                 msg,
@@ -112,7 +125,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         },
         Msg::OnChange => {
             log!("ON_CHANGE");
-        }
+        },
     }
 }
 
@@ -146,7 +159,7 @@ pub fn view(model: &Model) -> Node<Msg> {
             class![
                 "holder",
             ],
-//            view_content(&model.core.catalog.content, model.selected_meta_preview_id.as_ref()),
+            view_content(&model.shared.core.catalog.content, model.selected_meta_preview_id.as_ref()),
         ]
     ]
 }
@@ -165,64 +178,64 @@ pub fn view(model: &Model) -> Node<Msg> {
 //    ]
 //}
 
-//fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
-//    match content {
-//        Loadable::Err(catalog_error) => h3![format!("{:#?}", catalog_error)],
-//        Loadable::Loading => h3!["Loading"],
-//        Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
-//        Loadable::Ready(meta_previews) => {
-//            ul![
-//                id!("discover-port"),
-//                class![
-//                    "items",
-//                    "scroll-pane",
-//                    "square",
-//                ],
-//                meta_previews.iter().map(|meta_preview| view_meta_preview(meta_preview, selected_meta_preview_id)).collect::<Vec<_>>()
-//            ]
-//        }
-//    }
-//}
+fn view_content(content: &Loadable<Vec<MetaPreview>, CatalogError>, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
+    match content {
+        Loadable::Err(catalog_error) => h3![format!("{:#?}", catalog_error)],
+        Loadable::Loading => h3!["Loading"],
+        Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
+        Loadable::Ready(meta_previews) => {
+            ul![
+                id!("discover-port"),
+                class![
+                    "items",
+                    "scroll-pane",
+                    "square",
+                ],
+                meta_previews.iter().map(|meta_preview| view_meta_preview(meta_preview, selected_meta_preview_id)).collect::<Vec<_>>()
+            ]
+        }
+    }
+}
 
-//fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
-//    let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
-//    let poster = meta_preview.poster.as_ref().unwrap_or(&default_poster);
-////    let poster_shape = meta_preview.poster_shape.to_str();
-//
-//    let is_selected = match selected_meta_preview_id {
-//        Some(selected_meta_preview_id) => selected_meta_preview_id == &meta_preview.id,
-//        None => false,
-//    };
-//
-//    li![
-//        class![
-//            "selected" => is_selected,
-//            "item"
-//        ],
-//        simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.id.clone())),
-//        div![
-//            class![
-//                "name",
-//            ],
-//             meta_preview.name
-//        ],
-//        a![
-//            class![
-//                "thumb"
-//            ],
-//            style!{
-//                St::BackgroundImage => format!("url({})", poster)
-//            }
-//        ],
-//        div![
-//            class![
-//                "icon",
-//                "icon-ic_play",
-//                "button"
-//            ]
-//        ]
-//    ]
-//}
+fn view_meta_preview(meta_preview: &MetaPreview, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
+    let default_poster = "https://www.stremio.com/images/add-on-money.png".to_owned();
+    let poster = meta_preview.poster.as_ref().unwrap_or(&default_poster);
+//    let poster_shape = meta_preview.poster_shape.to_str();
+
+    let is_selected = match selected_meta_preview_id {
+        Some(selected_meta_preview_id) => selected_meta_preview_id == &meta_preview.id,
+        None => false,
+    };
+
+    li![
+        class![
+            "selected" => is_selected,
+            "item"
+        ],
+        simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.id.clone())),
+        div![
+            class![
+                "name",
+            ],
+             meta_preview.name
+        ],
+        a![
+            class![
+                "thumb"
+            ],
+            style!{
+                St::BackgroundImage => format!("url({})", poster)
+            }
+        ],
+        div![
+            class![
+                "icon",
+                "icon-ic_play",
+                "button"
+            ]
+        ]
+    ]
+}
 
 //fn view_extra_prop_selector(extra_props: &[ManifestExtraProp], selected_req: Option<&ResourceRequest>) -> Option<Node<Msg>> {
 //    let selected_req = selected_req?;
