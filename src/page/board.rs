@@ -7,19 +7,29 @@ use seed::{prelude::*, *};
 
 pub fn view<Ms>() -> Node<Ms> {
     div![
-        h1!["Board",],
-        a![
-            style! {
-                St::Display => "block",
-                St::Margin => px(20),
+        h1![
+            style!{
                 St::Padding => px(20),
-                St::Background => "black",
-                St::TextAlign => "right",
+            },
+            "Board",
+        ],
+        a![
+            style!{
+                St::Padding => px(20),
             },
             attrs! {
                 At::Href => Route::Discover(default_resource_request()).to_href()
             },
             "Go to Discover ▶"
+        ],
+        a![
+            style!{
+                St::Padding => px(20),
+            },
+            attrs! {
+                At::Href => Route::Player.to_href()
+            },
+            "Go to Player ▶"
         ]
     ]
 }

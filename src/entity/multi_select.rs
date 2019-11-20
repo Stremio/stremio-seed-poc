@@ -210,6 +210,8 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
 
 pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
     div![
+    // @TODO remove?
+
 //        match &group.label {
 //            Some(label) => {
 //                div![
