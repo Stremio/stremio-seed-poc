@@ -45,7 +45,7 @@ pub fn init(
     orders: &mut impl Orders<Msg>,
 ) -> Model {
     orders.send_msg(
-        // @TODO try to remove `Clone` requiremnt from Seed or add it into stremi-core? Implement intos, from etc.?
+        // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
         Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
             ActionLoad::CatalogFiltered(resource_request),
         )))),
