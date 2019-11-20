@@ -180,42 +180,48 @@ pub fn view(model: &Model) -> Node<Msg> {
 
     div![
         id!("discover"),
-        div![
-            style! {
-                St::Display => "flex",
-            },
-            // type selector
-            type_selector::view(
-                &model.type_selector_model,
-                &type_selector::groups(&catalog.types)
-            )
-            .map_message(Msg::TypeSelectorMsg),
-            // catalog selector
-            catalog_selector::view(
-                &model.catalog_selector_model,
-                &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-            )
-            .map_message(Msg::CatalogSelectorMsg),
-            // extra prop selector
-            extra_prop_selector::view(
-                &model.extra_prop_selector_model,
-                &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
-            )
-            .map_message(Msg::ExtraPropSelectorMsg),
-            // reset button
-            view_reset_button(),
+        class![
+            "discover-container-K69iz"
         ],
         div![
-            id!("discover_holder"),
-            style! {
-                St::Top => px(60),
-            },
-            class!["holder",],
-            view_content(
-                &model.shared.core.catalog.content,
-                model.selected_meta_preview_id.as_ref()
-            ),
-        ]
+            class![
+                "discover-content-qYx6a"
+            ],
+            div![
+                class![
+                    "controls-container-34sGE"
+                ],
+                // type selector
+                type_selector::view(
+                    &model.type_selector_model,
+                    &type_selector::groups(&catalog.types)
+                )
+                .map_message(Msg::TypeSelectorMsg),
+                // catalog selector
+                catalog_selector::view(
+                    &model.catalog_selector_model,
+                    &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+                )
+                .map_message(Msg::CatalogSelectorMsg),
+                // extra prop selector
+                extra_prop_selector::view(
+                    &model.extra_prop_selector_model,
+                    &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
+                )
+                .map_message(Msg::ExtraPropSelectorMsg),
+                // reset button
+                view_reset_button(),
+            ],
+            div![
+                class![
+                    "catalog-content-container-2upWD"
+                ],
+                view_content(
+                    &model.shared.core.catalog.content,
+                    model.selected_meta_preview_id.as_ref()
+                ),
+            ]
+        ],
     ]
 }
 
