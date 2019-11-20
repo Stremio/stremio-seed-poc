@@ -13,7 +13,7 @@ pub struct Model(multi_select::Model);
 //     Init
 // ------ ------
 
-pub fn init() -> Model {
+pub const fn init() -> Model {
     Model(multi_select::init("extra-prop-selector"))
 }
 
@@ -62,7 +62,7 @@ pub fn groups(
     };
 
     extra_props
-        .into_iter()
+        .iter()
         .map(|extra_prop| {
             let group_id = extra_prop.name.clone();
 
@@ -77,7 +77,7 @@ pub fn groups(
                             selected: selected_req
                                 .path
                                 .extra
-                                .contains(&(group_id.clone(), item_id.clone())),
+                                .contains(&(group_id.clone(), item_id)),
                             value: option.clone(),
                         }
                     })
@@ -106,12 +106,11 @@ pub fn resource_request(
         .into_iter()
         .flat_map(|group| {
             let group_id = group.id.clone();
-            let pairs = group
+            group
                 .items
                 .into_iter()
                 .map(|item| (group_id.clone(), item.value))
-                .collect::<Vec<_>>();
-            pairs
+                .collect::<Vec<_>>()
         })
         .collect::<Vec<_>>();
 

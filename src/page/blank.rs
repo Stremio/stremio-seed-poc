@@ -4,6 +4,6 @@ use seed::{prelude::*, *};
 //     View
 // ------ ------
 
-pub fn view<Ms>() -> Node<Ms> {
+pub const fn view<Ms>() -> Node<Ms> {
     empty![]
 }

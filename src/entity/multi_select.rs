@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use wasm_bindgen::JsCast;
 use seed::{prelude::*, *};
+use wasm_bindgen::JsCast;
 
 const MENU_CLASS: &str = "menu-container-1fSKf";
 
@@ -37,11 +37,8 @@ pub struct Model {
 //     Init
 // ------ ------
 
-pub fn init(id: &'static str) -> Model {
-    Model {
-        id,
-        opened: false,
-    }
+pub const fn init(id: &'static str) -> Model {
+    Model { id, opened: false }
 }
 
 // ------ ------
@@ -55,6 +52,8 @@ pub enum Msg {
     NoOp,
 }
 
+// @TODO: remove after Msg::ItemClicked refactor
+#[allow(clippy::collapsible_if)]
 pub fn update<T: 'static, ParentMsg>(
     msg: Msg,
     model: &mut Model,
@@ -69,7 +68,8 @@ pub fn update<T: 'static, ParentMsg>(
             let selector_id = model.id;
             if model.opened {
                 orders.after_next_render(move |_| {
-                    document().query_selector(&format!("#{} .{}", selector_id, MENU_CLASS))
+                    document()
+                        .query_selector(&format!("#{} .{}", selector_id, MENU_CLASS))
                         .unwrap()
                         .expect("menu element")
                         .dyn_into::<web_sys::HtmlElement>()
@@ -162,7 +162,7 @@ pub fn update<T: 'static, ParentMsg>(
             } else {
                 None
             }
-        },
+        }
         Msg::NoOp => None,
     }
 }
@@ -189,7 +189,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 "button-container-3RFM-",
                 "active" => model.opened,
             ],
-            attrs!{
+            attrs! {
                 At::TabIndex => 0,
             },
             simple_ev(Ev::Click, Msg::ToggleMenu),
@@ -198,33 +198,24 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 selected_items.iter().map(|item| &item.label).join(", "),
             ],
             svg![
-                class![
-                    "icon-2AyMi"
-                ],
-                attrs!{
+                class!["icon-2AyMi"],
+                attrs! {
                     At::ViewBox => "0 0 1731 1024",
                     "icon" => "ic_arrow_down",
                 },
-                path![
-                    attrs!{
-                        At::D => "M1674.541 54.212c-35.054-33.866-82.855-54.734-135.529-54.734s-100.475 20.868-135.585 54.788l0.056-0.054-538.202 523.144-539.708-523.144c-34.993-34.004-82.813-54.97-135.529-54.97s-100.536 20.966-135.576 55.015l0.046-0.045c-34.583 32.979-56.087 79.409-56.087 130.861s21.504 97.882 56.015 130.793l0.072 0.068 675.84 653.854c35.054 33.866 82.855 54.734 135.529 54.734s100.475-20.868 135.585-54.788l-0.056 0.054 673.129-653.854c34.583-32.979 56.087-79.409 56.087-130.861s-21.504-97.882-56.015-130.793l-0.072-0.068z"
-                    }
-                ]
+                path![attrs! {
+                    At::D => "M1674.541 54.212c-35.054-33.866-82.855-54.734-135.529-54.734s-100.475 20.868-135.585 54.788l0.056-0.054-538.202 523.144-539.708-523.144c-34.993-34.004-82.813-54.97-135.529-54.97s-100.536 20.966-135.576 55.015l0.046-0.045c-34.583 32.979-56.087 79.409-56.087 130.861s21.504 97.882 56.015 130.793l0.072 0.068 675.84 653.854c35.054 33.866 82.855 54.734 135.529 54.734s100.475-20.868 135.585-54.788l-0.056 0.054 673.129-653.854c34.583-32.979 56.087-79.409 56.087-130.861s-21.504-97.882-56.015-130.793l-0.072-0.068z"
+                }]
             ],
             if model.opened {
                 div![
-                    class![
-                        MENU_CLASS,
-                        "menu-direction-bottom-2XVQE",
-                    ],
-                    attrs!{
+                    class![MENU_CLASS, "menu-direction-bottom-2XVQE",],
+                    attrs! {
                         At::TabIndex => 0,
                     },
                     simple_ev(Ev::Blur, Msg::ToggleMenu),
                     div![
-                        class![
-                            "menu-container-256Nv"
-                        ],
+                        class!["menu-container-256Nv"],
                         groups.iter().map(view_group).collect::<Vec<_>>()
                     ]
                 ]
@@ -237,16 +228,16 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
 
 pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
     div![
-    // @TODO remove?
+        // @TODO remove?
 
-//        match &group.label {
-//            Some(label) => {
-//                div![
-//                    label,
-//                ]
-//            }
-//            None => empty![],
-//        },
+        //        match &group.label {
+        //            Some(label) => {
+        //                div![
+        //                    label,
+        //                ]
+        //            }
+        //            None => empty![],
+        //        },
         group
             .items
             .iter()
@@ -266,25 +257,16 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             Ev::Click,
             Msg::ItemClicked(group_id.to_owned(), item.id.clone())
         ),
-        div![
-            class![
-                "label-2ZXq9"
-            ],
-            item.label,
-        ],
+        div![class!["label-2ZXq9"], item.label,],
         svg![
-            class![
-                "icon-2AyMi"
-            ],
-            attrs!{
+            class!["icon-2AyMi"],
+            attrs! {
                 At::ViewBox => "0 0 1331 1024",
                 "icon" => "ic_check",
             },
-            path![
-                attrs!{
-                    At::D => "M545.129 1024c-40.334-0.026-76.847-16.363-103.306-42.769l-398.755-397.551c-24.752-26.158-39.97-61.56-39.97-100.516 0-80.839 65.533-146.372 146.372-146.372 38.806 0 74.085 15.101 100.281 39.748l-0.075-0.070 288.226 286.118 536.395-612.593c27.002-30.81 66.432-50.158 110.381-50.158 80.929 0 146.535 65.606 146.535 146.535 0 36.98-13.698 70.761-36.298 96.544l0.144-0.168-639.699 731.256c-25.909 29.451-63.15 48.401-104.838 49.987l-0.272 0.008z"
-                }
-            ]
+            path![attrs! {
+                At::D => "M545.129 1024c-40.334-0.026-76.847-16.363-103.306-42.769l-398.755-397.551c-24.752-26.158-39.97-61.56-39.97-100.516 0-80.839 65.533-146.372 146.372-146.372 38.806 0 74.085 15.101 100.281 39.748l-0.075-0.070 288.226 286.118 536.395-612.593c27.002-30.81 66.432-50.158 110.381-50.158 80.929 0 146.535 65.606 146.535 146.535 0 36.98-13.698 70.761-36.298 96.544l0.144-0.168-639.699 731.256c-25.909 29.451-63.15 48.401-104.838 49.987l-0.272 0.008z"
+            }]
         ]
     ]
 }

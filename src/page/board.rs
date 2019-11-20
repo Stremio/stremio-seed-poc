@@ -8,13 +8,13 @@ use seed::{prelude::*, *};
 pub fn view<Ms>() -> Node<Ms> {
     div![
         h1![
-            style!{
+            style! {
                 St::Padding => px(20),
             },
             "Board",
         ],
         a![
-            style!{
+            style! {
                 St::Padding => px(20),
             },
             attrs! {
@@ -23,7 +23,7 @@ pub fn view<Ms>() -> Node<Ms> {
             "Go to Discover ▶"
         ],
         a![
-            style!{
+            style! {
                 St::Padding => px(20),
             },
             attrs! {

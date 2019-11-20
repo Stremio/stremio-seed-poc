@@ -14,7 +14,7 @@ pub struct Model(multi_select::Model);
 //     Init
 // ------ ------
 
-pub fn init() -> Model {
+pub const fn init() -> Model {
     Model(multi_select::init("catalog-selector"))
 }
 
@@ -64,7 +64,7 @@ pub fn groups(
 
     let catalog_entries = catalog_entries
         .iter()
-        .filter(|catalog_entry| &catalog_entry.load.path.type_name == &selected_req.path.type_name);
+        .filter(|catalog_entry| catalog_entry.load.path.type_name == selected_req.path.type_name);
 
     let catalog_groups = catalog_entries.group_by(|catalog_entry| &catalog_entry.addon_name);
 

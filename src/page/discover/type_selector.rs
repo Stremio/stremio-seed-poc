@@ -13,7 +13,7 @@ pub struct Model(multi_select::Model);
 //     Init
 // ------ ------
 
-pub fn init() -> Model {
+pub const fn init() -> Model {
     Model(multi_select::init("type-selector"))
 }
 

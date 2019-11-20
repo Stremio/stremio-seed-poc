@@ -14,10 +14,10 @@ pub enum Route {
 }
 
 impl Route {
-    pub fn to_href(self) -> String {
+    pub fn to_href(&self) -> String {
         match self {
             Self::Board => "#/board".into(),
-            Self::Discover(req) => format!("#/discover/{}", resource_request_to_url_path(&req)),
+            Self::Discover(req) => format!("#/discover/{}", resource_request_to_url_path(req)),
             Self::Detail => format!("#/detail/{}", "TODO"),
             Self::Player => "#/player".into(),
             Self::NotFound => "#/404".into(),
@@ -41,20 +41,18 @@ impl From<Url> for Route {
         match hash.next() {
             Some("") | Some("board") => Self::Board,
             Some("discover") => {
-                let encoded_base = match hash.next() {
-                    Some(base) => base,
-                    None => {
-                        error!("cannot find request base");
-                        return Self::NotFound;
-                    }
+                let encoded_base = if let Some(base) = hash.next() {
+                    base
+                } else {
+                    error!("cannot find request base");
+                    return Self::NotFound;
                 };
 
-                let encoded_path = match hash.next() {
-                    Some(base) => base,
-                    None => {
-                        error!("cannot find request path");
-                        return Self::NotFound;
-                    }
+                let encoded_path = if let Some(base) = hash.next() {
+                    base
+                } else {
+                    error!("cannot find request path");
+                    return Self::NotFound;
                 };
 
                 let req = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
