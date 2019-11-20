@@ -1,5 +1,8 @@
 use itertools::Itertools;
+use wasm_bindgen::JsCast;
 use seed::{prelude::*, *};
+
+const MENU_CLASS: &str = "menu-container-1fSKf";
 
 #[derive(Clone, Debug)]
 pub struct Group<T> {
@@ -25,8 +28,8 @@ pub struct GroupItem<T> {
 pub type GroupId = String;
 pub type GroupItemId = String;
 
-#[derive(Default)]
 pub struct Model {
+    id: &'static str,
     opened: bool,
 }
 
@@ -34,8 +37,11 @@ pub struct Model {
 //     Init
 // ------ ------
 
-pub fn init() -> Model {
-    Model::default()
+pub fn init(id: &'static str) -> Model {
+    Model {
+        id,
+        opened: false,
+    }
 }
 
 // ------ ------
@@ -46,18 +52,33 @@ pub fn init() -> Model {
 pub enum Msg {
     ToggleMenu,
     ItemClicked(GroupId, GroupItemId),
+    NoOp,
 }
 
 pub fn update<T: 'static, ParentMsg>(
     msg: Msg,
     model: &mut Model,
-    _orders: &mut impl Orders<Msg>,
+    orders: &mut impl Orders<Msg>,
     mut groups: Vec<Group<T>>,
     on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {
     match msg {
         Msg::ToggleMenu => {
             model.opened = !model.opened;
+
+            let selector_id = model.id;
+            if model.opened {
+                orders.after_next_render(move |_| {
+                    document().query_selector(&format!("#{} .{}", selector_id, MENU_CLASS))
+                        .unwrap()
+                        .expect("menu element")
+                        .dyn_into::<web_sys::HtmlElement>()
+                        .expect("menu element as `HtmlElement`")
+                        .focus()
+                        .expect("focus menu element");
+                    Msg::NoOp
+                });
+            }
             None
         }
         // @TODO: Refactor + comments
@@ -141,7 +162,8 @@ pub fn update<T: 'static, ParentMsg>(
             } else {
                 None
             }
-        }
+        },
+        Msg::NoOp => None,
     }
 }
 
@@ -159,6 +181,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
         empty![]
     } else {
         div![
+            id!(model.id),
             class![
                 "select-input-container-2c2W6",
                 "label-container-3YvQO",
@@ -191,9 +214,13 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
             if model.opened {
                 div![
                     class![
-                        "menu-container-1fSKf",
+                        MENU_CLASS,
                         "menu-direction-bottom-2XVQE",
                     ],
+                    attrs!{
+                        At::TabIndex => 0,
+                    },
+                    simple_ev(Ev::Blur, Msg::ToggleMenu),
                     div![
                         class![
                             "menu-container-256Nv"
@@ -235,9 +262,6 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             "button-container-3RFM-",
             "selected" => item.selected,
         ],
-        attrs!{
-            At::TabIndex => 0,
-        },
         simple_ev(
             Ev::Click,
             Msg::ItemClicked(group_id.to_owned(), item.id.clone())
