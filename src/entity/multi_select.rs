@@ -46,13 +46,12 @@ pub fn init() -> Model {
 pub enum Msg {
     ToggleMenu,
     ItemClicked(GroupId, GroupItemId),
-    NoOp,
 }
 
 pub fn update<T: 'static, ParentMsg>(
     msg: Msg,
     model: &mut Model,
-    orders: &mut impl Orders<Msg>,
+    _orders: &mut impl Orders<Msg>,
     mut groups: Vec<Group<T>>,
     on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {
@@ -63,8 +62,6 @@ pub fn update<T: 'static, ParentMsg>(
         }
         // @TODO: Refactor + comments
         Msg::ItemClicked(group_id, item_id) => {
-            orders.send_msg(Msg::ToggleMenu);
-
             let first_selected_address =
                 groups.iter().enumerate().find_map(|(group_index, group)| {
                     if group.id == group_id {
@@ -145,7 +142,6 @@ pub fn update<T: 'static, ParentMsg>(
                 None
             }
         }
-        Msg::NoOp => None,
     }
 }
 
@@ -159,70 +155,69 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
         .flat_map(|group| group.items.iter().filter(|item| item.selected))
         .collect::<Vec<_>>();
 
-    div![
-        class!["multi-select"],
-        style! {
-            St::Position => "relative",
-            St::Width => px(150),
-            St::Margin => px(10),
-        },
+    if selected_items.is_empty() {
+        empty![]
+    } else {
         div![
-            class!["multi-select-title"],
-            style! {
-                St::Padding => px(5),
-                St::Cursor => "pointer",
+            class![
+                "select-input-container-2c2W6",
+                "label-container-3YvQO",
+                "label-container-1ZEWO",
+                "button-container-3RFM-",
+                "active" => model.opened,
+            ],
+            attrs!{
+                At::TabIndex => 0,
             },
-            simple_ev(
-                Ev::Click,
-                if selected_items.is_empty() {
-                    Msg::NoOp
-                } else {
-                    Msg::ToggleMenu
-                }
-            ),
-            selected_items.iter().map(|item| &item.label).join(", "),
-            if selected_items.is_empty() {
-                "---"
+            simple_ev(Ev::Click, Msg::ToggleMenu),
+            div![
+                class!["label-2ZXq9"],
+                selected_items.iter().map(|item| &item.label).join(", "),
+            ],
+            svg![
+                class![
+                    "icon-2AyMi"
+                ],
+                attrs!{
+                    At::ViewBox => "0 0 1731 1024",
+                    "icon" => "ic_arrow_down",
+                },
+                path![
+                    attrs!{
+                        At::D => "M1674.541 54.212c-35.054-33.866-82.855-54.734-135.529-54.734s-100.475 20.868-135.585 54.788l0.056-0.054-538.202 523.144-539.708-523.144c-34.993-34.004-82.813-54.97-135.529-54.97s-100.536 20.966-135.576 55.015l0.046-0.045c-34.583 32.979-56.087 79.409-56.087 130.861s21.504 97.882 56.015 130.793l0.072 0.068 675.84 653.854c35.054 33.866 82.855 54.734 135.529 54.734s100.475-20.868 135.585-54.788l-0.056 0.054 673.129-653.854c34.583-32.979 56.087-79.409 56.087-130.861s-21.504-97.882-56.015-130.793l-0.072-0.068z"
+                    }
+                ]
+            ],
+            if model.opened {
+                div![
+                    class![
+                        "menu-container-1fSKf",
+                        "menu-direction-bottom-2XVQE",
+                    ],
+                    div![
+                        class![
+                            "menu-container-256Nv"
+                        ],
+                        groups.iter().map(view_group).collect::<Vec<_>>()
+                    ]
+                ]
             } else {
-                if model.opened {
-                    " ▲"
-                } else {
-                    " ▼"
-                }
+                empty![]
             }
-        ],
-        div![
-            class!["multi-select-menu"],
-            style! {
-                St::Display => if model.opened { None } else { Some("none") },
-                St::Position => "absolute",
-                St::Top => unit!(100, %),
-                St::Left => 0,
-                St::Right => 0,
-                St::PaddingTop => px(20),
-                St::ZIndex => 9999,
-                St::Background => "#201f32",
-            },
-            groups.iter().map(view_group).collect::<Vec<_>>()
         ]
-    ]
+    }
 }
 
 pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
     div![
-        class!["multi-select-group"],
-        match &group.label {
-            Some(label) => {
-                div![
-                    style! {
-                        St::MarginLeft => px(20),
-                        St::FontWeight => "bold",
-                    },
-                    label,
-                ]
-            }
-            None => empty![],
-        },
+//        match &group.label {
+//            Some(label) => {
+//                div![
+//                    label,
+//                ]
+//            }
+//            None => empty![],
+//        },
         group
             .items
             .iter()
@@ -233,16 +228,37 @@ pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
 
 pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Msg> {
     div![
-        class!["multi-select-item"],
-        style! {
-            St::Background => if item.selected { Some("green") } else { None },
-            St::Padding => px(15),
-            St::Cursor => "pointer",
+        class![
+            "option-container-35nou",
+            "button-container-3RFM-",
+            "selected" => item.selected,
+        ],
+        attrs!{
+            At::TabIndex => 0,
         },
         simple_ev(
             Ev::Click,
             Msg::ItemClicked(group_id.to_owned(), item.id.clone())
         ),
-        item.label,
+        div![
+            class![
+                "label-2ZXq9"
+            ],
+            item.label,
+        ],
+        svg![
+            class![
+                "icon-2AyMi"
+            ],
+            attrs!{
+                At::ViewBox => "0 0 1331 1024",
+                "icon" => "ic_check",
+            },
+            path![
+                attrs!{
+                    At::D => "M545.129 1024c-40.334-0.026-76.847-16.363-103.306-42.769l-398.755-397.551c-24.752-26.158-39.97-61.56-39.97-100.516 0-80.839 65.533-146.372 146.372-146.372 38.806 0 74.085 15.101 100.281 39.748l-0.075-0.070 288.226 286.118 536.395-612.593c27.002-30.81 66.432-50.158 110.381-50.158 80.929 0 146.535 65.606 146.535 146.535 0 36.98-13.698 70.761-36.298 96.544l0.144-0.168-639.699 731.256c-25.909 29.451-63.15 48.401-104.838 49.987l-0.272 0.008z"
+                }
+            ]
+        ]
     ]
 }
