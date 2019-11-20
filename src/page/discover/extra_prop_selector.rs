@@ -14,7 +14,7 @@ pub struct Model(multi_select::Model);
 // ------ ------
 
 pub fn init() -> Model {
-    Model(multi_select::init())
+    Model(multi_select::init("extra-prop-selector"))
 }
 
 // ------ ------
