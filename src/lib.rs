@@ -1,4 +1,4 @@
-#![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::needless_pass_by_value, clippy::non_ascii_literal)]
 
 mod entity;
 mod helper;
@@ -25,6 +25,8 @@ fn default_resource_request() -> ResourceRequest {
 //     Model
 // ------ ------
 
+// @TODO box large fields?
+#[allow(clippy::large_enum_variant)]
 pub enum Model {
     Redirect,
     Board(SharedModel),
@@ -51,11 +53,11 @@ impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         match model {
             Model::Redirect => Self::default(),
-            Model::Board(shared_model) => shared_model,
-            Model::Detail(shared_model) => shared_model,
             Model::Discover(module_model) => module_model.into(),
-            Model::NotFound(shared_model) => shared_model,
-            Model::Player(shared_model) => shared_model,
+            Model::Board(shared_model)
+            | Model::Detail(shared_model)
+            | Model::NotFound(shared_model)
+            | Model::Player(shared_model) => shared_model,
         }
     }
 }
@@ -104,7 +106,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     }
 }
 
-fn change_model_by_route<'a>(route: Route, model: &mut Model, orders: &mut impl Orders<Msg>) {
+fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg>) {
     let shared_model = SharedModel::from(take(model));
     *model = match route {
         Route::Board => Model::Board(shared_model),
@@ -127,7 +129,7 @@ fn view(model: &Model) -> Node<Msg> {
     match &model {
         Model::Redirect => page::blank::view(),
         Model::Board(_) => page::board::view(),
-        Model::Discover(model) => page::discover::view(&model).map_message(Msg::DiscoverMsg),
+        Model::Discover(model) => page::discover::view(model).map_message(Msg::DiscoverMsg),
         Model::Detail(_) => page::detail::view(),
         Model::Player(_) => page::player::view(),
         Model::NotFound(_) => page::not_found::view(),
