@@ -1,0 +1,158 @@
+.intro-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background:
+        linear-gradient(var(--color-backgrounddark80), var(--color-backgrounddark80)),
+        url('/images/intro_background.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-origin: border-box;
+    overflow-y: auto;
+
+    .form-container {
+        flex: none;
+        width: 20rem;
+        padding: 4rem 0;
+
+        .form-button {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+
+            .icon {
+                flex: none;
+                width: 1rem;
+                height: 2rem;
+                margin-right: 1rem;
+                fill: var(--color-surfacelighter);
+            }
+
+            .label {
+                flex-grow: 0;
+                flex-shrink: 1;
+                flex-basis: auto;
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: var(--color-surfacelighter);
+                text-align: center;
+            }
+        }
+
+        .facebook-button {
+            min-height: 4.5rem;
+            background: var(--color-facebook);
+
+            &:hover, &:focus {
+                filter: brightness(1.2);
+            }
+
+            .label {
+                font-size: 1.2rem;
+            }
+        }
+
+        .facebook-statement {
+            margin-top: 0.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: var(--color-surface);
+        }
+
+        .credentials-text-input {
+            display: block;
+            width: 100%;
+            margin: 1rem 0;
+            padding: 0.5rem;
+            border-bottom: thin solid var(--color-surface);
+            color: var(--color-surfacelighter);
+
+            &:hover, &:focus {
+                background-color: var(--color-surfacedarker60);
+                border-bottom-color: var(--color-surfacelighter);
+
+                &::placeholder {
+                    color: var(--color-surfacelighter);
+                }
+            }
+
+            &::placeholder {
+                color: var(--color-surfacelight);
+            }
+        }
+
+        .forgot-password-link-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            margin: 1rem 0;
+            text-align: right;
+
+            .forgot-password-link {
+                flex-grow: 0;
+                flex-shrink: 1;
+                flex-basis: auto;
+                padding: 0.5rem;
+                color: var(--color-surfacelight);
+
+                &:hover {
+                    text-decoration: underline;
+                    color: var(--color-surfacelighter);
+                }
+
+                &:focus {
+                    color: var(--color-surfacelighter);
+                }
+            }
+        }
+
+        .consent-checkbox {
+            margin: 1rem 0;
+        }
+
+        .error-message {
+            margin: 1rem 0;
+            text-align: center;
+            color: var(--color-signal1);
+        }
+
+        .submit-button {
+            min-height: 4rem;
+            margin: 1rem 0;
+            background-color: var(--color-primarydark);
+
+            &:hover {
+                background-color: var(--color-primary);
+            }
+
+            .label {
+                font-size: 1.2rem;
+            }
+        }
+
+        .guest-login-button {
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            padding: 1rem 0.5rem;
+
+            &:hover, &:focus {
+                background-color: var(--color-surfacedarker60);
+            }
+        }
+
+        .switch-form-button {
+            margin-top: 0.5rem;
+            padding: 1rem 0.5rem;
+
+            &:hover, &:focus {
+                background-color: var(--color-surfacedarker60);
+            }
+        }
+    }
+}

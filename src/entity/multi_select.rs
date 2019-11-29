@@ -2,7 +2,7 @@ use itertools::Itertools;
 use seed::{prelude::*, *};
 use wasm_bindgen::JsCast;
 
-const MENU_CLASS: &str = "menu-container-1fSKf";
+const MENU_CLASS: &str = "menu-container";
 
 #[derive(Clone, Debug)]
 pub struct Group<T> {
@@ -183,10 +183,10 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
         div![
             id!(model.id),
             class![
-                "select-input-container-2c2W6",
-                "label-container-3YvQO",
-                "label-container-1ZEWO",
-                "button-container-3RFM-",
+                "select-input-container",
+                "label-container",
+                "label-container",
+                "button-container",
                 "active" => model.opened,
             ],
             attrs! {
@@ -194,11 +194,11 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
             },
             simple_ev(Ev::Click, Msg::ToggleMenu),
             div![
-                class!["label-2ZXq9"],
+                class!["label"],
                 selected_items.iter().map(|item| &item.label).join(", "),
             ],
             svg![
-                class!["icon-2AyMi"],
+                class!["icon"],
                 attrs! {
                     At::ViewBox => "0 0 1731 1024",
                     "icon" => "ic_arrow_down",
@@ -209,13 +209,13 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
             ],
             if model.opened {
                 div![
-                    class![MENU_CLASS, "menu-direction-bottom-2XVQE",],
+                    class![MENU_CLASS, "menu-direction-bottom",],
                     attrs! {
                         At::TabIndex => 0,
                     },
                     simple_ev(Ev::Blur, Msg::ToggleMenu),
                     div![
-                        class!["menu-container-256Nv"],
+                        class!["menu-container"],
                         groups.iter().map(view_group).collect::<Vec<_>>()
                     ]
                 ]
@@ -249,17 +249,17 @@ pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
 pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Msg> {
     div![
         class![
-            "option-container-35nou",
-            "button-container-3RFM-",
+            "option-container",
+            "button-container",
             "selected" => item.selected,
         ],
         simple_ev(
             Ev::Click,
             Msg::ItemClicked(group_id.to_owned(), item.id.clone())
         ),
-        div![class!["label-2ZXq9"], item.label,],
+        div![class!["label"], item.label,],
         svg![
-            class!["icon-2AyMi"],
+            class!["icon"],
             attrs! {
                 At::ViewBox => "0 0 1331 1024",
                 "icon" => "ic_check",

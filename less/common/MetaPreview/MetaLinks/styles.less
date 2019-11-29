@@ -1,0 +1,28 @@
+.meta-links-container {
+    .label-container {
+        margin-bottom: 0.2rem;
+        font-size: 1.2rem;
+        color: var(--color-surfacelighter);
+    }
+
+    .links-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+
+        .link-container {
+            flex-grow: 0;
+            flex-shrink: 1;
+            flex-basis: auto;
+            margin-right: 0.5rem;
+            margin-bottom: 0.2rem;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            color: var(--color-surfacelighter);
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+}
