@@ -2,7 +2,7 @@ use itertools::Itertools;
 use seed::{prelude::*, *};
 use wasm_bindgen::JsCast;
 
-const MENU_CLASS: &str = "menu-container";
+const MENU_CLASS: &str = "popup-menu-container";
 
 #[derive(Clone, Debug)]
 pub struct Group<T> {
@@ -184,7 +184,8 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
             id!(model.id),
             class![
                 "select-input-container",
-                "label-container",
+                "multiselect-container",
+                "popup-container",
                 "label-container",
                 "button-container",
                 "active" => model.opened,
@@ -213,9 +214,9 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                     attrs! {
                         At::TabIndex => 0,
                     },
-//                    simple_ev(Ev::Blur, Msg::ToggleMenu),
+                    simple_ev(Ev::Blur, Msg::ToggleMenu),
                     div![
-                        class!["menu-container"],
+                        class!["multiselect-menu-container"],
                         groups.iter().map(view_group).collect::<Vec<_>>()
                     ]
                 ]
