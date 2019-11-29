@@ -40,17 +40,17 @@
             justify-content: center;
             align-items: center;
 
-            &:global(.active) {
+            &.active {
                 background-color: var(--color-backgrounddarker);
             }
 
-            &:global(.disabled) {
-                :global(.icon) {
+            &.disabled {
+                .icon {
                     fill: var(--color-surfacedark);
                 }
             }
 
-            :global(.icon) {
+            .icon {
                 flex: none;
                 width: 2.5rem;
                 height: 2.5rem;
