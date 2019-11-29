@@ -181,11 +181,11 @@ pub fn view(model: &Model) -> Node<Msg> {
     let catalog = &model.shared.core.catalog;
 
     div![
-        class!["discover-container-K69iz"],
+        class!["discover-container"],
         div![
-            class!["discover-content-qYx6a"],
+            class!["discover-content"],
             div![
-                class!["controls-container-34sGE"],
+                class!["controls-container"],
                 // type selector
                 type_selector::view(
                     &model.type_selector_model,
@@ -208,7 +208,7 @@ pub fn view(model: &Model) -> Node<Msg> {
                 view_reset_button(),
             ],
             div![
-                class!["catalog-content-container-2upWD"],
+                class!["catalog-content-container"],
                 view_content(
                     &model.shared.core.catalog.content,
                     model.selected_meta_preview_id.as_ref()
@@ -241,13 +241,13 @@ fn view_content(
 ) -> Node<Msg> {
     match content {
         Loadable::Err(catalog_error) => div![
-            class!["message-container-aqvx2",],
+            class!["message-container",],
             format!("{:#?}", catalog_error)
         ],
-        Loadable::Loading => div![class!["message-container-aqvx2",], "Loading"],
+        Loadable::Loading => div![class!["message-container",], "Loading"],
         Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
         Loadable::Ready(meta_previews) => div![
-            class!["meta-items-container-3c5HT",],
+            class!["meta-items-container",],
             meta_previews
                 .iter()
                 .map(|meta_preview| view_meta_preview(meta_preview, selected_meta_preview_id))
@@ -261,9 +261,9 @@ fn view_meta_preview(
     selected_meta_preview_id: Option<&MetaPreviewId>,
 ) -> Node<Msg> {
     let poster_shape_class = match meta_preview.poster_shape {
-        PosterShape::Square => "poster-shape-square-18we1",
+        PosterShape::Square => "poster-shape-square",
         // @TODO correct classes
-        _ => "poster-shape-poster-sd4g8",
+        _ => "poster-shape-poster",
     };
 
     let is_selected = match selected_meta_preview_id {
@@ -273,23 +273,23 @@ fn view_meta_preview(
 
     div![
         class![
-            "meta-item-3fmEI",
-            "meta-item-container-1WNhp",
+            "meta-item",
+            "meta-item-container",
             poster_shape_class,
-            "button-container-3RFM-",
+            "button-container",
             "selected" => is_selected,
         ],
         simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.id.clone())),
         div![
-            class!["poster-container-1x6_P",],
+            class!["poster-container",],
             div![
-                class!["poster-image-layer-36UHR",],
+                class!["poster-image-layer",],
                 view_poster(&meta_preview.poster),
             ],
         ],
         div![
-            class!["title-bar-container-3Tw4m",],
-            div![class!["title-label-3P3zE",], &meta_preview.name]
+            class!["title-bar-container",],
+            div![class!["title-label",], &meta_preview.name]
         ],
     ]
 }
@@ -298,13 +298,13 @@ fn view_poster(poster: &Option<String>) -> Node<Msg> {
     // @TODO Show placeholder image also if poster_url is present but can't be laoded?
     match poster {
         Some(poster_url) => img![
-            class!["poster-image-3cbdZ",],
+            class!["poster-image",],
             attrs! {
                 At::Src => poster_url,
             }
         ],
         None => svg![
-            class!["placeholder-icon-B9CX1",],
+            class!["placeholder-icon",],
             attrs! {
                 At::ViewBox => "0 0 1125 1024",
                 "icon" => "ic_series",

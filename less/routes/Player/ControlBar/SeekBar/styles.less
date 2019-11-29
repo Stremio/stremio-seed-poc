@@ -1,0 +1,52 @@
+:import('../Slider/styles.less') {
+    slider-track: track;
+    slider-track-before: track-before;
+    slider-thumb: thumb;
+}
+
+.seek-bar-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    &:hover, &:global(.active) {
+        .slider:not(:global(.disabled)) {
+            .slider-track-before {
+                background-color: var(--color-primarylight);
+            }
+
+            .slider-thumb {
+                fill: var(--color-surfacelighter);
+            }
+        }
+    }
+
+    &:hover {
+        .slider:not(:global(.disabled)) {
+            .slider-thumb {
+                transition-delay: 100ms;
+            }
+        }
+    }
+
+    .label {
+        flex: none;
+        max-width: 5rem;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        direction: rtl;
+        text-align: left;
+        color: var(--color-surfacelighter);
+    }
+
+    .slider {
+        flex: 1;
+        align-self: stretch;
+        margin: 0 var(--thumb-size);
+
+        .slider-thumb {
+            transition: 0s fill;
+            fill: transparent;
+        }
+    }
+}

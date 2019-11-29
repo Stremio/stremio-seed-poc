@@ -1,0 +1,47 @@
+:import('../Checkbox/styles.less') {
+    checkbox-icon: icon;
+}
+
+.consent-checkbox-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0.5rem;
+
+    &:focus, &:hover {
+        background-color: var(--color-surfacedarker60);
+
+        .checkbox-icon {
+            fill: var(--color-surfacelighter);
+        }
+
+        .label {
+            color: var(--color-surfacelighter);
+
+            .link {
+                color: var(--color-surfacelighter);
+            }
+        }
+    }
+
+    .checkbox-icon {
+        flex: none;
+        width: 1.2rem;
+        height: 1.2rem;
+        fill: var(--color-surfacelight);
+    }
+
+    .label {
+        flex: 1;
+        margin-left: 0.5rem;
+        color: var(--color-surface);
+
+        .link {
+            color: var(--color-surfacelight);
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+}

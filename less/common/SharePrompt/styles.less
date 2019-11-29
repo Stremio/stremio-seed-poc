@@ -1,0 +1,108 @@
+.share-prompt-container {
+    .buttons-container {
+        flex: none;
+        align-self: stretch;
+        display: flex;
+        flex-direction: row;
+
+        .button-container {
+            flex-grow: 0;
+            flex-shrink: 1;
+            flex-basis: 14rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1rem;
+
+            .icon {
+                flex: none;
+                width: 1.4rem;
+                height: 1.4rem;
+                margin-right: 0.6rem;
+                fill: var(--color-surfacelighter);
+            }
+
+            .label {
+                flex-grow: 0;
+                flex-shrink: 1;
+                flex-basis: auto;
+                font-size: 0.8rem;
+                font-weight: 500;
+                color: var(--color-surfacelighter);
+                text-align: center;
+            }
+
+            &:hover {
+                filter: brightness(1.2);
+            }
+
+            &:focus {
+                outline: calc(1.5 * var(--focus-outline-size)) solid var(--color-surfacelighter);
+                outline-offset: calc(-2 * var(--focus-outline-size));
+            }
+
+            &:not(:last-child) {
+                margin-right: 2rem;
+            }
+        }
+
+        .facebook-button {
+            background-color: var(--color-facebook);
+        }
+
+        .twitter-button {
+            background-color: var(--color-twitter);
+        }
+    }
+
+    .url-container {
+        display: flex;
+        flex-direction: row;
+        margin-top: 2rem;
+        border: thin solid var(--color-surface);
+
+        .url-content {
+            flex: 1;
+            min-width: 12rem;
+            padding: 0.6rem 1rem;
+            font-size: 0.9rem;
+            color: var(--color-surfacedark);
+            text-align: center;
+            border-right: thin solid var(--color-surface);
+        }
+
+        .copy-button {
+            flex-grow: 0;
+            flex-shrink: 1;
+            flex-basis: auto;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            padding: 0.6rem 1rem;
+            background-color: var(--color-surface);
+
+            .icon {
+                flex: none;
+                width: 1.4rem;
+                height: 1.4rem;
+                margin-right: 0.6rem;
+                fill: var(--color-surfacedarker);
+            }
+
+            .label {
+                color: var(--color-surfacedarker);
+            }
+
+            &:hover {
+                filter: brightness(1.2);
+            }
+
+            &:focus {
+                outline: calc(1.5 * var(--focus-outline-size)) solid var(--color-surfacelighter);
+                outline-offset: calc(-1.5 * var(--focus-outline-size));
+            }
+        }
+    }
+}

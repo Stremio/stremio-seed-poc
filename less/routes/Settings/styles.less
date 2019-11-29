@@ -1,0 +1,41 @@
+.settings-parent-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-background);
+
+    .nav-bar {
+        flex: none;
+        align-self: stretch;
+    }
+
+    .settings-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        background-color: var(--color-backgroundlight);
+        --input-width: 35rem;
+    
+        .side-menu {
+            padding: 1rem;
+            width: 17rem;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-backgroundlighter);
+
+
+        }
+
+        .scroll-container {
+            padding: 0 2rem;
+            flex: 1;
+            overflow-y: auto;
+
+            >:not(:last-child) {
+                border-bottom: calc(var(--focusable-border-size) * 0.5) solid var(--color-primary);
+            }
+        }
+    }
+}
