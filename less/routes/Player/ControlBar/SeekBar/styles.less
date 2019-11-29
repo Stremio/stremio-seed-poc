@@ -9,8 +9,8 @@
     flex-direction: row;
     align-items: center;
 
-    &:hover, &:global(.active) {
-        .slider:not(:global(.disabled)) {
+    &:hover, &.active {
+        .slider:not(.disabled) {
             .slider-track-before {
                 background-color: var(--color-primarylight);
             }
@@ -22,7 +22,7 @@
     }
 
     &:hover {
-        .slider:not(:global(.disabled)) {
+        .slider:not(.disabled) {
             .slider-thumb {
                 transition-delay: 100ms;
             }

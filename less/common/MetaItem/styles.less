@@ -17,7 +17,7 @@
     position: relative;
     overflow: visible;
 
-    &:hover, &:focus, &:global(.active), &:global(.selected) {
+    &:hover, &:focus, &.active, &.selected {
         outline-style: none;
 
         &::after {
@@ -174,7 +174,7 @@
                 padding: 0.75rem;
                 background-color: transparent;
 
-                &:hover, &:global(.active) {
+                &:hover, &.active {
                     background-color: var(--color-surface80);
                 }
 
