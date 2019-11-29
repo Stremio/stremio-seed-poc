@@ -213,7 +213,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                     attrs! {
                         At::TabIndex => 0,
                     },
-                    simple_ev(Ev::Blur, Msg::ToggleMenu),
+//                    simple_ev(Ev::Blur, Msg::ToggleMenu),
                     div![
                         class!["menu-container"],
                         groups.iter().map(view_group).collect::<Vec<_>>()

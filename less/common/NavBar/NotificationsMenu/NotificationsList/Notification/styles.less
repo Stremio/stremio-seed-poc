@@ -1,8 +1,3 @@
-:import('../PlayIconCircleCentered/styles.less') {
-    play-icon-circle-centered-background: background;
-    play-icon-circle-centered-icon: icon;
-}
-
 .notification-container {
     display: flex;
     flex-direction: row;
@@ -118,11 +113,13 @@
                 height: 100%;
                 filter: drop-shadow(0 0 0.5rem var(--color-backgroundlight));
 
-                .play-icon-circle-centered-background {
+                .background {
+                    .play-icon-circle-centered-background();
                     fill: var(--color-surfacelighter);
                 }
 
-                .play-icon-circle-centered-icon {
+                .icon {
+                    .play-icon-circle-centered-icon();
                     fill: var(--color-primary);
                 }
             }
