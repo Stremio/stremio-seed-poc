@@ -4,17 +4,8 @@
     overflow: visible;
 
     .prev-button-container, .next-button-container {
-        flex: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .icon {
-            display: block;
-            width: 40%;
-            height: 40%;
-            fill: var(--color-surfacelighter);
-        }
+        .paginate-prev-button-container();
+        .paginate-next-button-container();
     }
 
     .multiselect-label-container {
@@ -25,8 +16,30 @@
         justify-content: center;
 
         .multiselect-label {
-            flex: none;
-            color: var(--color-surfacelighter);
+            .paginate-multiselect-label();
         }
     }
+}
+
+.paginate-prev-button-container() {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon {
+        display: block;
+        width: 40%;
+        height: 40%;
+        fill: var(--color-surfacelighter);
+    }
+}
+
+.paginate-next-button-container() {
+    .paginate-prev-button-container();
+}
+
+.paginate-multiselect-label() {
+    flex: none;
+    color: var(--color-surfacelighter);
 }

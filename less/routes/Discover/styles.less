@@ -3,7 +3,6 @@
 :import('../../common/PaginateInput/styles.less') {
     paginate-prev-button-container: prev-button-container;
     paginate-next-button-container: next-button-container;
-    paginate-multiselect-label: multiselect-label;
 }
 
 .discover-container {
@@ -86,12 +85,15 @@
                 flex: none;
                 background-color: var(--color-backgroundlighter);
 
-                .paginate-prev-button-container, .paginate-next-button-container {
+                .prev-button-container, .next-button-container {
+                    .paginate-prev-button-container();
+                    .paginate-next-button-container();
                     width: 3rem;
                     height: 3rem;
                 }
 
-                .paginate-multiselect-label {
+                .multiselect-label {
+                    .paginate-multiselect-label();
                     max-width: 3rem;
                     white-space: nowrap;
                     text-overflow: ellipsis;
