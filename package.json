@@ -1,12 +1,20 @@
 {
   "scripts": {
-    "less:compile": "yarn lessc --glob less/App/styles.less styles.css"
+    "less:compile": "lessc --glob less/App/styles.less styles.css",
+    "less:watch": "npm-watch"
+  },
+  "watch": {
+    "less:compile": {
+      "patterns": ["less"],
+      "extensions": "less,css"
+    }
   },
   "dependencies": {
     "stremio-colors": "git+ssh://git@github.com/Stremio/stremio-colors.git#v2.0.4"
   },
   "devDependencies": {
     "less": "^3.10.3",
-    "less-plugin-glob": "^3.0.0"
+    "less-plugin-glob": "^3.0.0",
+    "npm-watch": "^0.6.0"
   }
 }
