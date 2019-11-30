@@ -10,5 +10,4 @@ wasm-pack.log
 styles.css
 dist
 
-yarn.lock
 node_modules
