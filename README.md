@@ -1,13 +1,33 @@
 # Stremio seed example
 
-- If you don't have Rust and cargo-make installed, [Download it](https://www.rust-lang.org/tools/install), and run the following commands:
+## Prerequisites
 
-`rustup update`
+- [Node.js](https://nodejs.org/en/)
+- [Rust](https://www.rust-lang.org/tools/install)
+- `rustup update`
+- `rustup target add wasm32-unknown-unknown`
+- `cargo install --force cargo-make`
 
-`rustup target add wasm32-unknown-unknown`
+## Init project
 
-`cargo install --force cargo-make`
+- `npm install`
 
-Run `cargo make all` in a terminal to build the app, and `cargo make serve` to start a dev server
-on `127.0.0.0:8000`.
+## Development
+
+- In standalone terminals:
+  - `cargo make watch`
+  - `cargo make watch_less`
+  - `cargo make serve`
+  
+- Open [localhost:8000](http://localhost:8000) in a browser.
+- _Note_: Auto-reload isn't implemented (yet).
+
+## Test release version
+
+- `cargo make bundle`
+- `cargo make serve_dist`
+
+## Deploy (WIP)
+
+- See `/.github/workflows_example/main.yml`
 

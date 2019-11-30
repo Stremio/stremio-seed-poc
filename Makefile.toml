@@ -30,7 +30,7 @@ npm run less:compile
 '''
 ]
 
-[tasks.less_watch]
+[tasks.watch_less]
 description = "Watch LESS"
 script_runner = "@shell"
 script = [

@@ -23,7 +23,7 @@ jobs:
         uses: davidB/rust-cargo-make@v1
 
       - name: Install Node dependencies
-        run: sudo npm install
+        run: npm install  # maybe need `sudo`, it doesn't have access to stremio-colors.git
 
       - name: Run tests
         run: cargo make verify_only
