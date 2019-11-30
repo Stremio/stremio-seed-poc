@@ -5,7 +5,9 @@
   },
   "watch": {
     "less:compile": {
-      "patterns": ["less"],
+      "patterns": [
+        "less"
+      ],
       "extensions": "less,css"
     }
   },

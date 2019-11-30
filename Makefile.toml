@@ -18,6 +18,26 @@ description = "Bundle the app into `/dist` folder"
 command = "cargo"
 args = ["play", "scripts/bundle.rs"]
 
+# ---- LESS ----
+
+[tasks.less_compile]
+description = "Compile LESS"
+script_runner = "@shell"
+script = [
+'''
+npm run less:compile
+'''
+]
+
+[tasks.less_watch]
+description = "Watch LESS"
+script_runner = "@shell"
+script = [
+'''
+npm run less:watch
+'''
+]
+
 # ---- BUILD & CREATE WASMS ----
 [tasks.compile]
 description = "Build"
