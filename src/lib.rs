@@ -142,7 +142,5 @@ fn view(model: &Model) -> Node<Msg> {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    App::build(|_, _| Init::default(), update, view)
-        .routes(routes)
-        .build_and_start();
+    App::builder(update, view).routes(routes).build_and_start();
 }
