@@ -184,6 +184,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
         div![
             id!(model.id),
             class![
+                "dropdown",
                 "select-input-container",
                 "multiselect-container",
                 "popup-container",

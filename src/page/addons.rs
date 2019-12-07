@@ -203,7 +203,7 @@ fn view_add_addon_button() -> Node<Msg> {
         },
         simple_ev(Ev::Click, Msg::AddAddonButtonClicked),
         svg![
-            class!["placeholder-icon",],
+            class!["icon",],
             attrs! {
                 At::ViewBox => "0 0 1024 1024",
                 "icon" => "ic_plus",
@@ -227,7 +227,7 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
             "search-bar-container",
         ],
         svg![
-            class!["placeholder-icon",],
+            class!["icon",],
             attrs! {
                 At::ViewBox => "0 0 1025 1024",
                 "icon" => "ic_search",
