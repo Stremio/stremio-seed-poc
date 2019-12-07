@@ -190,7 +190,7 @@ pub fn view(model: &Model) -> Node<Msg> {
             ],
             div![
                 class!["addons-list-container"],
-                view_content(&model.shared.core.addon_catalog.content),
+                view_content(&model.shared.core.addon_catalog.content, &model.search_query),
             ]
         ],
     ]
@@ -255,6 +255,7 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
 
 fn view_content(
     content: &Loadable<Vec<DescriptorPreview>, CatalogError>,
+    search_query: &str,
 ) -> Vec<Node<Msg>> {
     match content {
         Loadable::Err(catalog_error) => vec![div![
@@ -266,10 +267,29 @@ fn view_content(
         Loadable::Ready(addons) => {
             addons
                 .iter()
+                .filter(|addon| is_addon_in_search_results(addon, search_query))
                 .map(view_addon)
                 .collect()
         },
     }
+}
+
+fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> bool {
+    if search_query.is_empty() {
+        return true
+    }
+
+    let search_query = search_query.to_lowercase();
+
+    if addon.manifest.name.to_lowercase().contains(&search_query) {
+        return true
+    }
+    if let Some(description) = &addon.manifest.description {
+        if description.to_lowercase().contains(&search_query) {
+            return true
+        }
+    }
+    false
 }
 
 // ------ view addon ------
