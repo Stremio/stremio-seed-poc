@@ -1,4 +1,4 @@
-use crate::{default_resource_request, entity::multi_select, route::Route, SharedModel};
+use crate::{entity::multi_select, route::Route, SharedModel};
 use futures::future::Future;
 use seed::{prelude::*, *};
 use std::convert::TryFrom;
@@ -7,7 +7,7 @@ use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Update,
 };
 use stremio_core::types::MetaPreview;
-use stremio_core::types::{addons::ResourceRequest, PosterShape};
+use stremio_core::types::{addons::{ResourceRequest, ResourceRef}, PosterShape};
 
 mod catalog_selector;
 mod extra_prop_selector;
@@ -16,6 +16,13 @@ mod type_selector;
 type MetaPreviewId = String;
 // @TODO add into stremio-core?
 type ExtraPropOption = String;
+
+pub fn default_resource_request() -> ResourceRequest {
+    ResourceRequest {
+        base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
+        path: ResourceRef::without_extra("catalog", "movie", "top"),
+    }
+}
 
 // ------ ------
 //     Model
@@ -53,11 +60,11 @@ pub fn init(
     );
 
     Model {
+        shared,
         type_selector_model: type_selector::init(),
         catalog_selector_model: catalog_selector::init(),
         extra_prop_selector_model: extra_prop_selector::init(),
         selected_meta_preview_id: None,
-        shared,
     }
 }
 

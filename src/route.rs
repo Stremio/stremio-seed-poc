@@ -1,6 +1,7 @@
 use seed::{prelude::*, *};
 use std::str::FromStr;
 use stremio_core::types::addons::{ParseResourceErr, ResourceRef, ResourceRequest};
+use crate::page;
 
 // ------ Route ------
 
@@ -10,6 +11,7 @@ pub enum Route {
     Discover(ResourceRequest),
     Detail,
     Player,
+    Addons(ResourceRequest),
     NotFound,
 }
 
@@ -20,6 +22,7 @@ impl Route {
             Self::Discover(req) => format!("#/discover/{}", resource_request_to_url_path(req)),
             Self::Detail => format!("#/detail/{}", "TODO"),
             Self::Player => "#/player".into(),
+            Self::Addons(req) => format!("#/addons/{}", resource_request_to_url_path(req)),
             Self::NotFound => "#/404".into(),
         }
     }
@@ -44,8 +47,7 @@ impl From<Url> for Route {
                 let encoded_base = if let Some(base) = hash.next() {
                     base
                 } else {
-                    error!("cannot find request base");
-                    return Self::NotFound;
+                    return Self::Discover(page::discover::default_resource_request());
                 };
 
                 let encoded_path = if let Some(base) = hash.next() {
@@ -67,6 +69,30 @@ impl From<Url> for Route {
             }
             Some("detail") => Self::Detail,
             Some("player") => Self::Player,
+            Some("addons") => {
+                let encoded_base = if let Some(base) = hash.next() {
+                    base
+                } else {
+                    return Self::Addons(page::addons::default_resource_request());
+                };
+
+                let encoded_path = if let Some(base) = hash.next() {
+                    base
+                } else {
+                    error!("cannot find request path");
+                    return Self::NotFound;
+                };
+
+                let req = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
+                    Ok(req) => req,
+                    Err(error) => {
+                        error!(error);
+                        return Self::NotFound;
+                    }
+                };
+
+                Self::Addons(req)
+            }
             _ => Self::NotFound,
         }
     }
