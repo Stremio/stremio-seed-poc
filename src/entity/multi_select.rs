@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use seed::{prelude::*, *};
 use wasm_bindgen::JsCast;
+use std::fmt::Debug;
 
 const MENU_CLASS: &str = "popup-menu-container";
 
@@ -54,7 +55,7 @@ pub enum Msg {
 
 // @TODO: remove after Msg::ItemClicked refactor
 #[allow(clippy::collapsible_if)]
-pub fn update<T: 'static, ParentMsg>(
+pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
     orders: &mut impl Orders<Msg>,

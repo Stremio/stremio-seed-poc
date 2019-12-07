@@ -1,8 +1,9 @@
 use crate::entity::multi_select;
 use itertools::Itertools;
-use seed::prelude::*;
+use seed::{*, prelude::*};
 use stremio_core::state_types::CatalogEntry;
 use stremio_core::types::addons::ResourceRequest;
+use std::fmt::Debug;
 
 // ------ ------
 //     Model
@@ -15,7 +16,7 @@ pub struct Model(multi_select::Model);
 // ------ ------
 
 pub const fn init() -> Model {
-    Model(multi_select::init("catalog-selector"))
+    Model(multi_select::init("category-selector"))
 }
 
 // ------ ------
@@ -25,7 +26,7 @@ pub const fn init() -> Model {
 #[derive(Clone)]
 pub struct Msg(multi_select::Msg);
 
-pub fn update<T: 'static, ParentMsg>(
+pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
     orders: &mut impl Orders<Msg>,
@@ -62,33 +63,24 @@ pub fn groups(
         None => return Vec::new(),
     };
 
-    let catalog_entries = catalog_entries
+    let items = catalog_entries
         .iter()
-        .filter(|catalog_entry| catalog_entry.load.path.type_name == selected_req.path.type_name);
-
-    let catalog_groups = catalog_entries.group_by(|catalog_entry| &catalog_entry.addon_name);
-
-    catalog_groups
-        .into_iter()
-        .map(|(addon_name, catalog_entries)| {
-            let items = catalog_entries
-                .map(|catalog_entry| multi_select::GroupItem {
-                    id: catalog_entry.name.clone(),
-                    label: catalog_entry.name.clone(),
-                    selected: catalog_entry.is_selected,
-                    value: catalog_entry.clone(),
-                })
-                .collect::<Vec<_>>();
-
-            multi_select::Group {
-                id: "default".to_owned(),
-                label: Some(addon_name.clone()),
-                limit: 1,
-                required: true,
-                items,
-            }
+        .filter(|catalog_entry| catalog_entry.load.path.type_name == selected_req.path.type_name)
+        .map(|catalog_entry| multi_select::GroupItem {
+            id: catalog_entry.name.clone(),
+            label: catalog_entry.name.clone(),
+            selected: catalog_entry.is_selected,
+            value: catalog_entry.clone(),
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    vec![multi_select::Group {
+        id: "default".to_owned(),
+        label: None,
+        items,
+        limit: 1,
+        required: true,
+    }]
 }
 
 pub fn resource_request(

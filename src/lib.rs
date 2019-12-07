@@ -12,6 +12,7 @@ use seed::{prelude::*, App};
 use stremio_core::state_types::{CatalogFiltered, Ctx};
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
+use stremio_core::types::addons::DescriptorPreview;
 
 // ------ ------
 //     Model
@@ -62,6 +63,7 @@ impl From<Model> for SharedModel {
 struct CoreModel {
     ctx: Ctx<Env>,
     catalog: CatalogFiltered<MetaPreview>,
+    addon_catalog: CatalogFiltered<DescriptorPreview>,
 }
 
 // ------ ------
@@ -141,7 +143,7 @@ fn view(model: &Model) -> Node<Msg> {
         Model::Discover(model) => page::discover::view(model).map_message(Msg::DiscoverMsg),
         Model::Detail(_) => page::detail::view(),
         Model::Player(_) => page::player::view(),
-        Model::Addons(_) => page::addons::view(),
+        Model::Addons(model) => page::addons::view(model).map_message(Msg::AddonsMsg),
         Model::NotFound(_) => page::not_found::view(),
     }
 }
