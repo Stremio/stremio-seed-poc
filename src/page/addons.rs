@@ -7,7 +7,7 @@ use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Update,
 };
 use stremio_core::types::{addons::{ResourceRequest, ResourceRef}, PosterShape};
-use stremio_core::types::addons::DescriptorPreview;
+use stremio_core::types::addons::{DescriptorPreview, Descriptor};
 
 mod catalog_selector;
 mod type_selector;
@@ -80,6 +80,7 @@ pub enum Msg {
     SearchQueryChanged(String),
     AddAddonButtonClicked,
     UninstallAddonButtonClicked(DescriptorPreview),
+    InstallAddonButtonClicked(DescriptorPreview),
     ShareAddonButtonClicked(DescriptorPreview),
 }
 
@@ -154,6 +155,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
         Msg::AddAddonButtonClicked => log!("add addon button clicked"),
         Msg::UninstallAddonButtonClicked(addon) => log!("uninstall button clicked", addon),
+        Msg::InstallAddonButtonClicked(addon) => log!("install button clicked", addon),
         Msg::ShareAddonButtonClicked(addon) => log!("share button clicked", addon),
     }
 }
@@ -190,7 +192,7 @@ pub fn view(model: &Model) -> Node<Msg> {
             ],
             div![
                 class!["addons-list-container"],
-                view_content(&model.shared.core.addon_catalog.content, &model.search_query),
+                view_content(&model.shared.core.addon_catalog.content, &model.search_query, &model.shared.core.ctx.content.addons),
             ]
         ],
     ]
@@ -256,6 +258,7 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
 fn view_content(
     content: &Loadable<Vec<DescriptorPreview>, CatalogError>,
     search_query: &str,
+    installed_addons: &[Descriptor],
 ) -> Vec<Node<Msg>> {
     match content {
         Loadable::Err(catalog_error) => vec![div![
@@ -268,7 +271,7 @@ fn view_content(
             addons
                 .iter()
                 .filter(|addon| is_addon_in_search_results(addon, search_query))
-                .map(view_addon)
+                .map(|addon| view_addon(addon, installed_addons.iter().any(|installed_addon| installed_addon.manifest.id == addon.manifest.id)))
                 .collect()
         },
     }
@@ -296,6 +299,7 @@ fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> 
 
 fn view_addon(
     addon: &DescriptorPreview,
+    addon_installed: bool,
 ) -> Node<Msg> {
     div![
         class![
@@ -308,7 +312,7 @@ fn view_addon(
         },
         view_logo_container(&addon.manifest.logo),
         view_info_container(addon),
-        view_buttons_container(addon)
+        view_buttons_container(addon, addon_installed)
     ]
 }
 
@@ -388,12 +392,16 @@ fn format_addon_types(types: &[String]) -> String {
     }
 }
 
-fn view_buttons_container(addon: &DescriptorPreview) -> Node<Msg> {
+fn view_buttons_container(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
     div![
         class![
             "buttons-container"
         ],
-        view_uninstall_addon_button(addon),
+        if addon_installed {
+            view_uninstall_addon_button(addon)
+        } else {
+            view_install_addon_button(addon)
+        },
         view_share_addon_button(addon)
     ]
 }
@@ -413,6 +421,25 @@ fn view_uninstall_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
                 "label",
             ],
             "Uninstall"
+        ]
+    ]
+}
+
+fn view_install_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
+    div![
+        class![
+            "install-button-container",
+            "button-container",
+        ],
+        attrs!{
+            At::TabIndex => -1,
+        },
+        simple_ev(Ev::Click, Msg::InstallAddonButtonClicked(addon.clone())),
+        div![
+            class![
+                "label",
+            ],
+            "Install"
         ]
     ]
 }
