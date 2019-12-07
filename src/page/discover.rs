@@ -19,12 +19,14 @@ type ExtraPropOption = String;
 
 const DEFAULT_CATALOG: &str = "top";
 const DEFAULT_TYPE: &str = "movie";
+const BASE: &str = "https://v3-cinemeta.strem.io/manifest.json";
+const RESOURCE: &str = "catalog";
 
 pub fn default_resource_request() -> ResourceRequest {
-    ResourceRequest {
-        base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
-        path: ResourceRef::without_extra("catalog", DEFAULT_TYPE, DEFAULT_CATALOG),
-    }
+    ResourceRequest::new(
+        BASE,
+        ResourceRef::without_extra("catalog", DEFAULT_TYPE, DEFAULT_CATALOG),
+    )
 }
 
 // ------ ------

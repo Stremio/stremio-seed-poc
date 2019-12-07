@@ -2,8 +2,10 @@ use crate::entity::multi_select;
 use itertools::Itertools;
 use seed::{*, prelude::*};
 use stremio_core::state_types::CatalogEntry;
-use stremio_core::types::addons::ResourceRequest;
+use stremio_core::types::addons::{ResourceRequest, ResourceRef};
 use std::fmt::Debug;
+use std::iter;
+use super::{MY_ITEM_ID, TYPE_ALL, RESOURCE, BASE};
 
 // ------ ------
 //     Model
@@ -55,10 +57,26 @@ pub fn view<T: Clone>(model: &Model, groups: &[multi_select::Group<T>]) -> Node<
 // ------ ------
 
 pub fn groups(
-    catalog_entries: &[CatalogEntry],
+    catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRequest>
 ) -> Vec<multi_select::Group<CatalogEntry>> {
+    let selected_req = match selected_req {
+        Some(selected_req) => selected_req,
+        None => return Vec::new(),
+    };
+
+    let my_catalog_entry = CatalogEntry {
+        name: "my".to_owned(),
+        is_selected: selected_req.path.id == MY_ITEM_ID,
+        addon_name: "my_addon".to_owned(),
+        load: ResourceRequest::new(
+            BASE,
+            ResourceRef::without_extra(RESOURCE, TYPE_ALL, MY_ITEM_ID)
+        )
+    };
+
     let items = catalog_entries
         .iter()
+        .chain(iter::once(&my_catalog_entry))
         .group_by(|catalog_entry| &catalog_entry.name)
         .into_iter()
         .map(|(_, catalog_entries)| {
