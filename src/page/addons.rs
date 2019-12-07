@@ -8,17 +8,16 @@ use stremio_core::state_types::{
 };
 use stremio_core::types::{addons::{ResourceRequest, ResourceRef}, PosterShape};
 
-mod category_selector;
+mod catalog_selector;
 mod type_selector;
 
+const DEFAULT_CATALOG: &str = "thirdparty";
 const DEFAULT_TYPE: &str = "movie";
-const DEFAULT_CATEGORY: &str = "thirdparty";
 
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest {
         base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
-//        https://v3-cinemeta.strem.io/addon_catalog/movie/thirdparty.json
-        path: ResourceRef::without_extra("addon_catalog", DEFAULT_TYPE, DEFAULT_CATEGORY),
+        path: ResourceRef::without_extra("addon_catalog", DEFAULT_TYPE, DEFAULT_CATALOG),
     }
 }
 
@@ -28,8 +27,8 @@ pub fn default_resource_request() -> ResourceRequest {
 
 pub struct Model {
     shared: SharedModel,
+    catalog_selector_model: catalog_selector::Model,
     type_selector_model: type_selector::Model,
-    catalog_selector_model: category_selector::Model,
     search_query: String,
 }
 
@@ -58,8 +57,8 @@ pub fn init(
 
     Model {
         shared,
+        catalog_selector_model: catalog_selector::init(),
         type_selector_model: type_selector::init(),
-        catalog_selector_model: category_selector::init(),
         search_query: String::new(),
     }
 }
@@ -73,10 +72,10 @@ pub fn init(
 pub enum Msg {
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
+    CatalogSelectorMsg(catalog_selector::Msg),
+    CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
     TypeSelectorMsg(type_selector::Msg),
     TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
-    CatalogSelectorMsg(category_selector::Msg),
-    CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
 }
 
 fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
@@ -90,7 +89,7 @@ fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    let catalog = &model.shared.core.catalog;
+    let catalog = &model.shared.core.addon_catalog;
 
     match msg {
         // ------ Core  ------
@@ -110,6 +109,24 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::CoreError(core_error) => log!("core_error", core_error),
 
+        // ------ CatalogSelector  ------
+        Msg::CatalogSelectorMsg(msg) => {
+            let msg_to_parent = catalog_selector::update(
+                msg,
+                &mut model.catalog_selector_model,
+                &mut orders.proxy(Msg::CatalogSelectorMsg),
+                catalog_selector::groups(&catalog.catalogs, &catalog.selected),
+                Msg::CatalogSelectorChanged,
+            );
+            if let Some(msg) = msg_to_parent {
+                orders.send_msg(msg);
+            }
+        }
+        Msg::CatalogSelectorChanged(groups_with_selected_items) => {
+            let req = catalog_selector::resource_request(groups_with_selected_items);
+            push_resource_request(req, orders)
+        }
+
         // ------ TypeSelector  ------
         Msg::TypeSelectorMsg(msg) => {
             let msg_to_parent = type_selector::update(
@@ -127,24 +144,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             let req = type_selector::resource_request(groups_with_selected_items);
             push_resource_request(req, orders)
         }
-
-        // ------ CatalogSelector  ------
-        Msg::CatalogSelectorMsg(msg) => {
-            let msg_to_parent = category_selector::update(
-                msg,
-                &mut model.catalog_selector_model,
-                &mut orders.proxy(Msg::CatalogSelectorMsg),
-                category_selector::groups(&catalog.catalogs, &catalog.selected),
-                Msg::CatalogSelectorChanged,
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        }
-        Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-            let req = category_selector::resource_request(groups_with_selected_items);
-            push_resource_request(req, orders)
-        }
     }
 }
 
@@ -152,6 +151,39 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-pub fn view<Ms>() -> Node<Ms> {
-    div!["Addons"]
+pub fn view(model: &Model) -> Node<Msg> {
+    let catalog = &model.shared.core.addon_catalog;
+
+    div![
+        class!["addons-container"],
+        div![
+            class!["addons-content"],
+            div![
+                class!["top-bar-container"],
+                // add addon button
+                // @TODO
+                // catalog selector
+                catalog_selector::view(
+                    &model.catalog_selector_model,
+                    &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+                )
+                .map_message(Msg::CatalogSelectorMsg),
+                // type selector
+                type_selector::view(
+                    &model.type_selector_model,
+                    &type_selector::groups(&catalog.types)
+                )
+                .map_message(Msg::TypeSelectorMsg),
+                // search input
+                // @TODO
+            ],
+            div![
+                class!["addons-list-container"],
+//                view_content(
+//                    &model.shared.core.catalog.content,
+//                    model.selected_meta_preview_id.as_ref()
+//                ),
+            ]
+        ],
+    ]
 }

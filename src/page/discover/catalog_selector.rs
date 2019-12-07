@@ -3,6 +3,7 @@ use itertools::Itertools;
 use seed::prelude::*;
 use stremio_core::state_types::CatalogEntry;
 use stremio_core::types::addons::ResourceRequest;
+use std::fmt::Debug;
 
 // ------ ------
 //     Model
@@ -25,7 +26,7 @@ pub const fn init() -> Model {
 #[derive(Clone)]
 pub struct Msg(multi_select::Msg);
 
-pub fn update<T: 'static, ParentMsg>(
+pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
     orders: &mut impl Orders<Msg>,
