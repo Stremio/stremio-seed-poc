@@ -1,4 +1,4 @@
-use crate::{default_resource_request, route::Route};
+use crate::{page::{discover, addons}, route::Route};
 use seed::{prelude::*, *};
 
 // ------ ------
@@ -18,7 +18,7 @@ pub fn view<Ms>() -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => Route::Discover(default_resource_request()).to_href()
+                At::Href => Route::Discover(discover::default_resource_request()).to_href()
             },
             "Go to Discover ▶"
         ],
@@ -30,6 +30,15 @@ pub fn view<Ms>() -> Node<Ms> {
                 At::Href => Route::Player.to_href()
             },
             "Go to Player ▶"
+        ],
+        a![
+            style! {
+                St::Padding => px(20),
+            },
+            attrs! {
+                At::Href => Route::Addons(addons::default_resource_request()).to_href()
+            },
+            "Go to Addons ▶"
         ]
     ]
 }

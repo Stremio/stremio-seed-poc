@@ -10,16 +10,8 @@ use helper::take;
 use route::Route;
 use seed::{prelude::*, App};
 use stremio_core::state_types::{CatalogFiltered, Ctx};
-use stremio_core::types::addons::{ResourceRef, ResourceRequest};
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
-
-fn default_resource_request() -> ResourceRequest {
-    ResourceRequest {
-        base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
-        path: ResourceRef::without_extra("catalog", "movie", "top"),
-    }
-}
 
 // ------ ------
 //     Model
@@ -32,8 +24,9 @@ pub enum Model {
     Board(SharedModel),
     Detail(SharedModel),
     Discover(page::discover::Model),
-    NotFound(SharedModel),
     Player(SharedModel),
+    Addons(page::addons::Model),
+    NotFound(SharedModel),
 }
 
 impl Default for Model {
@@ -53,11 +46,12 @@ impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         match model {
             Model::Redirect => Self::default(),
-            Model::Discover(module_model) => module_model.into(),
+            Model::Discover(module_model)  => module_model.into(),
+            Model::Addons(module_model) => module_model.into(),
             Model::Board(shared_model)
             | Model::Detail(shared_model)
-            | Model::NotFound(shared_model)
-            | Model::Player(shared_model) => shared_model,
+            | Model::Player(shared_model)
+            | Model::NotFound(shared_model) => shared_model,
         }
     }
 }
@@ -87,6 +81,7 @@ fn routes(url: Url) -> Option<Msg> {
 pub enum Msg {
     RouteChanged(Route),
     DiscoverMsg(page::discover::Msg),
+    AddonsMsg(page::addons::Msg),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -100,6 +95,15 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     module_msg,
                     module_model,
                     &mut orders.proxy(Msg::DiscoverMsg),
+                );
+            }
+        },
+        Msg::AddonsMsg(module_msg) => {
+            if let Model::Addons(module_model) = model {
+                page::addons::update(
+                    module_msg,
+                    module_model,
+                    &mut orders.proxy(Msg::AddonsMsg),
                 );
             }
         }
@@ -116,8 +120,13 @@ fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orde
             resource_request,
             &mut orders.proxy(Msg::DiscoverMsg),
         )),
-        Route::NotFound => Model::NotFound(shared_model),
         Route::Player => Model::Player(shared_model),
+        Route::Addons(resource_request) => Model::Addons(page::addons::init(
+            shared_model,
+            resource_request,
+            &mut orders.proxy(Msg::AddonsMsg),
+        )),
+        Route::NotFound => Model::NotFound(shared_model),
     };
 }
 
@@ -132,6 +141,7 @@ fn view(model: &Model) -> Node<Msg> {
         Model::Discover(model) => page::discover::view(model).map_message(Msg::DiscoverMsg),
         Model::Detail(_) => page::detail::view(),
         Model::Player(_) => page::player::view(),
+        Model::Addons(_) => page::addons::view(),
         Model::NotFound(_) => page::not_found::view(),
     }
 }
