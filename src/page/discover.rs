@@ -17,10 +17,13 @@ type MetaPreviewId = String;
 // @TODO add into stremio-core?
 type ExtraPropOption = String;
 
+const DEFAULT_CATALOG: &str = "top";
+const DEFAULT_TYPE: &str = "movie";
+
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest {
         base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
-        path: ResourceRef::without_extra("catalog", "movie", "top"),
+        path: ResourceRef::without_extra("catalog", DEFAULT_TYPE, DEFAULT_CATALOG),
     }
 }
 

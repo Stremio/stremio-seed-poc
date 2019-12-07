@@ -56,16 +56,17 @@ pub fn view<T: Clone>(model: &Model, groups: &[multi_select::Group<T>]) -> Node<
 
 pub fn groups(
     catalog_entries: &[CatalogEntry],
-    selected_req: &Option<ResourceRequest>,
 ) -> Vec<multi_select::Group<CatalogEntry>> {
-    let selected_req = match selected_req {
-        Some(selected_req) => selected_req,
-        None => return Vec::new(),
-    };
-
     let items = catalog_entries
         .iter()
-        .filter(|catalog_entry| catalog_entry.load.path.type_name == selected_req.path.type_name)
+        .group_by(|catalog_entry| &catalog_entry.name)
+        .into_iter()
+        .map(|(_, catalog_entries)| {
+            catalog_entries
+                .sorted_by_key(|catalog_entry| !catalog_entry.is_selected)
+                .unique_by(|catalog_entry| &catalog_entry.name)
+        })
+        .flatten()
         .map(|catalog_entry| multi_select::GroupItem {
             id: catalog_entry.name.clone(),
             label: catalog_entry.name.clone(),

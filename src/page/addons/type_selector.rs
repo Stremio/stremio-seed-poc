@@ -1,6 +1,6 @@
 use crate::entity::multi_select;
 use seed::{*, prelude::*};
-use stremio_core::state_types::TypeEntry;
+use stremio_core::state_types::CatalogEntry;
 use stremio_core::types::addons::ResourceRequest;
 use std::fmt::Debug;
 
@@ -53,14 +53,20 @@ pub fn view<T: Clone>(model: &Model, groups: &[multi_select::Group<T>]) -> Node<
 //  Conversion
 // ------ ------
 
-pub fn groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>> {
-    let items = type_entries
+pub fn groups(catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRequest>) -> Vec<multi_select::Group<CatalogEntry>> {
+    let selected_req = match selected_req {
+        Some(selected_req) => selected_req,
+        None => return Vec::new(),
+    };
+
+    let items = catalog_entries
         .iter()
-        .map(|type_entry| multi_select::GroupItem {
-            id: type_entry.type_name.clone(),
-            label: type_entry.type_name.clone(),
-            selected: type_entry.is_selected,
-            value: type_entry.clone(),
+        .filter(|catalog_entry| catalog_entry.load.path.id == selected_req.path.id)
+        .map(|catalog_entry| multi_select::GroupItem {
+            id: catalog_entry.load.path.type_name.clone(),
+            label: catalog_entry.load.path.type_name.clone(),
+            selected: catalog_entry.is_selected,
+            value: catalog_entry.clone(),
         })
         .collect::<Vec<_>>();
 
@@ -74,7 +80,7 @@ pub fn groups(type_entries: &[TypeEntry]) -> Vec<multi_select::Group<TypeEntry>>
 }
 
 pub fn resource_request(
-    groups_with_selected_items: Vec<multi_select::Group<TypeEntry>>,
+    groups_with_selected_items: Vec<multi_select::Group<CatalogEntry>>,
 ) -> ResourceRequest {
     groups_with_selected_items
         .into_iter()
