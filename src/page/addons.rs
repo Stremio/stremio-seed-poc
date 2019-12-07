@@ -7,19 +7,23 @@ use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Update,
 };
 use stremio_core::types::{addons::{ResourceRequest, ResourceRef}, PosterShape};
-use stremio_core::types::addons::{DescriptorPreview, Descriptor};
+use stremio_core::types::addons::{DescriptorPreview, Descriptor, ManifestPreview};
 
 mod catalog_selector;
 mod type_selector;
 
 const DEFAULT_CATALOG: &str = "thirdparty";
 const DEFAULT_TYPE: &str = "movie";
+const MY_ITEM_ID: &str = "my";
+const TYPE_ALL: &str = "all";
+const BASE: &str = "https://v3-cinemeta.strem.io/manifest.json";
+const RESOURCE: &str = "addon_catalog";
 
 pub fn default_resource_request() -> ResourceRequest {
-    ResourceRequest {
-        base: "https://v3-cinemeta.strem.io/manifest.json".to_owned(),
-        path: ResourceRef::without_extra("addon_catalog", DEFAULT_TYPE, DEFAULT_CATALOG),
-    }
+    ResourceRequest::new(
+        BASE,
+        ResourceRef::without_extra(RESOURCE, DEFAULT_TYPE, DEFAULT_CATALOG),
+    )
 }
 
 // ------ ------
@@ -122,7 +126,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 msg,
                 &mut model.catalog_selector_model,
                 &mut orders.proxy(Msg::CatalogSelectorMsg),
-                catalog_selector::groups(&catalog.catalogs),
+                catalog_selector::groups(&catalog.catalogs, &catalog.selected),
                 Msg::CatalogSelectorChanged,
             );
             if let Some(msg) = msg_to_parent {
@@ -140,7 +144,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 msg,
                 &mut model.type_selector_model,
                 &mut orders.proxy(Msg::TypeSelectorMsg),
-                type_selector::groups(&catalog.catalogs, &catalog.selected),
+                type_selector::groups(&catalog.catalogs, &catalog.selected, &model.shared.core.ctx.content.addons),
                 Msg::TypeSelectorChanged,
             );
             if let Some(msg) = msg_to_parent {
@@ -178,13 +182,13 @@ pub fn view(model: &Model) -> Node<Msg> {
                 // catalog selector
                 catalog_selector::view(
                     &model.catalog_selector_model,
-                    &catalog_selector::groups(&catalog.catalogs)
+                    &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
                 )
                 .map_message(Msg::CatalogSelectorMsg),
                 // type selector
                 type_selector::view(
                     &model.type_selector_model,
-                    &type_selector::groups(&catalog.catalogs, &catalog.selected)
+                    &type_selector::groups(&catalog.catalogs, &catalog.selected, &model.shared.core.ctx.content.addons)
                 )
                 .map_message(Msg::TypeSelectorMsg),
                 // search input
@@ -192,7 +196,7 @@ pub fn view(model: &Model) -> Node<Msg> {
             ],
             div![
                 class!["addons-list-container"],
-                view_content(&model.shared.core.addon_catalog.content, &model.search_query, &model.shared.core.ctx.content.addons),
+                view_content(&model.shared.core.addon_catalog.content, &model.search_query, &model.shared.core.ctx.content.addons, &catalog.selected),
             ]
         ],
     ]
@@ -259,7 +263,35 @@ fn view_content(
     content: &Loadable<Vec<DescriptorPreview>, CatalogError>,
     search_query: &str,
     installed_addons: &[Descriptor],
+    selected_req: &Option<ResourceRequest>,
 ) -> Vec<Node<Msg>> {
+
+    if let Some(selected_req) = selected_req {
+        if selected_req.path.id == MY_ITEM_ID {
+            let addons = installed_addons
+                .iter()
+                .filter(|addon| selected_req.path.type_name == TYPE_ALL || addon.manifest.types.contains(&selected_req.path.type_name))
+                .map(|addon| {
+                    // @TODO refactor
+                    let addon = addon.clone();
+                    DescriptorPreview {
+                        manifest: ManifestPreview {
+                            id: addon.manifest.id,
+                            types: addon.manifest.types,
+                            name: addon.manifest.name,
+                            description: addon.manifest.description,
+                            background: addon.manifest.background,
+                            logo: addon.manifest.logo,
+                            version: addon.manifest.version
+                        },
+                        transport_url: addon.transport_url
+                    }
+                })
+                .collect::<Vec<_>>();
+            return view_addons(&addons, search_query, installed_addons);
+        }
+    }
+
     match content {
         Loadable::Err(catalog_error) => vec![div![
             class!["message-container",],
@@ -267,13 +299,7 @@ fn view_content(
         ]],
         Loadable::Loading => vec![div![class!["message-container",], "Loading"]],
         Loadable::Ready(addons) if addons.is_empty() => Vec::new(),
-        Loadable::Ready(addons) => {
-            addons
-                .iter()
-                .filter(|addon| is_addon_in_search_results(addon, search_query))
-                .map(|addon| view_addon(addon, installed_addons.iter().any(|installed_addon| installed_addon.manifest.id == addon.manifest.id)))
-                .collect()
-        },
+        Loadable::Ready(addons) => view_addons(addons, search_query, installed_addons),
     }
 }
 
@@ -293,6 +319,16 @@ fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> 
         }
     }
     false
+}
+
+// ------ view addons ------
+
+fn view_addons(addons: &[DescriptorPreview], search_query: &str, installed_addons: &[Descriptor]) -> Vec<Node<Msg>> {
+    addons
+        .iter()
+        .filter(|addon| is_addon_in_search_results(addon, search_query))
+        .map(|addon| view_addon(addon, installed_addons.iter().any(|installed_addon| installed_addon.manifest.id == addon.manifest.id)))
+        .collect()
 }
 
 // ------ view addon ------
