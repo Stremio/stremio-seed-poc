@@ -76,7 +76,7 @@ pub enum Msg {
     CatalogSelectorMsg(catalog_selector::Msg),
     CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
     TypeSelectorMsg(type_selector::Msg),
-    TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
+    TypeSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
     SearchQueryChanged(String),
     AddAddonButtonClicked,
     UninstallAddonButtonClicked(DescriptorPreview),
@@ -97,7 +97,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     let catalog = &model.shared.core.addon_catalog;
 
     match msg {
-        // @TODO: move to lib.rs? (also in discover.rs)
+        // @TODO: move to lib.rs? (check also other pages)
         // ------ Core  ------
         Msg::Core(core_msg) => {
             let fx = model.shared.core.update(&core_msg);
@@ -121,7 +121,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 msg,
                 &mut model.catalog_selector_model,
                 &mut orders.proxy(Msg::CatalogSelectorMsg),
-                catalog_selector::groups(&catalog.catalogs, &catalog.selected),
+                catalog_selector::groups(&catalog.catalogs),
                 Msg::CatalogSelectorChanged,
             );
             if let Some(msg) = msg_to_parent {
@@ -139,7 +139,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 msg,
                 &mut model.type_selector_model,
                 &mut orders.proxy(Msg::TypeSelectorMsg),
-                type_selector::groups(&catalog.types),
+                type_selector::groups(&catalog.catalogs, &catalog.selected),
                 Msg::TypeSelectorChanged,
             );
             if let Some(msg) = msg_to_parent {
@@ -176,13 +176,13 @@ pub fn view(model: &Model) -> Node<Msg> {
                 // catalog selector
                 catalog_selector::view(
                     &model.catalog_selector_model,
-                    &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+                    &catalog_selector::groups(&catalog.catalogs)
                 )
                 .map_message(Msg::CatalogSelectorMsg),
                 // type selector
                 type_selector::view(
                     &model.type_selector_model,
-                    &type_selector::groups(&catalog.types)
+                    &type_selector::groups(&catalog.catalogs, &catalog.selected)
                 )
                 .map_message(Msg::TypeSelectorMsg),
                 // search input
