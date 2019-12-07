@@ -45,14 +45,14 @@ impl From<Model> for SharedModel {
 
 pub fn init(
     shared: SharedModel,
-    resource_request: ResourceRequest,
+    resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg>,
 ) -> Model {
     orders.send_msg(
         // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
         // @TODO select the first preview on Load
         Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
-            ActionLoad::CatalogFiltered(resource_request),
+            ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(|| default_resource_request())),
         )))),
     );
 
@@ -80,7 +80,7 @@ pub enum Msg {
 }
 
 fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
-    let route = Route::Addons(req.clone());
+    let route = Route::Addons(Some(req.clone()));
     let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Addons`");
     seed::push_route(url);
 

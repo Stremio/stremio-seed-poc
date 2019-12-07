@@ -1,17 +1,16 @@
 use seed::{prelude::*, *};
 use std::str::FromStr;
 use stremio_core::types::addons::{ParseResourceErr, ResourceRef, ResourceRequest};
-use crate::page;
 
 // ------ Route ------
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum Route {
     Board,
-    Discover(ResourceRequest),
+    Discover(Option<ResourceRequest>),
     Detail,
     Player,
-    Addons(ResourceRequest),
+    Addons(Option<ResourceRequest>),
     NotFound,
 }
 
@@ -19,10 +18,10 @@ impl Route {
     pub fn to_href(&self) -> String {
         match self {
             Self::Board => "#/board".into(),
-            Self::Discover(req) => format!("#/discover/{}", resource_request_to_url_path(req)),
+            Self::Discover(req) => format!("#/discover{}", resource_request_to_url_path(req)),
             Self::Detail => format!("#/detail/{}", "TODO"),
             Self::Player => "#/player".into(),
-            Self::Addons(req) => format!("#/addons/{}", resource_request_to_url_path(req)),
+            Self::Addons(req) => format!("#/addons{}", resource_request_to_url_path(req)),
             Self::NotFound => "#/404".into(),
         }
     }
@@ -47,7 +46,7 @@ impl From<Url> for Route {
                 let encoded_base = if let Some(base) = hash.next() {
                     base
                 } else {
-                    return Self::Discover(page::discover::default_resource_request());
+                    return Self::Discover(None);
                 };
 
                 let encoded_path = if let Some(base) = hash.next() {
@@ -65,7 +64,7 @@ impl From<Url> for Route {
                     }
                 };
 
-                Self::Discover(req)
+                Self::Discover(Some(req))
             }
             Some("detail") => Self::Detail,
             Some("player") => Self::Player,
@@ -73,7 +72,7 @@ impl From<Url> for Route {
                 let encoded_base = if let Some(base) = hash.next() {
                     base
                 } else {
-                    return Self::Addons(page::addons::default_resource_request());
+                    return Self::Addons(None);
                 };
 
                 let encoded_path = if let Some(base) = hash.next() {
@@ -91,7 +90,7 @@ impl From<Url> for Route {
                     }
                 };
 
-                Self::Addons(req)
+                Self::Addons(Some(req))
             }
             _ => Self::NotFound,
         }
@@ -102,10 +101,16 @@ impl From<Url> for Route {
 
 // @TODO make it less ugly and add into stremio-core?
 
-fn resource_request_to_url_path(req: &ResourceRequest) -> String {
+fn resource_request_to_url_path(req: &Option<ResourceRequest>) -> String {
+    let req = if let Some(req) = req {
+        req
+    } else {
+        return String::new();
+    };
+
     let encoded_base = String::from(js_sys::encode_uri_component(&req.base));
     let encoded_path = String::from(js_sys::encode_uri_component(&req.path.to_string()));
-    format!("{}/{}", encoded_base, encoded_path)
+    format!("/{}/{}", encoded_base, encoded_path)
 }
 
 #[derive(Debug)]
