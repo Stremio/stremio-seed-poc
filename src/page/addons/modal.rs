@@ -44,14 +44,118 @@ fn view_install_addon_modal<Ms>() -> Node<Ms> {
                 }]
             ],
         ],
-        h1![
-            "Add addon"
-        ],
         div![
             class![
                 "modal-dialog-content",
             ],
-            // @TODO
+            div![
+                div![
+                    class![
+                        "title-container",
+                        "title-with-logo-container"
+                    ],
+                    style!{
+                        St::TextAlign => "center",
+                    },
+                    div![
+                        class![
+                            "logo-container"
+                        ],
+                        img![
+                            class![
+                                "logo"
+                            ],
+                            attrs!{
+                                At::Src => "https://holamovies.herokuapp.com/holamovies.png",
+                            }
+                        ]
+                    ],
+                    "¡Hola! Movies ",
+                    span![
+                        class![
+                            "version-container",
+                        ],
+                        "v.2.0.1"
+                    ]
+                ],
+                div![
+                    class![
+                        "section-container",
+                    ],
+                    span![
+                        class![
+                            "section-header"
+                        ],
+                        "Watch movies in spanish and english"
+                    ]
+                ],
+                div![
+                    class![
+                        "section-container",
+                    ],
+                    span![
+                        class![
+                            "section-header"
+                        ],
+                        "URL: ",
+                    ],
+                    span![
+                        class![
+                            "addon-prompt-section-label",
+                            "transport-url-label"
+                        ],
+                        "https://holamovies.herokuapp.com/manifest.json",
+                    ]
+                ],
+                div![
+                    class![
+                        "section-container",
+                    ],
+                    span![
+                        class![
+                            "section-header"
+                        ],
+                        "Supported types: ",
+                    ],
+                    span![
+                        class![
+                            "addon-prompt-section-label",
+                            "transport-url-label"
+                        ],
+                        "movie",
+                    ]
+                ],
+                div![
+                    class![
+                        "section-container",
+                    ],
+                    span![
+                        class![
+                            "section-header"
+                        ],
+                        "Supported catalogs: ",
+                    ],
+                    span![
+                        class![
+                            "addon-prompt-section-label",
+                            "transport-url-label"
+                        ],
+                        "",
+                    ]
+                ],
+                div![
+                    class![
+                        "section-container",
+                    ],
+                    div![
+                        class![
+                            "addon-prompt-section-label",
+                            "disclaimer-label",
+                        ],
+                        "Using third-party add-ons will always be subject to your responsibility and the governing law of the jurisdiction you are located.",
+                    ]
+                ],
+            ]
         ],
         div![
             class![
