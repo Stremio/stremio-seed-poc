@@ -7,7 +7,10 @@ use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Update,
 };
 use stremio_core::types::MetaPreview;
-use stremio_core::types::{addons::{ResourceRequest, ResourceRef}, PosterShape};
+use stremio_core::types::{
+    addons::{ResourceRef, ResourceRequest},
+    PosterShape,
+};
 
 mod catalog_selector;
 mod extra_prop_selector;
@@ -25,7 +28,7 @@ const RESOURCE: &str = "catalog";
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest::new(
         BASE,
-        ResourceRef::without_extra("catalog", DEFAULT_TYPE, DEFAULT_CATALOG),
+        ResourceRef::without_extra(RESOURCE, DEFAULT_TYPE, DEFAULT_CATALOG),
     )
 }
 
@@ -60,7 +63,7 @@ pub fn init(
         // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
         // @TODO select the first preview on Load
         Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
-            ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(|| default_resource_request())),
+            ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
         )))),
     );
 
@@ -291,7 +294,7 @@ fn view_meta_preview(
             "button-container",
             "selected" => is_selected,
         ],
-        attrs!{
+        attrs! {
             At::TabIndex => 0,
             At::Title => &meta_preview.name,
         },

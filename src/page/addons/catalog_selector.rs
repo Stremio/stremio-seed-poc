@@ -1,11 +1,11 @@
+use super::{BASE, MY_ITEM_ID, RESOURCE, TYPE_ALL};
 use crate::entity::multi_select;
 use itertools::Itertools;
-use seed::{*, prelude::*};
-use stremio_core::state_types::CatalogEntry;
-use stremio_core::types::addons::{ResourceRequest, ResourceRef};
+use seed::prelude::*;
 use std::fmt::Debug;
 use std::iter;
-use super::{MY_ITEM_ID, TYPE_ALL, RESOURCE, BASE};
+use stremio_core::state_types::CatalogEntry;
+use stremio_core::types::addons::{ResourceRef, ResourceRequest};
 
 // ------ ------
 //     Model
@@ -57,7 +57,8 @@ pub fn view<T: Clone>(model: &Model, groups: &[multi_select::Group<T>]) -> Node<
 // ------ ------
 
 pub fn groups(
-    catalog_entries: &[CatalogEntry], selected_req: &Option<ResourceRequest>
+    catalog_entries: &[CatalogEntry],
+    selected_req: &Option<ResourceRequest>,
 ) -> Vec<multi_select::Group<CatalogEntry>> {
     let selected_req = match selected_req {
         Some(selected_req) => selected_req,
@@ -70,8 +71,8 @@ pub fn groups(
         addon_name: "my_addon".to_owned(),
         load: ResourceRequest::new(
             BASE,
-            ResourceRef::without_extra(RESOURCE, TYPE_ALL, MY_ITEM_ID)
-        )
+            ResourceRef::without_extra(RESOURCE, TYPE_ALL, MY_ITEM_ID),
+        ),
     };
 
     let items = catalog_entries
@@ -79,12 +80,11 @@ pub fn groups(
         .chain(iter::once(&my_catalog_entry))
         .group_by(|catalog_entry| &catalog_entry.name)
         .into_iter()
-        .map(|(_, catalog_entries)| {
+        .flat_map(|(_, catalog_entries)| {
             catalog_entries
                 .sorted_by_key(|catalog_entry| !catalog_entry.is_selected)
                 .unique_by(|catalog_entry| &catalog_entry.name)
         })
-        .flatten()
         .map(|catalog_entry| multi_select::GroupItem {
             id: catalog_entry.name.clone(),
             label: catalog_entry.name.clone(),

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use seed::{prelude::*, *};
-use wasm_bindgen::JsCast;
 use std::fmt::Debug;
+use wasm_bindgen::JsCast;
 
 const MENU_CLASS: &str = "popup-menu-container";
 
@@ -256,7 +256,7 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             "button-container",
             "selected" => item.selected,
         ],
-        attrs!{
+        attrs! {
             At::Title => item.label,
         },
         simple_ev(
