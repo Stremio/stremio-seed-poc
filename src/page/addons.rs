@@ -8,6 +8,7 @@ use stremio_core::state_types::{
 };
 use stremio_core::types::{addons::{ResourceRequest, ResourceRef}, PosterShape};
 use stremio_core::types::addons::{DescriptorPreview, Descriptor, ManifestPreview};
+use modal::Modal;
 
 mod catalog_selector;
 mod type_selector;
@@ -36,6 +37,7 @@ pub struct Model {
     catalog_selector_model: catalog_selector::Model,
     type_selector_model: type_selector::Model,
     search_query: String,
+    modal: Option<Modal>,
 }
 
 impl From<Model> for SharedModel {
@@ -66,6 +68,7 @@ pub fn init(
         catalog_selector_model: catalog_selector::init(),
         type_selector_model: type_selector::init(),
         search_query: String::new(),
+        modal: None,
     }
 }
 
@@ -87,6 +90,8 @@ pub enum Msg {
     UninstallAddonButtonClicked(DescriptorPreview),
     InstallAddonButtonClicked(DescriptorPreview),
     ShareAddonButtonClicked(DescriptorPreview),
+    CloseModal,
+    NoOp,
 }
 
 fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
@@ -158,10 +163,12 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
-        Msg::AddAddonButtonClicked => log!("add addon button clicked"),
-        Msg::UninstallAddonButtonClicked(addon) => log!("uninstall button clicked", addon),
-        Msg::InstallAddonButtonClicked(addon) => log!("install button clicked", addon),
-        Msg::ShareAddonButtonClicked(addon) => log!("share button clicked", addon),
+        Msg::AddAddonButtonClicked => model.modal = Some(Modal::AddAddon),
+        Msg::UninstallAddonButtonClicked(addon) => model.modal = Some(Modal::UninstallAddon),
+        Msg::InstallAddonButtonClicked(addon) => model.modal = Some(Modal::InstallAddon),
+        Msg::ShareAddonButtonClicked(addon) => model.modal = Some(Modal::ShareAddon),
+        Msg::CloseModal => model.modal = None,
+        Msg::NoOp => { orders.skip(); },
     }
 }
 
@@ -202,7 +209,11 @@ pub fn view(model: &Model) -> impl View<Msg> {
                 ]
             ],
         ],
-        modal::view()
+        if let Some(modal) = &model.modal {
+            modal::view(modal, Msg::CloseModal, Msg::NoOp)
+        } else {
+            empty![]
+        }
     ]
 }
 

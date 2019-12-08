@@ -1,8 +1,18 @@
 use seed::{prelude::*, *};
+use wasm_bindgen::JsCast;
+use enclose::enc;
 
-// @TODO DRY
+// @TODO DRY + add logic + push to url
 
-pub fn view<Ms>() -> Node<Ms> {
+#[derive(Clone)]
+pub enum Modal {
+    AddAddon,
+    ShareAddon,
+    InstallAddon,
+    UninstallAddon,
+}
+
+pub fn view<Ms: Clone>(modal: &Modal, close_msg: Ms, noop_msg: Ms) -> Node<Ms> {
     div![
         class![
             "modals-container"
@@ -11,14 +21,23 @@ pub fn view<Ms>() -> Node<Ms> {
             class![
                 "modal-container",
             ],
-            view_install_addon_modal(),
-//            view_share_addon_modal(),
-//            view_add_addon_modal(),
+            raw_ev(Ev::Click, enc!((close_msg) move |event| {
+                if event.target() == event.current_target() {
+                    close_msg
+                } else {
+                    noop_msg
+                }
+            })),
+            match modal {
+                Modal::AddAddon => view_add_addon_modal(close_msg),
+                Modal::ShareAddon => view_share_addon_modal(close_msg),
+                Modal::InstallAddon | Modal::UninstallAddon => view_install_addon_modal(close_msg),
+            }
         ]
     ]
 }
 
-fn view_install_addon_modal<Ms>() -> Node<Ms> {
+fn view_install_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
     div![
         class![
             "addon-prompt-container",
@@ -33,6 +52,7 @@ fn view_install_addon_modal<Ms>() -> Node<Ms> {
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
+            simple_ev(Ev::Click, close_msg.clone()),
             svg![
                 class!["icon",],
                 attrs! {
@@ -54,6 +74,7 @@ fn view_install_addon_modal<Ms>() -> Node<Ms> {
                         "title-container",
                         "title-with-logo-container"
                     ],
+                    // @TODO where is title's left margin??
                     style!{
                         St::TextAlign => "center",
                     },
@@ -171,6 +192,7 @@ fn view_install_addon_modal<Ms>() -> Node<Ms> {
                     At::TabIndex => 0,
                     At::Title => "Cancel"
                 },
+                simple_ev(Ev::Click, close_msg),
                 "Cancel",
             ],
             div![
@@ -188,7 +210,7 @@ fn view_install_addon_modal<Ms>() -> Node<Ms> {
     ]
 }
 
-fn view_share_addon_modal<Ms>() -> Node<Ms> {
+fn view_share_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
     div![
         class![
             "share-prompt-container",
@@ -203,6 +225,7 @@ fn view_share_addon_modal<Ms>() -> Node<Ms> {
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
+            simple_ev(Ev::Click, close_msg),
             svg![
                 class!["icon",],
                 attrs! {
@@ -335,7 +358,7 @@ fn view_share_addon_modal<Ms>() -> Node<Ms> {
     ]
 }
 
-fn view_add_addon_modal<Ms>() -> Node<Ms> {
+fn view_add_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
     div![
         class![
             "add-addon-prompt-container",
@@ -350,6 +373,7 @@ fn view_add_addon_modal<Ms>() -> Node<Ms> {
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
+            simple_ev(Ev::Click, close_msg.clone()),
             svg![
                 class!["icon",],
                 attrs! {
@@ -401,6 +425,7 @@ fn view_add_addon_modal<Ms>() -> Node<Ms> {
                     At::TabIndex => 0,
                     At::Title => "Cancel",
                 },
+                simple_ev(Ev::Click, close_msg),
                 "Cancel",
             ],
             div![
