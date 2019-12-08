@@ -5,7 +5,7 @@ use crate::route::Route;
 //     View
 // ------ ------
 
-pub fn view<Ms>() -> Node<Ms> {
+pub fn view<Ms: 'static>() -> impl View<Ms> {
     div![
         h1![
             style! {

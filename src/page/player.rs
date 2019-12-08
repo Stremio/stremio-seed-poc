@@ -4,7 +4,7 @@ use seed::{prelude::*, *};
 //     View
 // ------ ------
 
-pub fn view<Ms>() -> Node<Ms> {
+pub fn view<Ms: 'static>() -> impl View<Ms> {
     div![video![
         style! {
             St::MaxWidth => unit!(100, %),

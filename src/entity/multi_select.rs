@@ -256,6 +256,9 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             "button-container",
             "selected" => item.selected,
         ],
+        attrs!{
+            At::Title => item.label,
+        },
         simple_ev(
             Ev::Click,
             Msg::ItemClicked(group_id.to_owned(), item.id.clone())
