@@ -189,7 +189,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-pub fn view(model: &Model) -> Node<Msg> {
+pub fn view(model: &Model) -> impl View<Msg> {
     let catalog = &model.shared.core.catalog;
 
     div![
@@ -291,6 +291,10 @@ fn view_meta_preview(
             "button-container",
             "selected" => is_selected,
         ],
+        attrs!{
+            At::TabIndex => 0,
+            At::Title => &meta_preview.name,
+        },
         simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.id.clone())),
         div![
             class!["poster-container",],

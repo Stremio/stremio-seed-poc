@@ -8,7 +8,7 @@ mod route;
 use env_web::Env;
 use helper::take;
 use route::Route;
-use seed::{prelude::*, App};
+use seed::{prelude::*, *};
 use stremio_core::state_types::{CatalogFiltered, Ctx};
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
@@ -136,16 +136,27 @@ fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orde
 //     View
 // ------ ------
 
-fn view(model: &Model) -> Node<Msg> {
-    match &model {
-        Model::Redirect => page::blank::view(),
-        Model::Board(_) => page::board::view(),
-        Model::Discover(model) => page::discover::view(model).map_message(Msg::DiscoverMsg),
-        Model::Detail(_) => page::detail::view(),
-        Model::Player(_) => page::player::view(),
-        Model::Addons(model) => page::addons::view(model).map_message(Msg::AddonsMsg),
-        Model::NotFound(_) => page::not_found::view(),
-    }
+fn view(model: &Model) -> impl View<Msg> {
+    div![
+        class![
+            "router",
+            "routes-container"
+        ],
+        div![
+            class![
+                "route-container",
+            ],
+            match &model {
+                Model::Redirect => page::blank::view().els(),
+                Model::Board(_) => page::board::view().els(),
+                Model::Discover(model) => page::discover::view(model).els().map_message(Msg::DiscoverMsg),
+                Model::Detail(_) => page::detail::view().els(),
+                Model::Player(_) => page::player::view().els(),
+                Model::Addons(model) => page::addons::view(model).els().map_message(Msg::AddonsMsg),
+                Model::NotFound(_) => page::not_found::view().els(),
+            }
+        ]
+    ]
 }
 
 // ------ ------

@@ -11,6 +11,7 @@ use stremio_core::types::addons::{DescriptorPreview, Descriptor, ManifestPreview
 
 mod catalog_selector;
 mod type_selector;
+mod modal;
 
 const DEFAULT_CATALOG: &str = "thirdparty";
 const DEFAULT_TYPE: &str = "movie";
@@ -168,39 +169,44 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-pub fn view(model: &Model) -> Node<Msg> {
+pub fn view(model: &Model) -> impl View<Msg> {
     let catalog = &model.shared.core.addon_catalog;
 
-    div![
-        class!["addons-container"],
+    vec![
         div![
-            class!["addons-content"],
+            class!["addons-container"],
             div![
-                class!["top-bar-container"],
-                // add addon button
-                view_add_addon_button(),
-                // catalog selector
-                catalog_selector::view(
-                    &model.catalog_selector_model,
-                    &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-                )
-                .map_message(Msg::CatalogSelectorMsg),
-                // type selector
-                type_selector::view(
-                    &model.type_selector_model,
-                    &type_selector::groups(&catalog.catalogs, &catalog.selected, &model.shared.core.ctx.content.addons)
-                )
-                .map_message(Msg::TypeSelectorMsg),
-                // search input
-                view_search_input(&model.search_query),
+                class!["addons-content"],
+                div![
+                    class!["top-bar-container"],
+                    // add addon button
+                    view_add_addon_button(),
+                    // catalog selector
+                    catalog_selector::view(
+                        &model.catalog_selector_model,
+                        &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+                    )
+                    .map_message(Msg::CatalogSelectorMsg),
+                    // type selector
+                    type_selector::view(
+                        &model.type_selector_model,
+                        &type_selector::groups(&catalog.catalogs, &catalog.selected, &model.shared.core.ctx.content.addons)
+                    )
+                    .map_message(Msg::TypeSelectorMsg),
+                    // search input
+                    view_search_input(&model.search_query),
+                ],
+                div![
+                    class!["addons-list-container"],
+                    view_content(&model.shared.core.addon_catalog.content, &model.search_query, &model.shared.core.ctx.content.addons, &catalog.selected),
+                ]
             ],
-            div![
-                class!["addons-list-container"],
-                view_content(&model.shared.core.addon_catalog.content, &model.search_query, &model.shared.core.ctx.content.addons, &catalog.selected),
-            ]
         ],
+        modal::view()
     ]
 }
+
+
 
 fn view_add_addon_button() -> Node<Msg> {
     div![
@@ -209,6 +215,7 @@ fn view_add_addon_button() -> Node<Msg> {
         ],
         attrs!{
             At::TabIndex => 0,
+            At::Title => "Add addon",
         },
         simple_ev(Ev::Click, Msg::AddAddonButtonClicked),
         svg![
@@ -250,6 +257,14 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
                 "search-input", "text-input"
             ],
             attrs!{
+                At::Size => 1,
+                // @TODO typed names once Seed has all official types attrs
+                // @TODO (https://github.com/seed-rs/seed/issues/261#issuecomment-555138892)
+                "autocorrect" => "off",
+                "autocapitalize" => "off",
+                At::AutoComplete => "off",
+                At::SpellCheck => "false",
+                At::Type => "text",
                 At::TabIndex => 0,
                 At::Placeholder => "Search addons...",
                 At::Value => search_query,
@@ -390,12 +405,18 @@ fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
             class![
                 "name-container"
             ],
+            attrs!{
+                At::Title => addon.manifest.name,
+            },
             addon.manifest.name,
         ],
         div![
             class![
                 "version-container"
             ],
+            attrs!{
+                At::Title => format!("v.{}", addon.manifest.version),
+            },
             format!("v.{}", addon.manifest.version),
         ],
         div![
@@ -409,6 +430,9 @@ fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
                 class![
                     "description-container"
                 ],
+                attrs!{
+                    At::Title => description,
+                },
                 description,
             ]
         } else {
@@ -450,6 +474,7 @@ fn view_uninstall_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
         ],
         attrs!{
             At::TabIndex => -1,
+            At::Title => "Uninstall",
         },
         simple_ev(Ev::Click, Msg::UninstallAddonButtonClicked(addon.clone())),
         div![
@@ -469,6 +494,7 @@ fn view_install_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
         ],
         attrs!{
             At::TabIndex => -1,
+            At::Title => "Install",
         },
         simple_ev(Ev::Click, Msg::InstallAddonButtonClicked(addon.clone())),
         div![
@@ -488,6 +514,7 @@ fn view_share_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
         ],
         attrs!{
             At::TabIndex => -1,
+            At::Title => "Share addon",
         },
         simple_ev(Ev::Click, Msg::ShareAddonButtonClicked(addon.clone())),
         svg![
