@@ -10,9 +10,9 @@ use helper::take;
 use route::Route;
 use seed::{prelude::*, *};
 use stremio_core::state_types::{CatalogFiltered, Ctx};
+use stremio_core::types::addons::DescriptorPreview;
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
-use stremio_core::types::addons::DescriptorPreview;
 
 // ------ ------
 //     Model
@@ -47,7 +47,7 @@ impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         match model {
             Model::Redirect => Self::default(),
-            Model::Discover(module_model)  => module_model.into(),
+            Model::Discover(module_model) => module_model.into(),
             Model::Addons(module_model) => module_model.into(),
             Model::Board(shared_model)
             | Model::Detail(shared_model)
@@ -80,7 +80,7 @@ fn routes(url: Url) -> Option<Msg> {
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Clone)]
-pub enum Msg {
+enum Msg {
     RouteChanged(Route),
     DiscoverMsg(page::discover::Msg),
     AddonsMsg(page::addons::Msg),
@@ -99,14 +99,10 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut orders.proxy(Msg::DiscoverMsg),
                 );
             }
-        },
+        }
         Msg::AddonsMsg(module_msg) => {
             if let Model::Addons(module_model) = model {
-                page::addons::update(
-                    module_msg,
-                    module_model,
-                    &mut orders.proxy(Msg::AddonsMsg),
-                );
+                page::addons::update(module_msg, module_model, &mut orders.proxy(Msg::AddonsMsg));
             }
         }
     }
@@ -138,18 +134,15 @@ fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orde
 
 fn view(model: &Model) -> impl View<Msg> {
     div![
-        class![
-            "router",
-            "routes-container"
-        ],
+        class!["router", "routes-container"],
         div![
-            class![
-                "route-container",
-            ],
+            class!["route-container",],
             match &model {
                 Model::Redirect => page::blank::view().els(),
                 Model::Board(_) => page::board::view().els(),
-                Model::Discover(model) => page::discover::view(model).els().map_message(Msg::DiscoverMsg),
+                Model::Discover(model) => page::discover::view(model)
+                    .els()
+                    .map_message(Msg::DiscoverMsg),
                 Model::Detail(_) => page::detail::view().els(),
                 Model::Player(_) => page::player::view().els(),
                 Model::Addons(model) => page::addons::view(model).els().map_message(Msg::AddonsMsg),

@@ -1,8 +1,8 @@
 use crate::entity::multi_select;
 use crate::page::discover::ExtraPropOption;
 use seed::prelude::*;
-use stremio_core::types::addons::{ManifestExtraProp, ResourceRequest};
 use std::fmt::Debug;
+use stremio_core::types::addons::{ManifestExtraProp, ResourceRequest};
 
 // ------ ------
 //     Model

@@ -1,9 +1,9 @@
 use crate::entity::multi_select;
 use itertools::Itertools;
 use seed::prelude::*;
+use std::fmt::Debug;
 use stremio_core::state_types::CatalogEntry;
 use stremio_core::types::addons::ResourceRequest;
-use std::fmt::Debug;
 
 // ------ ------
 //     Model

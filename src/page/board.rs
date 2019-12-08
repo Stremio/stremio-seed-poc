@@ -1,5 +1,5 @@
-use seed::{prelude::*, *};
 use crate::route::Route;
+use seed::{prelude::*, *};
 
 // ------ ------
 //     View
