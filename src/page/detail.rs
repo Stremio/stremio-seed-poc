@@ -1,4 +1,38 @@
 use seed::{prelude::*, *};
+use crate::SharedModel;
+
+// ------ ------
+//     Model
+// ------ ------
+
+pub struct Model {
+    shared: SharedModel,
+}
+
+impl From<Model> for SharedModel {
+    fn from(model: Model) -> Self {
+        model.shared
+    }
+}
+
+// ------ ------
+//     Init
+// ------ ------
+
+pub fn init(
+    shared: SharedModel,
+    type_name: String,
+    id: String,
+    video_id: Option<String>,
+) -> Model {
+    log!("type_name", type_name);
+    log!("id", id);
+    log!("video_id", video_id);
+
+    Model {
+        shared,
+    }
+}
 
 // ------ ------
 //     View
@@ -16,7 +50,7 @@ pub fn view<Ms: 'static>() -> impl View<Ms> {
             ],
             view_background_image_layer(),
             view_meta_preview_container(),
-            if false {
+            if true {
                 view_streams_list_container()
             } else {
                 view_videos_list_container()
