@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, route::Route, SharedModel};
+use crate::{entity::multi_select, route::{self, Route}, SharedModel, GMsg};
 use futures::future::Future;
 use seed::{prelude::*, *};
 use std::convert::TryFrom;
@@ -57,7 +57,7 @@ impl From<Model> for SharedModel {
 pub fn init(
     shared: SharedModel,
     resource_request: Option<ResourceRequest>,
-    orders: &mut impl Orders<Msg>,
+    orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
     orders.send_msg(
         // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
@@ -83,7 +83,7 @@ pub fn init(
 #[allow(clippy::pub_enum_variant_names)]
 #[derive(Clone)]
 pub enum Msg {
-    MetaPreviewClicked(MetaPreviewId),
+    MetaPreviewClicked(MetaPreview),
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
     TypeSelectorMsg(type_selector::Msg),
@@ -94,7 +94,7 @@ pub enum Msg {
     ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
 }
 
-fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
+fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg, GMsg>) {
     let route = Route::Discover(Some(req.clone()));
     let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Discover`");
     seed::push_route(url);
@@ -104,12 +104,21 @@ fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
     )))));
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     let catalog = &model.shared.core.catalog;
 
     match msg {
-        Msg::MetaPreviewClicked(meta_preview_id) => {
-            model.selected_meta_preview_id = Some(meta_preview_id);
+        Msg::MetaPreviewClicked(meta_preview) => {
+            if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
+                let detail_route = Route::Detail {
+                    video_id: if meta_preview.type_name == "movie" { Some(meta_preview.id.clone()) } else { None },
+                    type_name: meta_preview.type_name,
+                    id: meta_preview.id,
+                };
+                route::go_to(detail_route, orders);
+            } else {
+                model.selected_meta_preview_id = Some(meta_preview.id);
+            }
         }
 
         // ------ Core  ------
@@ -298,7 +307,7 @@ fn view_meta_preview(
             At::TabIndex => 0,
             At::Title => &meta_preview.name,
         },
-        simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.id.clone())),
+        simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.clone())),
         div![
             class!["poster-container",],
             div![

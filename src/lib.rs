@@ -75,6 +75,22 @@ fn routes(url: Url) -> Option<Msg> {
 }
 
 // ------ ------
+//     Sink
+// ------ ------
+
+pub enum GMsg {
+    RoutePushed(Route),
+}
+
+fn sink(g_msg: GMsg, _: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+    match g_msg {
+        GMsg::RoutePushed(route) => {
+            orders.send_msg(Msg::RouteChanged(route))
+        }
+    };
+}
+
+// ------ ------
 //    Update
 // ------ ------
 
@@ -86,7 +102,7 @@ enum Msg {
     AddonsMsg(page::addons::Msg),
 }
 
-fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     match msg {
         Msg::RouteChanged(route) => {
             change_model_by_route(route, model, orders);
@@ -108,7 +124,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     }
 }
 
-fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg>) {
+fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     let shared_model = SharedModel::from(take(model));
     *model = match route {
         Route::Board => Model::Board(shared_model),
@@ -158,5 +174,5 @@ fn view(model: &Model) -> impl View<Msg> {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    App::builder(update, view).routes(routes).build_and_start();
+    App::builder(update, view).routes(routes).sink(sink).build_and_start();
 }

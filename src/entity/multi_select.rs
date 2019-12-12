@@ -55,10 +55,10 @@ pub enum Msg {
 
 // @TODO: remove after Msg::ItemClicked refactor
 #[allow(clippy::collapsible_if)]
-pub fn update<T: 'static + Debug, ParentMsg>(
+pub fn update<T: 'static + Debug, ParentMsg, GMs>(
     msg: Msg,
     model: &mut Model,
-    orders: &mut impl Orders<Msg>,
+    orders: &mut impl Orders<Msg, GMs>,
     mut groups: Vec<Group<T>>,
     on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {
