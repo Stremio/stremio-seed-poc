@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, route::Route, SharedModel};
+use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
 use futures::future::Future;
 use modal::Modal;
 use seed::{prelude::*, *};
@@ -53,7 +53,7 @@ impl From<Model> for SharedModel {
 pub fn init(
     shared: SharedModel,
     resource_request: Option<ResourceRequest>,
-    orders: &mut impl Orders<Msg>,
+    orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
     orders.send_msg(
         // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
@@ -94,7 +94,7 @@ pub enum Msg {
     NoOp,
 }
 
-fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
+fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg, GMsg>) {
     let route = Route::Addons(Some(req.clone()));
     let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Addons`");
     seed::push_route(url);
@@ -104,7 +104,7 @@ fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg>) {
     )))));
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     let catalog = &model.shared.core.addon_catalog;
 
     match msg {

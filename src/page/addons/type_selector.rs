@@ -1,5 +1,5 @@
 use super::{BASE, MY_ITEM_ID, RESOURCE, TYPE_ALL};
-use crate::entity::multi_select;
+use crate::{entity::multi_select, GMsg};
 use seed::prelude::*;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
@@ -30,7 +30,7 @@ pub struct Msg(multi_select::Msg);
 pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
-    orders: &mut impl Orders<Msg>,
+    orders: &mut impl Orders<Msg, GMsg>,
     groups: Vec<multi_select::Group<T>>,
     on_change: impl FnOnce(Vec<multi_select::Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {
