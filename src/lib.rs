@@ -23,7 +23,7 @@ use stremio_derive::Model;
 pub enum Model {
     Redirect,
     Board(SharedModel),
-    Detail(SharedModel),
+    Detail(page::detail::Model),
     Discover(page::discover::Model),
     Player(SharedModel),
     Addons(page::addons::Model),
@@ -48,9 +48,9 @@ impl From<Model> for SharedModel {
         match model {
             Model::Redirect => Self::default(),
             Model::Discover(module_model) => module_model.into(),
+            Model::Detail(module_model) => module_model.into(),
             Model::Addons(module_model) => module_model.into(),
             Model::Board(shared_model)
-            | Model::Detail(shared_model)
             | Model::Player(shared_model)
             | Model::NotFound(shared_model) => shared_model,
         }
@@ -112,7 +112,7 @@ fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orde
     let shared_model = SharedModel::from(take(model));
     *model = match route {
         Route::Board => Model::Board(shared_model),
-        Route::Detail => Model::Detail(shared_model),
+        Route::Detail { type_name, id, video_id } => Model::Detail(page::detail::init(shared_model, type_name, id, video_id)),
         Route::Discover(resource_request) => Model::Discover(page::discover::init(
             shared_model,
             resource_request,

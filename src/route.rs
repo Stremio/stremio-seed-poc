@@ -8,7 +8,7 @@ use stremio_core::types::addons::{ParseResourceErr, ResourceRef, ResourceRequest
 pub enum Route {
     Board,
     Discover(Option<ResourceRequest>),
-    Detail,
+    Detail { type_name: String, id: String, video_id: Option<String> },
     Player,
     Addons(Option<ResourceRequest>),
     NotFound,
@@ -19,7 +19,7 @@ impl Route {
         match self {
             Self::Board => "#/board".into(),
             Self::Discover(req) => format!("#/discover{}", resource_request_to_url_path(req)),
-            Self::Detail => format!("#/detail/{}", "TODO"),
+            Self::Detail { type_name, id, video_id } => format!("#/detail/{}/{}/{}", type_name, id, video_id.as_ref().map(String::as_str).unwrap_or_default()),
             Self::Player => "#/player".into(),
             Self::Addons(req) => format!("#/addons{}", resource_request_to_url_path(req)),
             Self::NotFound => "#/404".into(),
@@ -66,7 +66,25 @@ impl From<Url> for Route {
 
                 Self::Discover(Some(req))
             }
-            Some("detail") => Self::Detail,
+            Some("detail") => {
+                let type_name = if let Some(type_name) = hash.next() {
+                    type_name.to_owned()
+                } else {
+                    error!("cannot find detail type_name");
+                    return Self::NotFound;
+                };
+
+                let id = if let Some(id) = hash.next() {
+                    id.to_owned()
+                } else {
+                    error!("cannot find detail id");
+                    return Self::NotFound;
+                };
+
+                let video_id = hash.next().map(ToOwned::to_owned);
+
+                Self::Detail { type_name, id, video_id }
+            },
             Some("player") => Self::Player,
             Some("addons") => {
                 let encoded_base = if let Some(base) = hash.next() {
