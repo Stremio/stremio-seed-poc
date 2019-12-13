@@ -1,6 +1,8 @@
 //# fs_extra = "*"
+//# remove_dir_all = "*"
 
 use std::{fs, path::Path};
+use remove_dir_all::remove_dir_all;
 
 const DIST_DIR: &str = "dist";
 
@@ -13,7 +15,7 @@ fn main() {
 
 fn prepare_dist_directory() {
     if Path::new(DIST_DIR).is_dir() {
-        fs::remove_dir_all(DIST_DIR).expect("remove dist directory");
+        remove_dir_all(DIST_DIR).expect("remove dist directory");
     }
     fs::create_dir(DIST_DIR).expect("create dist directory");
 }
