@@ -1,5 +1,10 @@
 use seed::{prelude::*, *};
-use crate::SharedModel;
+use crate::{SharedModel, GMsg};
+use stremio_core::state_types::{
+    Action, ActionLoad, Msg as CoreMsg, Update,
+};
+use std::rc::Rc;
+use futures::future::Future;
 
 // ------ ------
 //     Model
@@ -24,13 +29,49 @@ pub fn init(
     type_name: String,
     id: String,
     video_id: Option<String>,
+    orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
-    log!("type_name", type_name);
-    log!("id", id);
-    log!("video_id", video_id);
+
+    // @TODO reafctor and integrate - wait until branch `details_model` or `development` is merged into `master`
+    orders.send_msg(
+        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
+            ActionLoad::Detail { type_name, id, video_id },
+        )))),
+    );
 
     Model {
         shared,
+    }
+}
+
+// ------ ------
+//    Update
+// ------ ------
+
+#[derive(Clone)]
+pub enum Msg {
+    Core(Rc<CoreMsg>),
+    CoreError(Rc<CoreMsg>),
+}
+
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+    match msg {
+        // ------ Core  ------
+        Msg::Core(core_msg) => {
+            let fx = model.shared.core.update(&core_msg);
+
+            if !fx.has_changed {
+                orders.skip();
+            }
+
+            for cmd in fx.effects {
+                let cmd = cmd
+                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
+                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
+                orders.perform_cmd(cmd);
+            }
+        }
+        Msg::CoreError(core_error) => log!("core_error", core_error),
     }
 }
 
