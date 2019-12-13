@@ -1,11 +1,10 @@
 use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
-use futures::future::Future;
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::convert::TryFrom;
 use std::rc::Rc;
 use stremio_core::state_types::{
-    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, Update,
+    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg,
 };
 use stremio_core::types::addons::{Descriptor, DescriptorPreview, ManifestPreview};
 use stremio_core::types::addons::{ResourceRef, ResourceRequest};
@@ -40,6 +39,12 @@ pub struct Model {
     modal: Option<Modal>,
 }
 
+impl Model {
+    pub fn shared(&mut self) -> &mut SharedModel {
+        &mut self.shared
+    }
+}
+
 impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         model.shared
@@ -55,10 +60,10 @@ pub fn init(
     resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
-    orders.send_msg(
+    orders.send_g_msg(
         // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
         // @TODO select the first preview on Load
-        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
+        GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
             ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
         )))),
     );
@@ -79,8 +84,6 @@ pub fn init(
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 #[derive(Clone)]
 pub enum Msg {
-    Core(Rc<CoreMsg>),
-    CoreError(Rc<CoreMsg>),
     CatalogSelectorMsg(catalog_selector::Msg),
     CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
     TypeSelectorMsg(type_selector::Msg),
@@ -99,7 +102,7 @@ fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg, GMs
     let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Addons`");
     seed::push_route(url);
 
-    orders.send_msg(Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
+    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(req),
     )))));
 }
@@ -108,24 +111,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
     let catalog = &model.shared.core.addon_catalog;
 
     match msg {
-        // @TODO: move to lib.rs? (check also other pages)
-        // ------ Core  ------
-        Msg::Core(core_msg) => {
-            let fx = model.shared.core.update(&core_msg);
-
-            if !fx.has_changed {
-                orders.skip();
-            }
-
-            for cmd in fx.effects {
-                let cmd = cmd
-                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
-                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
-                orders.perform_cmd(cmd);
-            }
-        }
-        Msg::CoreError(core_error) => log!("core_error", core_error),
-
         // ------ CatalogSelector  ------
         Msg::CatalogSelectorMsg(msg) => {
             let msg_to_parent = catalog_selector::update(

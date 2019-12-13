@@ -9,10 +9,12 @@ use env_web::Env;
 use helper::take;
 use route::Route;
 use seed::{prelude::*, *};
-use stremio_core::state_types::{CatalogFiltered, Ctx};
+use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};
 use stremio_core::types::addons::DescriptorPreview;
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
+use std::rc::Rc;
+use futures::future::Future;
 
 // ------ ------
 //     Model
@@ -28,6 +30,18 @@ pub enum Model {
     Player(SharedModel),
     Addons(page::addons::Model),
     NotFound(SharedModel),
+}
+
+impl Model {
+    pub fn shared(&mut self) -> Option<&mut SharedModel> {
+        match self {
+            Self::Redirect => None,
+            Self::Discover(module_model) => Some(module_model.shared()),
+            Self::Detail(module_model) => Some(module_model.shared()),
+            Self::Addons(module_model) => Some(module_model.shared()),
+            Self::Player(shared) | Self::NotFound(shared) | Self::Board(shared) => Some(shared),
+        }
+    }
 }
 
 impl Default for Model {
@@ -46,11 +60,11 @@ pub struct SharedModel {
 impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         match model {
-            Model::Redirect => Self::default(),
+            Model::Redirect => SharedModel::default(),
             Model::Discover(module_model) => module_model.into(),
             Model::Detail(module_model) => module_model.into(),
             Model::Addons(module_model) => module_model.into(),
-            Model::Board(shared_model)
+            | Model::Board(shared_model)
             | Model::Player(shared_model)
             | Model::NotFound(shared_model) => shared_model,
         }
@@ -80,13 +94,35 @@ fn routes(url: Url) -> Option<Msg> {
 
 pub enum GMsg {
     RoutePushed(Route),
+    Core(Rc<CoreMsg>),
+    CoreError(Rc<CoreMsg>),
 }
 
-fn sink(g_msg: GMsg, _: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     match g_msg {
         GMsg::RoutePushed(route) => {
-            orders.send_msg(Msg::RouteChanged(route))
+            orders.send_msg(Msg::RouteChanged(route));
+        },
+        // ------ Core  ------
+        GMsg::Core(core_msg) => {
+            let fx = model
+                .shared()
+                .expect("get `SharedModel` from `Model")
+                .core
+                .update(&core_msg);
+
+            if !fx.has_changed {
+                orders.skip();
+            }
+
+            for cmd in fx.effects {
+                let cmd = cmd
+                    .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
+                    .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)));
+                orders.perform_g_cmd(cmd);
+            }
         }
+        GMsg::CoreError(core_error) => log!("core_error", core_error),
     };
 }
 
