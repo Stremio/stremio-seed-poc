@@ -1,8 +1,8 @@
-use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
+use crate::{entity::multi_select, route::Route, GMsg, SharedModel};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{
-    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Internal
+    Action, ActionLoad, CatalogEntry, CatalogError, Internal, Loadable, Msg as CoreMsg, TypeEntry,
 };
 use stremio_core::types::MetaPreview;
 use stremio_core::types::{
@@ -89,15 +89,15 @@ pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>)
         GMsg::GoTo(Route::Discover(resource_request)) => {
             load_catalog(resource_request, orders);
             return None;
-        },
+        }
         GMsg::Core(ref core_msg) => {
             if let CoreMsg::Internal(Internal::AddonResponse(_, result)) = core_msg.as_ref() {
                 if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
                     model.selected_meta_preview_id = metas.first().map(|meta| meta.id.clone());
                 }
             }
-        },
-        _ => ()
+        }
+        _ => (),
     }
     Some(g_msg)
 }
@@ -106,7 +106,8 @@ pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>)
 //    Update
 // ------ ------
 
-#[allow(clippy::pub_enum_variant_names)]
+// @TODO box large fields?
+#[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 #[derive(Clone)]
 pub enum Msg {
     MetaPreviewClicked(MetaPreview),
@@ -125,7 +126,11 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         Msg::MetaPreviewClicked(meta_preview) => {
             if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
                 let detail_route = Route::Detail {
-                    video_id: if meta_preview.type_name == "movie" { Some(meta_preview.id.clone()) } else { None },
+                    video_id: if meta_preview.type_name == "movie" {
+                        Some(meta_preview.id.clone())
+                    } else {
+                        None
+                    },
                     type_name: meta_preview.type_name,
                     id: meta_preview.id,
                 };
@@ -150,7 +155,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let req = type_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req.clone()))));
+            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req))));
         }
 
         // ------ CatalogSelector  ------
@@ -168,7 +173,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req.clone()))));
+            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req))));
         }
 
         // ------ ExtraPropSelector  ------
@@ -188,7 +193,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
             if let Some(req) =
                 extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
             {
-                orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req.clone()))));
+                orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req))));
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, GMsg, page::discover::ExtraPropOption};
+use crate::{entity::multi_select, page::discover::ExtraPropOption, GMsg};
 use seed::prelude::*;
 use std::fmt::Debug;
 use stremio_core::types::addons::{ManifestExtraProp, ResourceRequest};

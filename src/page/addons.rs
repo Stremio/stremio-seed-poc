@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
+use crate::{entity::multi_select, route::Route, GMsg, SharedModel};
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -69,7 +69,7 @@ pub fn init(
     }
 }
 
-fn load_catalog(resource_request: Option<ResourceRequest>,orders: &mut impl Orders<Msg, GMsg>) {
+fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg, GMsg>) {
     orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
     )))));
@@ -84,13 +84,14 @@ pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>)
         GMsg::GoTo(Route::Addons(resource_request)) => {
             load_catalog(resource_request, orders);
             return None;
-        },
+        }
         GMsg::Core(ref core_msg) => {
-            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(_))) = core_msg.as_ref() {
+            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(_))) = core_msg.as_ref()
+            {
                 model.search_query = String::new();
             }
-        },
-        _ => ()
+        }
+        _ => (),
     }
     Some(g_msg)
 }
@@ -134,7 +135,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req.clone()))));
+            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req))));
         }
 
         // ------ TypeSelector  ------
@@ -156,7 +157,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let req = type_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req.clone()))));
+            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req))));
         }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
