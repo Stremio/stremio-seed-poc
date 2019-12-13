@@ -1,7 +1,6 @@
 use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
 use modal::Modal;
 use seed::{prelude::*, *};
-use std::convert::TryFrom;
 use std::rc::Rc;
 use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg,
@@ -60,20 +59,33 @@ pub fn init(
     resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
-    orders.send_g_msg(
-        // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
-        // @TODO select the first preview on Load
-        GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
-            ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
-        )))),
-    );
-
+    load_catalog(resource_request, orders);
     Model {
         shared,
         catalog_selector_model: catalog_selector::init(),
         type_selector_model: type_selector::init(),
         search_query: String::new(),
         modal: None,
+    }
+}
+
+fn load_catalog(resource_request: Option<ResourceRequest>,orders: &mut impl Orders<Msg, GMsg>) {
+    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
+    )))));
+}
+
+// ------ ------
+//     Sink
+// ------ ------
+
+pub fn sink(g_msg: GMsg, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
+    match g_msg {
+        GMsg::GoTo(Route::Addons(resource_request)) => {
+            load_catalog(resource_request, orders);
+            None
+        },
+        _ => Some(g_msg)
     }
 }
 
@@ -97,16 +109,6 @@ pub enum Msg {
     NoOp,
 }
 
-fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg, GMsg>) {
-    let route = Route::Addons(Some(req.clone()));
-    let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Addons`");
-    seed::push_route(url);
-
-    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogFiltered(req),
-    )))));
-}
-
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     let catalog = &model.shared.core.addon_catalog;
 
@@ -126,7 +128,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let req = catalog_selector::resource_request(groups_with_selected_items);
-            push_resource_request(req, orders)
+            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req.clone()))));
         }
 
         // ------ TypeSelector  ------
@@ -148,7 +150,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let req = type_selector::resource_request(groups_with_selected_items);
-            push_resource_request(req, orders)
+            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req.clone()))));
         }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,

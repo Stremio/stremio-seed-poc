@@ -15,6 +15,7 @@ use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
 use std::rc::Rc;
 use futures::future::Future;
+use std::convert::TryFrom;
 
 // ------ ------
 //     Model
@@ -93,37 +94,57 @@ fn routes(url: Url) -> Option<Msg> {
 // ------ ------
 
 pub enum GMsg {
-    RoutePushed(Route),
+    GoTo(Route),
     Core(Rc<CoreMsg>),
     CoreError(Rc<CoreMsg>),
 }
 
 fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     match g_msg {
-        GMsg::RoutePushed(route) => {
-            orders.send_msg(Msg::RouteChanged(route));
-        },
-        // ------ Core  ------
-        GMsg::Core(core_msg) => {
-            let fx = model
-                .shared()
-                .expect("get `SharedModel` from `Model")
-                .core
-                .update(&core_msg);
-
-            if !fx.has_changed {
-                orders.skip();
-            }
-
-            for cmd in fx.effects {
-                let cmd = cmd
-                    .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
-                    .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)));
-                orders.perform_g_cmd(cmd);
-            }
+        GMsg::GoTo(ref route) => {
+            let url = Url::try_from(route.to_href()).expect("`Url` from `Route`");
+            seed::push_route(url);
         }
-        GMsg::CoreError(core_error) => log!("core_error", core_error),
+        _ => ()
     };
+
+    let unhandled_g_msg = match model {
+        Model::Discover(_) => page::discover::sink(g_msg, &mut orders.proxy(Msg::DiscoverMsg)),
+        Model::Addons(_) => page::addons::sink(g_msg, &mut orders.proxy(Msg::AddonsMsg)),
+        Model::Redirect |
+        Model::Board(_) |
+        Model::Detail(_) |
+        Model::Player(_) |
+        Model::NotFound(_) => Some(g_msg),
+    };
+
+    if let Some(unhandled_g_msg) = unhandled_g_msg {
+        match unhandled_g_msg {
+            GMsg::GoTo(route) => {
+                orders.send_msg(Msg::RouteChanged(route));
+            },
+            // ------ Core  ------
+            GMsg::Core(core_msg) => {
+                let fx = model
+                    .shared()
+                    .expect("get `SharedModel` from `Model")
+                    .core
+                    .update(&core_msg);
+
+                if !fx.has_changed {
+                    orders.skip();
+                }
+
+                for cmd in fx.effects {
+                    let cmd = cmd
+                        .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
+                        .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)));
+                    orders.perform_g_cmd(cmd);
+                }
+            }
+            GMsg::CoreError(core_error) => log!("core_error", core_error),
+        };
+    }
 }
 
 // ------ ------
@@ -167,24 +188,34 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
 }
 
 fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
-    let shared_model = SharedModel::from(take(model));
+    let shared = |model: &mut Model| SharedModel::from(take(model));
     *model = match route {
-        Route::Board => Model::Board(shared_model),
-        Route::Detail { type_name, id, video_id } => {
-            Model::Detail(page::detail::init(shared_model, type_name, id, video_id, &mut orders.proxy(Msg::DetailMsg)))
+        Route::Board => {
+            Model::Board(shared(model))
         },
-        Route::Discover(resource_request) => Model::Discover(page::discover::init(
-            shared_model,
-            resource_request,
-            &mut orders.proxy(Msg::DiscoverMsg),
-        )),
-        Route::Player => Model::Player(shared_model),
-        Route::Addons(resource_request) => Model::Addons(page::addons::init(
-            shared_model,
-            resource_request,
-            &mut orders.proxy(Msg::AddonsMsg),
-        )),
-        Route::NotFound => Model::NotFound(shared_model),
+        Route::Detail { type_name, id, video_id } => {
+            Model::Detail(page::detail::init(shared(model), type_name, id, video_id, &mut orders.proxy(Msg::DetailMsg)))
+        },
+        Route::Discover(resource_request) => {
+            Model::Discover(page::discover::init(
+                shared(model),
+                resource_request,
+                &mut orders.proxy(Msg::DiscoverMsg),
+            ))
+        },
+        Route::Player => {
+            Model::Player(shared(model))
+        },
+        Route::Addons(resource_request) => {
+            Model::Addons(page::addons::init(
+                shared(model),
+                resource_request,
+                &mut orders.proxy(Msg::AddonsMsg),
+            ))
+        },
+        Route::NotFound => {
+            Model::NotFound(shared(model))
+        },
     };
 }
 

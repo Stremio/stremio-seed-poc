@@ -1,6 +1,5 @@
-use crate::{entity::multi_select, route::{self, Route}, SharedModel, GMsg};
+use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
 use seed::{prelude::*, *};
-use std::convert::TryFrom;
 use std::rc::Rc;
 use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry,
@@ -64,20 +63,35 @@ pub fn init(
     resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
-    orders.send_g_msg(
-        // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
-        // @TODO select the first preview on Load
-        GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
-            ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
-        )))),
-    );
-
+    load_catalog(resource_request, orders);
     Model {
         shared,
         type_selector_model: type_selector::init(),
         catalog_selector_model: catalog_selector::init(),
         extra_prop_selector_model: extra_prop_selector::init(),
         selected_meta_preview_id: None,
+    }
+}
+
+fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg, GMsg>) {
+    // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
+    // @TODO select the first preview on Load
+    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
+    )))));
+}
+
+// ------ ------
+//     Sink
+// ------ ------
+
+pub fn sink(g_msg: GMsg, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
+    match g_msg {
+        GMsg::GoTo(Route::Discover(resource_request)) => {
+            load_catalog(resource_request, orders);
+            None
+        },
+        _ => Some(g_msg)
     }
 }
 
@@ -97,16 +111,6 @@ pub enum Msg {
     ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
 }
 
-fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg, GMsg>) {
-    let route = Route::Discover(Some(req.clone()));
-    let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Discover`");
-    seed::push_route(url);
-
-    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogFiltered(req),
-    )))));
-}
-
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     let catalog = &model.shared.core.catalog;
 
@@ -118,7 +122,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
                     type_name: meta_preview.type_name,
                     id: meta_preview.id,
                 };
-                route::go_to(detail_route, orders);
+                orders.send_g_msg(GMsg::GoTo(detail_route));
             } else {
                 model.selected_meta_preview_id = Some(meta_preview.id);
             }
@@ -139,7 +143,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let req = type_selector::resource_request(groups_with_selected_items);
-            push_resource_request(req, orders)
+            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req.clone()))));
         }
 
         // ------ CatalogSelector  ------
@@ -157,7 +161,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let req = catalog_selector::resource_request(groups_with_selected_items);
-            push_resource_request(req, orders)
+            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req.clone()))));
         }
 
         // ------ ExtraPropSelector  ------
@@ -177,7 +181,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
             if let Some(req) =
                 extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
             {
-                push_resource_request(req, orders)
+                orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req.clone()))));
             }
         }
     }
