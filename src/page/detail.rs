@@ -1,10 +1,9 @@
 use seed::{prelude::*, *};
 use crate::{SharedModel, GMsg};
 use stremio_core::state_types::{
-    Action, ActionLoad, Msg as CoreMsg, Update,
+    Action, ActionLoad, Msg as CoreMsg,
 };
 use std::rc::Rc;
-use futures::future::Future;
 
 // ------ ------
 //     Model
@@ -12,6 +11,12 @@ use futures::future::Future;
 
 pub struct Model {
     shared: SharedModel,
+}
+
+impl Model {
+    pub fn shared(&mut self) -> &mut SharedModel {
+        &mut self.shared
+    }
 }
 
 impl From<Model> for SharedModel {
@@ -32,9 +37,10 @@ pub fn init(
     orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
 
-    // @TODO reafctor and integrate - wait until branch `details_model` or `development` is merged into `master`
-    orders.send_msg(
-        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
+    // @TODO refactor and integrate
+    // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
+    orders.send_g_msg(
+        GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
             ActionLoad::Detail { type_name, id, video_id },
         )))),
     );
@@ -49,30 +55,10 @@ pub fn init(
 // ------ ------
 
 #[derive(Clone)]
-pub enum Msg {
-    Core(Rc<CoreMsg>),
-    CoreError(Rc<CoreMsg>),
-}
+pub enum Msg {}
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
-    match msg {
-        // ------ Core  ------
-        Msg::Core(core_msg) => {
-            let fx = model.shared.core.update(&core_msg);
-
-            if !fx.has_changed {
-                orders.skip();
-            }
-
-            for cmd in fx.effects {
-                let cmd = cmd
-                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
-                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
-                orders.perform_cmd(cmd);
-            }
-        }
-        Msg::CoreError(core_error) => log!("core_error", core_error),
-    }
+pub fn update(_: Msg, _: &mut Model, _: &mut impl Orders<Msg, GMsg>) {
+    unimplemented!()
 }
 
 // ------ ------
@@ -91,6 +77,7 @@ pub fn view<Ms: 'static>() -> impl View<Ms> {
             ],
             view_background_image_layer(),
             view_meta_preview_container(),
+            // @TODO switch by `type_name` (?)
             if true {
                 view_streams_list_container()
             } else {

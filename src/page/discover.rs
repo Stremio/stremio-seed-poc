@@ -1,10 +1,9 @@
 use crate::{entity::multi_select, route::{self, Route}, SharedModel, GMsg};
-use futures::future::Future;
 use seed::{prelude::*, *};
 use std::convert::TryFrom;
 use std::rc::Rc;
 use stremio_core::state_types::{
-    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Update,
+    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry,
 };
 use stremio_core::types::MetaPreview;
 use stremio_core::types::{
@@ -44,6 +43,12 @@ pub struct Model {
     extra_prop_selector_model: extra_prop_selector::Model,
 }
 
+impl Model {
+    pub fn shared(&mut self) -> &mut SharedModel {
+        &mut self.shared
+    }
+}
+
 impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         model.shared
@@ -59,10 +64,10 @@ pub fn init(
     resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg, GMsg>,
 ) -> Model {
-    orders.send_msg(
+    orders.send_g_msg(
         // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
         // @TODO select the first preview on Load
-        Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
+        GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
             ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
         )))),
     );
@@ -84,8 +89,6 @@ pub fn init(
 #[derive(Clone)]
 pub enum Msg {
     MetaPreviewClicked(MetaPreview),
-    Core(Rc<CoreMsg>),
-    CoreError(Rc<CoreMsg>),
     TypeSelectorMsg(type_selector::Msg),
     TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
     CatalogSelectorMsg(catalog_selector::Msg),
@@ -99,7 +102,7 @@ fn push_resource_request(req: ResourceRequest, orders: &mut impl Orders<Msg, GMs
     let url = Url::try_from(route.to_href()).expect("`Url` from `Route::Discover`");
     seed::push_route(url);
 
-    orders.send_msg(Msg::Core(Rc::new(CoreMsg::Action(Action::Load(
+    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(req),
     )))));
 }
@@ -120,23 +123,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
                 model.selected_meta_preview_id = Some(meta_preview.id);
             }
         }
-
-        // ------ Core  ------
-        Msg::Core(core_msg) => {
-            let fx = model.shared.core.update(&core_msg);
-
-            if !fx.has_changed {
-                orders.skip();
-            }
-
-            for cmd in fx.effects {
-                let cmd = cmd
-                    .map(|core_msg| Msg::Core(Rc::new(core_msg)))
-                    .map_err(|core_msg| Msg::CoreError(Rc::new(core_msg)));
-                orders.perform_cmd(cmd);
-            }
-        }
-        Msg::CoreError(core_error) => log!("core_error", core_error),
 
         // ------ TypeSelector  ------
         Msg::TypeSelectorMsg(msg) => {
