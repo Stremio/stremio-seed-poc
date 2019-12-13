@@ -6,16 +6,16 @@ mod page;
 mod route;
 
 use env_web::Env;
+use futures::future::Future;
 use helper::take;
 use route::Route;
 use seed::{prelude::*, *};
+use std::convert::TryFrom;
+use std::rc::Rc;
 use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};
 use stremio_core::types::addons::DescriptorPreview;
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
-use std::rc::Rc;
-use futures::future::Future;
-use std::convert::TryFrom;
 
 // ------ ------
 //     Model
@@ -61,11 +61,11 @@ pub struct SharedModel {
 impl From<Model> for SharedModel {
     fn from(model: Model) -> Self {
         match model {
-            Model::Redirect => SharedModel::default(),
+            Model::Redirect => Self::default(),
             Model::Discover(module_model) => module_model.into(),
             Model::Detail(module_model) => module_model.into(),
             Model::Addons(module_model) => module_model.into(),
-            | Model::Board(shared_model)
+            Model::Board(shared_model)
             | Model::Player(shared_model)
             | Model::NotFound(shared_model) => shared_model,
         }
@@ -100,29 +100,30 @@ pub enum GMsg {
 }
 
 fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
-    match g_msg {
-        GMsg::GoTo(ref route) => {
-            let url = Url::try_from(route.to_href()).expect("`Url` from `Route`");
-            seed::push_route(url);
-        }
-        _ => ()
-    };
+    if let GMsg::GoTo(ref route) = g_msg {
+        let url = Url::try_from(route.to_href()).expect("`Url` from `Route`");
+        seed::push_route(url);
+    }
 
     let unhandled_g_msg = match model {
-        Model::Discover(module_model) => page::discover::sink(g_msg, module_model, &mut orders.proxy(Msg::DiscoverMsg)),
-        Model::Addons(module_model) => page::addons::sink(g_msg, module_model, &mut orders.proxy(Msg::AddonsMsg)),
-        Model::Redirect |
-        Model::Board(_) |
-        Model::Detail(_) |
-        Model::Player(_) |
-        Model::NotFound(_) => Some(g_msg),
+        Model::Discover(module_model) => {
+            page::discover::sink(g_msg, module_model, &mut orders.proxy(Msg::DiscoverMsg))
+        }
+        Model::Addons(module_model) => {
+            page::addons::sink(g_msg, module_model, &mut orders.proxy(Msg::AddonsMsg))
+        }
+        Model::Redirect
+        | Model::Board(_)
+        | Model::Detail(_)
+        | Model::Player(_)
+        | Model::NotFound(_) => Some(g_msg),
     };
 
     if let Some(unhandled_g_msg) = unhandled_g_msg {
         match unhandled_g_msg {
             GMsg::GoTo(route) => {
                 orders.send_msg(Msg::RouteChanged(route));
-            },
+            }
             // ------ Core  ------
             GMsg::Core(core_msg) => {
                 let fx = model
@@ -151,7 +152,8 @@ fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
 //    Update
 // ------ ------
 
-#[allow(clippy::enum_variant_names)]
+// @TODO box large fields?
+#[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 #[derive(Clone)]
 enum Msg {
     RouteChanged(Route),
@@ -178,7 +180,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
             if let Model::Detail(module_model) = model {
                 page::detail::update(module_msg, module_model, &mut orders.proxy(Msg::DetailMsg));
             }
-        },
+        }
         Msg::AddonsMsg(module_msg) => {
             if let Model::Addons(module_model) = model {
                 page::addons::update(module_msg, module_model, &mut orders.proxy(Msg::AddonsMsg));
@@ -190,32 +192,30 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
 fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     let shared = |model: &mut Model| SharedModel::from(take(model));
     *model = match route {
-        Route::Board => {
-            Model::Board(shared(model))
-        },
-        Route::Detail { type_name, id, video_id } => {
-            Model::Detail(page::detail::init(shared(model), type_name, id, video_id, &mut orders.proxy(Msg::DetailMsg)))
-        },
-        Route::Discover(resource_request) => {
-            Model::Discover(page::discover::init(
-                shared(model),
-                resource_request,
-                &mut orders.proxy(Msg::DiscoverMsg),
-            ))
-        },
-        Route::Player => {
-            Model::Player(shared(model))
-        },
-        Route::Addons(resource_request) => {
-            Model::Addons(page::addons::init(
-                shared(model),
-                resource_request,
-                &mut orders.proxy(Msg::AddonsMsg),
-            ))
-        },
-        Route::NotFound => {
-            Model::NotFound(shared(model))
-        },
+        Route::Board => Model::Board(shared(model)),
+        Route::Detail {
+            type_name,
+            id,
+            video_id,
+        } => Model::Detail(page::detail::init(
+            shared(model),
+            type_name,
+            id,
+            video_id,
+            &mut orders.proxy(Msg::DetailMsg),
+        )),
+        Route::Discover(resource_request) => Model::Discover(page::discover::init(
+            shared(model),
+            resource_request,
+            &mut orders.proxy(Msg::DiscoverMsg),
+        )),
+        Route::Player => Model::Player(shared(model)),
+        Route::Addons(resource_request) => Model::Addons(page::addons::init(
+            shared(model),
+            resource_request,
+            &mut orders.proxy(Msg::AddonsMsg),
+        )),
+        Route::NotFound => Model::NotFound(shared(model)),
     };
 }
 
@@ -249,5 +249,8 @@ fn view(model: &Model) -> impl View<Msg> {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    App::builder(update, view).routes(routes).sink(sink).build_and_start();
+    App::builder(update, view)
+        .routes(routes)
+        .sink(sink)
+        .build_and_start();
 }
