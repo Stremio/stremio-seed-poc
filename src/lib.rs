@@ -99,6 +99,7 @@ fn sink(g_msg: GMsg, _: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
 enum Msg {
     RouteChanged(Route),
     DiscoverMsg(page::discover::Msg),
+    DetailMsg(page::detail::Msg),
     AddonsMsg(page::addons::Msg),
 }
 
@@ -116,6 +117,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
                 );
             }
         }
+        Msg::DetailMsg(module_msg) => {
+            if let Model::Detail(module_model) = model {
+                page::detail::update(module_msg, module_model, &mut orders.proxy(Msg::DetailMsg));
+            }
+        },
         Msg::AddonsMsg(module_msg) => {
             if let Model::Addons(module_model) = model {
                 page::addons::update(module_msg, module_model, &mut orders.proxy(Msg::AddonsMsg));
@@ -128,7 +134,9 @@ fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orde
     let shared_model = SharedModel::from(take(model));
     *model = match route {
         Route::Board => Model::Board(shared_model),
-        Route::Detail { type_name, id, video_id } => Model::Detail(page::detail::init(shared_model, type_name, id, video_id)),
+        Route::Detail { type_name, id, video_id } => {
+            Model::Detail(page::detail::init(shared_model, type_name, id, video_id, &mut orders.proxy(Msg::DetailMsg)))
+        },
         Route::Discover(resource_request) => Model::Discover(page::discover::init(
             shared_model,
             resource_request,
