@@ -79,14 +79,20 @@ fn load_catalog(resource_request: Option<ResourceRequest>,orders: &mut impl Orde
 //     Sink
 // ------ ------
 
-pub fn sink(g_msg: GMsg, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
+pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
     match g_msg {
         GMsg::GoTo(Route::Addons(resource_request)) => {
             load_catalog(resource_request, orders);
-            None
+            return None;
         },
-        _ => Some(g_msg)
+        GMsg::Core(ref core_msg) => {
+            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(_))) = core_msg.as_ref() {
+                model.search_query = String::new();
+            }
+        },
+        _ => ()
     }
+    Some(g_msg)
 }
 
 // ------ ------

@@ -109,8 +109,8 @@ fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     };
 
     let unhandled_g_msg = match model {
-        Model::Discover(_) => page::discover::sink(g_msg, &mut orders.proxy(Msg::DiscoverMsg)),
-        Model::Addons(_) => page::addons::sink(g_msg, &mut orders.proxy(Msg::AddonsMsg)),
+        Model::Discover(module_model) => page::discover::sink(g_msg, module_model, &mut orders.proxy(Msg::DiscoverMsg)),
+        Model::Addons(module_model) => page::addons::sink(g_msg, module_model, &mut orders.proxy(Msg::AddonsMsg)),
         Model::Redirect |
         Model::Board(_) |
         Model::Detail(_) |
