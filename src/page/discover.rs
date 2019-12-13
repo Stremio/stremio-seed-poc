@@ -2,11 +2,11 @@ use crate::{entity::multi_select, route::Route, SharedModel, GMsg};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{
-    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry,
+    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg, TypeEntry, Internal
 };
 use stremio_core::types::MetaPreview;
 use stremio_core::types::{
-    addons::{ResourceRef, ResourceRequest},
+    addons::{ResourceRef, ResourceRequest, ResourceResponse},
     PosterShape,
 };
 
@@ -74,8 +74,7 @@ pub fn init(
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg, GMsg>) {
-    // @TODO try to remove `Clone` requirement from Seed or add it into stremi-core? Implement intos, from etc.?
-    // @TODO select the first preview on Load
+    // @TODO try to remove `Clone` requirement from Seed or add it into stremio-core? Implement intos, from etc.?
     orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
     )))));
@@ -85,14 +84,22 @@ fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Ord
 //     Sink
 // ------ ------
 
-pub fn sink(g_msg: GMsg, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
+pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
     match g_msg {
         GMsg::GoTo(Route::Discover(resource_request)) => {
             load_catalog(resource_request, orders);
-            None
+            return None;
         },
-        _ => Some(g_msg)
+        GMsg::Core(ref core_msg) => {
+            if let CoreMsg::Internal(Internal::AddonResponse(_, result)) = core_msg.as_ref() {
+                if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
+                    model.selected_meta_preview_id = metas.first().map(|meta| meta.id.clone());
+                }
+            }
+        },
+        _ => ()
     }
+    Some(g_msg)
 }
 
 // ------ ------
