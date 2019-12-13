@@ -1,14 +1,6 @@
 use seed::{prelude::*, *};
 use std::str::FromStr;
 use stremio_core::types::addons::{ParseResourceErr, ResourceRef, ResourceRequest};
-use crate::GMsg;
-use std::convert::TryFrom;
-
-pub fn go_to<Ms: 'static>(route: Route, orders: &mut impl Orders<Ms, GMsg>) {
-    let url = Url::try_from(route.to_href()).expect("`Url` from `Route`");
-    seed::push_route(url);
-    orders.send_g_msg(GMsg::RoutePushed(route));
-}
 
 // ------ Route ------
 
