@@ -5,6 +5,7 @@ use std::{fs, path::Path};
 use remove_dir_all::remove_dir_all;
 
 const DIST_DIR: &str = "dist";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     prepare_dist_directory();
@@ -42,12 +43,12 @@ fn bundle_index_html() {
 
     index_html_content = index_html_content.replace(
         r#"<script type="module"> import init from '/pkg/package.js'; init('/pkg/package_bg.wasm'); </script>"#,
-        &format!(r#"<script type="module">{} init('/stremio.wasm'); </script>"#, package_js_content)
+        &format!(r#"<script type="module">{} init('/stremio-{}.wasm'); </script>"#, package_js_content, VERSION)
     );
 
     fs::write(format!("{}/{}", DIST_DIR, "index.html"), index_html_content).expect("write index.html");
 }
 
 fn bundle_stremio_wasm() {
-    fs::copy("pkg/package_bg.wasm", format!("{}/{}", DIST_DIR, "stremio.wasm")).expect("copy pkg/package_bg.wasm");
+    fs::copy("pkg/package_bg.wasm", format!("{}/stremio-{}.wasm", DIST_DIR, VERSION)).expect("copy pkg/package_bg.wasm");
 }
