@@ -193,7 +193,7 @@ pub fn view(model: &Model) -> impl View<Msg> {
                         &model.catalog_selector_model,
                         &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
                     )
-                    .map_message(Msg::CatalogSelectorMsg),
+                    .map_msg(Msg::CatalogSelectorMsg),
                     // type selector
                     type_selector::view(
                         &model.type_selector_model,
@@ -203,7 +203,7 @@ pub fn view(model: &Model) -> impl View<Msg> {
                             &model.shared.core.ctx.content.addons
                         )
                     )
-                    .map_message(Msg::TypeSelectorMsg),
+                    .map_msg(Msg::TypeSelectorMsg),
                     // search input
                     view_search_input(&model.search_query),
                 ],

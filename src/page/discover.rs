@@ -217,19 +217,19 @@ pub fn view(model: &Model) -> impl View<Msg> {
                     &model.type_selector_model,
                     &type_selector::groups(&catalog.types)
                 )
-                .map_message(Msg::TypeSelectorMsg),
+                .map_msg(Msg::TypeSelectorMsg),
                 // catalog selector
                 catalog_selector::view(
                     &model.catalog_selector_model,
                     &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
                 )
-                .map_message(Msg::CatalogSelectorMsg),
+                .map_msg(Msg::CatalogSelectorMsg),
                 // extra prop selector
                 extra_prop_selector::view(
                     &model.extra_prop_selector_model,
                     &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
                 )
-                .map_message(Msg::ExtraPropSelectorMsg),
+                .map_msg(Msg::ExtraPropSelectorMsg),
                 // reset button
                 view_reset_button(),
             ],

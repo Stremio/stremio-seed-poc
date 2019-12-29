@@ -233,10 +233,10 @@ fn view(model: &Model) -> impl View<Msg> {
                 Model::Board(_) => page::board::view().els(),
                 Model::Discover(model) => page::discover::view(model)
                     .els()
-                    .map_message(Msg::DiscoverMsg),
+                    .map_msg(Msg::DiscoverMsg),
                 Model::Detail(_) => page::detail::view().els(),
                 Model::Player(_) => page::player::view().els(),
-                Model::Addons(model) => page::addons::view(model).els().map_message(Msg::AddonsMsg),
+                Model::Addons(model) => page::addons::view(model).els().map_msg(Msg::AddonsMsg),
                 Model::NotFound(_) => page::not_found::view().els(),
             }
         ]

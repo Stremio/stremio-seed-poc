@@ -49,7 +49,7 @@ pub fn update<T: 'static + Debug, ParentMsg>(
 // ------ ------
 
 pub fn view<T: Clone>(model: &Model, groups: &[multi_select::Group<T>]) -> Node<Msg> {
-    multi_select::view(&model.0, groups).map_message(Msg)
+    multi_select::view(&model.0, groups).map_msg(Msg)
 }
 
 // ------ ------
