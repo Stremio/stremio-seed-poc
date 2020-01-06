@@ -1,4 +1,8 @@
-#![allow(clippy::needless_pass_by_value, clippy::non_ascii_literal)]
+#![allow(
+    clippy::needless_pass_by_value,
+    clippy::non_ascii_literal,
+    clippy::must_use_candidate
+)]
 
 mod entity;
 mod helper;
@@ -6,7 +10,8 @@ mod page;
 mod route;
 
 use env_web::Env;
-use futures::future::Future;
+use futures::compat::Future01CompatExt;
+use futures::FutureExt;
 use helper::take;
 use route::Route;
 use seed::{prelude::*, *};
@@ -137,9 +142,11 @@ fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
                 }
 
                 for cmd in fx.effects {
-                    let cmd = cmd
-                        .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
-                        .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)));
+                    let cmd = cmd.compat().map(|result| {
+                        result
+                            .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
+                            .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)))
+                    });
                     orders.perform_g_cmd(cmd);
                 }
             }
@@ -231,9 +238,8 @@ fn view(model: &Model) -> impl View<Msg> {
             match &model {
                 Model::Redirect => page::blank::view().els(),
                 Model::Board(_) => page::board::view().els(),
-                Model::Discover(model) => page::discover::view(model)
-                    .els()
-                    .map_msg(Msg::DiscoverMsg),
+                Model::Discover(model) =>
+                    page::discover::view(model).els().map_msg(Msg::DiscoverMsg),
                 Model::Detail(_) => page::detail::view().els(),
                 Model::Player(_) => page::player::view().els(),
                 Model::Addons(model) => page::addons::view(model).els().map_msg(Msg::AddonsMsg),

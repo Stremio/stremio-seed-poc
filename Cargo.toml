@@ -14,15 +14,15 @@ wasm-bindgen-test = "0.2.50" # NOTE: keep in sync with `wasm-bindgen` version
 [dependencies]
 serde = { version = "^1.0.102", features = ["derive"] }
 wasm-bindgen = { version = "0.2.50", features = ["serde-serialize"]  }
-futures = "0.1"
+futures = { version = "0.3", features = [ "compat" ] }
 serde_json = "1.0.41"
 wasm-bindgen-futures = "0.3"
 js-sys = "0.3"
 enclose = "1.1.8"
 itertools = "0.8.1"
 
-#seed = "0.5.0"
-seed = { git = "ssh://git@github.com/MartinKavik/seed.git" }
+seed = "0.5.1"
+#seed = { git = "ssh://git@github.com/MartinKavik/seed.git" }
 #seed = { path = "../seed" }
 
 stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
