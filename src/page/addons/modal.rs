@@ -1,4 +1,3 @@
-use enclose::enc;
 use seed::{prelude::*, *};
 
 // @TODO DRY + add logic + push to url
@@ -12,21 +11,14 @@ pub enum Modal {
     UninstallAddon,
 }
 
-pub fn view<Ms: Clone>(modal: &Modal, close_msg: Ms, noop_msg: Ms) -> Node<Ms> {
+pub fn view<Ms: 'static>(modal: &Modal, close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["modals-container"],
         div![
             C!["modal-container",],
-            ev(
-                Ev::Click,
-                enc!((close_msg) move |event| {
-                    if event.target() == event.current_target() {
-                        close_msg
-                    } else {
-                        noop_msg
-                    }
-                })
-            ),
+            ev(Ev::Click, move |event| {
+                    IF!(event.target() == event.current_target() => close_msg())
+            }),
             match modal {
                 Modal::AddAddon => view_add_addon_modal(close_msg),
                 Modal::ShareAddon => view_share_addon_modal(close_msg),
@@ -37,7 +29,7 @@ pub fn view<Ms: Clone>(modal: &Modal, close_msg: Ms, noop_msg: Ms) -> Node<Ms> {
 }
 
 #[allow(clippy::too_many_lines)]
-fn view_install_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
+fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C![
             "addon-prompt-container",
@@ -52,7 +44,7 @@ fn view_install_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
-            ev(Ev::Click, |_| close_msg.clone()),
+            ev(Ev::Click, |_| close_msg()),
             svg![
                 C!["icon",],
                 attrs! {
@@ -192,7 +184,7 @@ fn view_install_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
                     At::TabIndex => 0,
                     At::Title => "Cancel"
                 },
-                ev(Ev::Click, |_| close_msg),
+                ev(Ev::Click, move |_| close_msg()),
                 "Cancel",
             ],
             div![
@@ -211,7 +203,7 @@ fn view_install_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
 }
 
 #[allow(clippy::too_many_lines)]
-fn view_share_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
+fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["share-prompt-container", "modal-dialog-container"],
         div![
@@ -220,7 +212,7 @@ fn view_share_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
-            ev(Ev::Click, |_| close_msg),
+            ev(Ev::Click, move |_| close_msg()),
             svg![
                 C!["icon",],
                 attrs! {
@@ -318,7 +310,7 @@ fn view_share_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
     ]
 }
 
-fn view_add_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
+fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["add-addon-prompt-container", "modal-dialog-container"],
         div![
@@ -327,7 +319,7 @@ fn view_add_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
-            ev(Ev::Click, |_| close_msg.clone()),
+            ev(Ev::Click, move |_| close_msg()),
             svg![
                 C!["icon",],
                 attrs! {
@@ -366,7 +358,7 @@ fn view_add_addon_modal<Ms: Clone>(close_msg: Ms) -> Node<Ms> {
                     At::TabIndex => 0,
                     At::Title => "Cancel",
                 },
-                ev(Ev::Click, |_| close_msg),
+                ev(Ev::Click, move |_| close_msg()),
                 "Cancel",
             ],
             div![

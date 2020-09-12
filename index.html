@@ -12,7 +12,9 @@
     </head>
     <body>
         <section id="app"></section>
-        <script src='text.min.js'></script>
-        <script type="module"> import init from '/pkg/package.js'; init('/pkg/package_bg.wasm'); </script>
+        <script type="module">
+            import init from '/pkg/package.js';
+            init('/pkg/package_bg.wasm');
+        </script>
     </body>
 </html>
