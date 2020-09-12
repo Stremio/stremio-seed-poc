@@ -27,13 +27,6 @@ const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
 
 // ------ ------
-// Notifications
-// ------ ------
-
-#[derive(Clone)]
-struct UpdateCoreModel(Rc<CoreMsg>);
-
-// ------ ------
 //     Init
 // ------ ------
 
@@ -57,6 +50,9 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         addons_model: None,
     }
 }
+
+#[derive(Clone)]
+struct UpdateCoreModel(Rc<CoreMsg>);
 
 // ------ ------
 //     Model
