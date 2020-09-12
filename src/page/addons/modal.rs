@@ -17,7 +17,7 @@ pub fn view<Ms: 'static>(modal: &Modal, close_msg: impl Fn() -> Ms + Copy + 'sta
         div![
             C!["modal-container",],
             ev(Ev::Click, move |event| {
-                    IF!(event.target() == event.current_target() => close_msg())
+                IF!(event.target() == event.current_target() => close_msg())
             }),
             match modal {
                 Modal::AddAddon => view_add_addon_modal(close_msg),

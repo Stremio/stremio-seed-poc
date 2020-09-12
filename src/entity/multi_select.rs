@@ -255,14 +255,11 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
         attrs! {
             At::Title => item.label,
         },
-        ev(
-            Ev::Click,
-            {
-                let group_id = group_id.to_owned();
-                let item_id = item.id.clone();
-                move |_| Msg::ItemClicked(group_id, item_id)
-            }
-        ),
+        ev(Ev::Click, {
+            let group_id = group_id.to_owned();
+            let item_id = item.id.clone();
+            move |_| Msg::ItemClicked(group_id, item_id)
+        }),
         div![C!["label"], &item.label,],
         svg![
             C!["icon"],

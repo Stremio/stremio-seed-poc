@@ -1,7 +1,7 @@
-use crate::{entity::multi_select, UpdateCoreModel, Urls as RootUrls, Context};
+use crate::{entity::multi_select, Context, UpdateCoreModel, Urls as RootUrls};
+use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use enclose::enc;
 use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Internal, Loadable, Msg as CoreMsg, TypeEntry,
 };
@@ -35,14 +35,12 @@ pub fn init(
 ) {
     load_catalog(resource_request, orders);
 
-    model.get_or_insert_with(|| {
-        Model {
-            core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
-            type_selector_model: type_selector::init(),
-            catalog_selector_model: catalog_selector::init(),
-            extra_prop_selector_model: extra_prop_selector::init(),
-            selected_meta_preview_id: None,
-        }
+    model.get_or_insert_with(|| Model {
+        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
+        type_selector_model: type_selector::init(),
+        catalog_selector_model: catalog_selector::init(),
+        extra_prop_selector_model: extra_prop_selector::init(),
+        selected_meta_preview_id: None,
     });
 }
 
@@ -60,13 +58,12 @@ pub fn default_resource_request() -> ResourceRequest {
     )
 }
 
-
 // ------ ------
 //     Model
 // ------ ------
 
 pub struct Model {
-    core_msg_sub_handle: SubHandle,
+    _core_msg_sub_handle: SubHandle,
     selected_meta_preview_id: Option<MetaPreviewId>,
     type_selector_model: type_selector::Model,
     catalog_selector_model: catalog_selector::Model,
@@ -109,9 +106,9 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 let id = meta_preview.id;
                 let type_name = meta_preview.type_name;
 
-                orders.request_url(RootUrls::new(&context.root_base_url).detail(
-                    type_name, id, video_id
-                ));
+                orders.request_url(
+                    RootUrls::new(&context.root_base_url).detail(type_name, id, video_id),
+                );
             } else {
                 model.selected_meta_preview_id = Some(meta_preview.id);
             }
@@ -132,7 +129,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let res_req = type_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(res_req)));
+            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(&res_req)));
         }
 
         // ------ CatalogSelector  ------
@@ -150,7 +147,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let res_req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(res_req)));
+            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(&res_req)));
         }
 
         // ------ ExtraPropSelector  ------
@@ -170,7 +167,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             if let Some(res_req) =
                 extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
             {
-                orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(res_req)));
+                orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(&res_req)));
             }
         }
     }
@@ -243,10 +240,9 @@ fn view_content(
     selected_meta_preview_id: Option<&MetaPreviewId>,
 ) -> Node<Msg> {
     match content {
-        Loadable::Err(catalog_error) => div![
-            C!["message-container",],
-            format!("{:#?}", catalog_error)
-        ],
+        Loadable::Err(catalog_error) => {
+            div![C!["message-container",], format!("{:#?}", catalog_error)]
+        }
         Loadable::Loading => div![C!["message-container",], "Loading"],
         Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
         Loadable::Ready(meta_previews) => div![
@@ -286,13 +282,13 @@ fn view_meta_preview(
             At::TabIndex => 0,
             At::Title => &meta_preview.name,
         },
-        ev(Ev::Click, enc!((meta_preview) move |_| Msg::MetaPreviewClicked(meta_preview))),
+        ev(
+            Ev::Click,
+            enc!((meta_preview) move |_| Msg::MetaPreviewClicked(meta_preview))
+        ),
         div![
             C!["poster-container",],
-            div![
-                C!["poster-image-layer",],
-                view_poster(&meta_preview.poster),
-            ],
+            div![C!["poster-image-layer",], view_poster(&meta_preview.poster),],
         ],
         div![
             C!["title-bar-container",],
