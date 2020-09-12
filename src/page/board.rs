@@ -1,4 +1,3 @@
-use crate::route::Route;
 use seed::{prelude::*, *};
 
 // ------ ------

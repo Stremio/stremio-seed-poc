@@ -1,4 +1,3 @@
-use crate::{GMsg, SharedModel};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
@@ -8,19 +7,7 @@ use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
 // ------ ------
 
 pub struct Model {
-    shared: SharedModel,
-}
-
-impl Model {
-    pub fn shared(&mut self) -> &mut SharedModel {
-        &mut self.shared
-    }
-}
-
-impl From<Model> for SharedModel {
-    fn from(model: Model) -> Self {
-        model.shared
-    }
+    // @TODO
 }
 
 // ------ ------
@@ -28,23 +15,23 @@ impl From<Model> for SharedModel {
 // ------ ------
 
 pub fn init(
-    shared: SharedModel,
-    type_name: String,
-    id: String,
-    video_id: Option<String>,
+    model: Option<&mut Model>,
+    type_name: &str,
+    id: &str,
+    video_id: Option<&str>,
     orders: &mut impl Orders<Msg>,
 ) -> Model {
     // @TODO refactor and integrate
     // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
     orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::Detail {
-            type_name,
-            id,
-            video_id,
+            type_name: type_name.to_owned(),
+            id: id.to_owned(),
+            video_id: video_id.map(ToOwned::to_owned),
         },
     )))));
 
-    Model { shared }
+    Model {}
 }
 
 // ------ ------

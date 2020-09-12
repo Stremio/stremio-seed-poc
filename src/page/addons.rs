@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, route::Route, GMsg, SharedModel};
+use crate::entity::multi_select;
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -32,23 +32,10 @@ pub fn default_resource_request() -> ResourceRequest {
 // ------ ------
 
 pub struct Model {
-    shared: SharedModel,
     catalog_selector_model: catalog_selector::Model,
     type_selector_model: type_selector::Model,
     search_query: String,
     modal: Option<Modal>,
-}
-
-impl Model {
-    pub fn shared(&mut self) -> &mut SharedModel {
-        &mut self.shared
-    }
-}
-
-impl From<Model> for SharedModel {
-    fn from(model: Model) -> Self {
-        model.shared
-    }
 }
 
 // ------ ------
@@ -56,13 +43,11 @@ impl From<Model> for SharedModel {
 // ------ ------
 
 pub fn init(
-    shared: SharedModel,
     resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg>,
 ) -> Model {
     load_catalog(resource_request, orders);
     Model {
-        shared,
         catalog_selector_model: catalog_selector::init(),
         type_selector_model: type_selector::init(),
         search_query: String::new(),
@@ -71,9 +56,9 @@ pub fn init(
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
+    orders.notify(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
-    )))));
+    ))));
 }
 
 // ------ ------
