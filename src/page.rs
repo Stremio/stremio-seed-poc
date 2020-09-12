@@ -1,5 +1,4 @@
 pub mod addons;
-pub mod blank;
 pub mod board;
 pub mod detail;
 pub mod discover;

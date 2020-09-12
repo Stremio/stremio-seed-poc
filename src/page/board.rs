@@ -1,10 +1,11 @@
 use seed::{prelude::*, *};
+use crate::Urls as RootUrls;
 
 // ------ ------
 //     View
 // ------ ------
 
-pub fn view<Ms: 'static>() -> Node<Ms> {
+pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
     div![
         h1![
             style! {
@@ -17,7 +18,7 @@ pub fn view<Ms: 'static>() -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => Route::Discover(None).to_href()
+                At::Href => RootUrls::new(root_base_url).discover(None)
             },
             "Go to Discover ▶"
         ],
@@ -26,7 +27,7 @@ pub fn view<Ms: 'static>() -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => Route::Player.to_href()
+                At::Href => RootUrls::new(root_base_url).player()
             },
             "Go to Player ▶"
         ],
@@ -35,7 +36,7 @@ pub fn view<Ms: 'static>() -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => Route::Addons(None).to_href()
+                At::Href => RootUrls::new(root_base_url).addons(None)
             },
             "Go to Addons ▶"
         ]

@@ -263,7 +263,7 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
                 move |_| Msg::ItemClicked(group_id, item_id)
             }
         ),
-        div![C!["label"], item.label,],
+        div![C!["label"], &item.label,],
         svg![
             C!["icon"],
             attrs! {

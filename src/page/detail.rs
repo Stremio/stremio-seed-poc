@@ -1,14 +1,7 @@
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
-
-// ------ ------
-//     Model
-// ------ ------
-
-pub struct Model {
-    // @TODO
-}
+use crate::UpdateCoreModel;
 
 // ------ ------
 //     Init
@@ -23,7 +16,7 @@ pub fn init(
 ) -> Model {
     // @TODO refactor and integrate
     // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
-    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
+    orders.notify(UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::Detail {
             type_name: type_name.to_owned(),
             id: id.to_owned(),
@@ -32,6 +25,14 @@ pub fn init(
     )))));
 
     Model {}
+}
+
+// ------ ------
+//     Model
+// ------ ------
+
+pub struct Model {
+    // @TODO
 }
 
 // ------ ------

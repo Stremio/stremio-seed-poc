@@ -1,4 +1,4 @@
-use crate::entity::multi_select;
+use crate::{entity::multi_select, UpdateCoreModel, Urls as RootUrls, Context};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use enclose::enc;
@@ -24,6 +24,35 @@ const DEFAULT_TYPE: &str = "movie";
 const BASE: &str = "https://v3-cinemeta.strem.io/manifest.json";
 const RESOURCE: &str = "catalog";
 
+// ------ ------
+//     Init
+// ------ ------
+
+pub fn init(
+    model: &mut Option<Model>,
+    resource_request: Option<ResourceRequest>,
+    orders: &mut impl Orders<Msg>,
+) {
+    load_catalog(resource_request, orders);
+
+    model.get_or_insert_with(|| {
+        Model {
+            core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
+            type_selector_model: type_selector::init(),
+            catalog_selector_model: catalog_selector::init(),
+            extra_prop_selector_model: extra_prop_selector::init(),
+            selected_meta_preview_id: None,
+        }
+    });
+}
+
+fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
+    // @TODO try to remove `Clone` requirement from Seed or add it into stremio-core? Implement intos, from etc.?
+    orders.notify(UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
+    )))));
+}
+
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest::new(
         BASE,
@@ -31,61 +60,17 @@ pub fn default_resource_request() -> ResourceRequest {
     )
 }
 
+
 // ------ ------
 //     Model
 // ------ ------
 
 pub struct Model {
+    core_msg_sub_handle: SubHandle,
     selected_meta_preview_id: Option<MetaPreviewId>,
     type_selector_model: type_selector::Model,
     catalog_selector_model: catalog_selector::Model,
     extra_prop_selector_model: extra_prop_selector::Model,
-}
-
-// ------ ------
-//     Init
-// ------ ------
-
-pub fn init(
-    resource_request: Option<ResourceRequest>,
-    orders: &mut impl Orders<Msg>,
-) -> Model {
-    load_catalog(resource_request, orders);
-    Model {
-        type_selector_model: type_selector::init(),
-        catalog_selector_model: catalog_selector::init(),
-        extra_prop_selector_model: extra_prop_selector::init(),
-        selected_meta_preview_id: None,
-    }
-}
-
-fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    // @TODO try to remove `Clone` requirement from Seed or add it into stremio-core? Implement intos, from etc.?
-    orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
-    )))));
-}
-
-// ------ ------
-//     Sink
-// ------ ------
-
-pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) -> Option<GMsg> {
-    match g_msg {
-        GMsg::GoTo(Route::Discover(resource_request)) => {
-            load_catalog(resource_request, orders);
-            return None;
-        }
-        GMsg::Core(ref core_msg) => {
-            if let CoreMsg::Internal(Internal::AddonResponse(_, result)) = core_msg.as_ref() {
-                if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
-                    model.selected_meta_preview_id = metas.first().map(|meta| meta.id.clone());
-                }
-            }
-        }
-        _ => (),
-    }
-    Some(g_msg)
 }
 
 // ------ ------
@@ -95,6 +80,7 @@ pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) -> Op
 // @TODO box large fields?
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
+    CoreMsg(Rc<CoreMsg>),
     MetaPreviewClicked(MetaPreview),
     TypeSelectorMsg(type_selector::Msg),
     TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
@@ -104,22 +90,28 @@ pub enum Msg {
     ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    let catalog = &model.shared.core.catalog;
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
+    let catalog = &context.core_model.catalog;
 
     match msg {
+        Msg::CoreMsg(core_msg) => {
+            if let CoreMsg::Internal(Internal::AddonResponse(_, result)) = core_msg.as_ref() {
+                if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
+                    model.selected_meta_preview_id = metas.first().map(|meta| meta.id.clone());
+                }
+            }
+        }
         Msg::MetaPreviewClicked(meta_preview) => {
             if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
-                let detail_route = Route::Detail {
-                    video_id: if meta_preview.type_name == "movie" {
-                        Some(meta_preview.id.clone())
-                    } else {
-                        None
-                    },
-                    type_name: meta_preview.type_name,
-                    id: meta_preview.id,
-                };
-                orders.send_g_msg(GMsg::GoTo(detail_route));
+                let video_id = IF!(meta_preview.type_name == "movie" => {
+                    meta_preview.id.clone()
+                });
+                let id = meta_preview.id;
+                let type_name = meta_preview.type_name;
+
+                orders.request_url(RootUrls::new(&context.root_base_url).detail(
+                    type_name, id, video_id
+                ));
             } else {
                 model.selected_meta_preview_id = Some(meta_preview.id);
             }
@@ -139,8 +131,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
-            let req = type_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req))));
+            let res_req = type_selector::resource_request(groups_with_selected_items);
+            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(res_req)));
         }
 
         // ------ CatalogSelector  ------
@@ -157,8 +149,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-            let req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req))));
+            let res_req = catalog_selector::resource_request(groups_with_selected_items);
+            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(res_req)));
         }
 
         // ------ ExtraPropSelector  ------
@@ -175,10 +167,10 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
         Msg::ExtraPropSelectorChanged(groups_with_selected_items) => {
-            if let Some(req) =
+            if let Some(res_req) =
                 extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
             {
-                orders.send_g_msg(GMsg::GoTo(Route::Discover(Some(req))));
+                orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(res_req)));
             }
         }
     }
@@ -188,8 +180,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-pub fn view(model: &Model) -> Node<Msg> {
-    let catalog = &model.shared.core.catalog;
+pub fn view(model: &Model, context: &Context) -> Node<Msg> {
+    let catalog = &context.core_model.catalog;
 
     div![
         C!["discover-container"],
@@ -216,12 +208,12 @@ pub fn view(model: &Model) -> Node<Msg> {
                 )
                 .map_msg(Msg::ExtraPropSelectorMsg),
                 // reset button
-                view_reset_button(),
+                view_reset_button(&context.root_base_url),
             ],
             div![
                 C!["catalog-content-container"],
                 view_content(
-                    &model.shared.core.catalog.content,
+                    &context.core_model.catalog.content,
                     model.selected_meta_preview_id.as_ref()
                 ),
             ]
@@ -229,7 +221,7 @@ pub fn view(model: &Model) -> Node<Msg> {
     ]
 }
 
-fn view_reset_button() -> Node<Msg> {
+fn view_reset_button(root_base_url: &Url) -> Node<Msg> {
     a![
         style! {
             St::Width => px(100),
@@ -240,7 +232,7 @@ fn view_reset_button() -> Node<Msg> {
             St::Cursor => "pointer",
         },
         attrs! {
-            At::Href => Route::Discover(None).to_href()
+            At::Href => RootUrls::new(root_base_url).discover(None)
         },
         "Reset",
     ]
