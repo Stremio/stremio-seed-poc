@@ -44,7 +44,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                 At::TabIndex => 0,
                 At::Title => "Close",
             },
-            ev(Ev::Click, |_| close_msg()),
+            ev(Ev::Click, move |_| close_msg()),
             svg![
                 C!["icon",],
                 attrs! {

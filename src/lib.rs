@@ -5,15 +5,11 @@
 )]
 
 mod entity;
-mod helper;
 mod page;
 
 use env_web::Env;
 use futures::compat::Future01CompatExt;
-use futures::FutureExt;
-use helper::take;
 use seed::{prelude::*, *};
-use std::convert::TryFrom;
 use std::rc::Rc;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -31,19 +27,29 @@ const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
 
 // ------ ------
+// Notifications
+// ------ ------
+
+#[derive(Clone)]
+struct UpdateCoreModel(Rc<CoreMsg>);
+
+// ------ ------
 //     Init
 // ------ ------
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    let base_url = url.to_hash_base_url();
+    let root_base_url = url.to_hash_base_url();
     orders
         .subscribe(Msg::UrlChanged)
+        .subscribe(|UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
         .subscribe(Msg::CoreMsg)
         .notify(subs::UrlChanged(url));
 
     Model {
-        core_model: CoreModel::default(),
-        base_url,
+        context: Context {
+            core_model: CoreModel::default(),
+            root_base_url,
+        },
         page_id: None,
         // ---- page models ----
         detail_model: None,
@@ -59,13 +65,19 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
 // @TODO box large fields?
 #[allow(clippy::large_enum_variant)]
 pub struct Model {
-    core_model: CoreModel,
-    base_url: Url,
+    context: Context,
     page_id: Option<PageId>,
     // ---- page models ----
     detail_model: Option<page::detail::Model>,
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
+}
+
+// ------ Context ------
+
+pub struct Context {
+    core_model: CoreModel,
+    root_base_url: Url,
 }
 
 // ------ PageId ------
@@ -99,13 +111,15 @@ impl<'a> Urls<'a> {
         self.base_url().add_hash_path_part(BOARD)
     }
     pub fn discover(self, res_req: Option<ResourceRequest>) -> Url {
-        let mut url = self
+        let url = self
             .base_url()
             .add_hash_path_part(DISCOVER);
 
-        for path_part in resource_request_to_path_parts(&res_req) {
-            url.add_hash_path_part(path_part);
-        }
+        let url = resource_request_to_path_parts(&res_req)
+            .into_iter()
+            .fold(url, |url, path_part| {
+                url.add_hash_path_part(path_part)
+            });
         url
     }
     pub fn detail(self, type_name: String, id: String, video_id: Option<String>,) -> Url {
@@ -124,9 +138,11 @@ impl<'a> Urls<'a> {
             .base_url()
             .add_hash_path_part(ADDONS);
 
-        for path_part in resource_request_to_path_parts(&res_req) {
-            url.add_hash_path_part(path_part);
-        }
+        let url = resource_request_to_path_parts(&res_req)
+            .into_iter()
+            .fold(url, |url, path_part| {
+                url.add_hash_path_part(path_part)
+            });
         url
     }
 }
@@ -153,6 +169,7 @@ fn resource_request_to_path_parts(req: &Option<ResourceRequest>) -> Vec<String> 
 enum Msg {
     UrlChanged(subs::UrlChanged),
     CoreMsg(Rc<CoreMsg>),
+    CoreCmdFinished(Rc<CoreMsg>),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
     AddonsMsg(page::addons::Msg),
@@ -160,11 +177,12 @@ enum Msg {
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::UrlChanged(subs::UrlChanged(mut url)) => {
+        Msg::UrlChanged(subs::UrlChanged(url)) => {
             model.page_id = Some(init_page(url, model, orders));
         },
         Msg::CoreMsg(core_msg) => {
             let fx = model
+                .context
                 .core_model
                 .update(&core_msg);
 
@@ -176,7 +194,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 // @TODO ?
                 orders.perform_cmd(async move {
                     match cmd.compat().await {
-                        Ok(core_msg) | Err(core_msg) => Msg::CoreMsg(Rc::new(core_msg))
+                        Ok(core_msg) | Err(core_msg) => Msg::CoreCmdFinished(Rc::new(core_msg))
                     }
                 });
 
@@ -190,11 +208,15 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 // GMsg::CoreError(core_error) => log!("core_error", core_error),
             }
         },
+        Msg::CoreCmdFinished(core_msg) => {
+            orders.notify(core_msg);
+        },
         Msg::DiscoverMsg(page_msg) => {
             if let Some(page_model) = &mut model.discover_model{
                 page::discover::update(
                     page_msg,
                     page_model,
+                    &mut model.context,
                     &mut orders.proxy(Msg::DiscoverMsg),
                 );
             }
@@ -206,17 +228,22 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::AddonsMsg(page_msg) => {
             if let Some(page_model) = &mut model.addons_model {
-                page::addons::update(page_msg, page_model, &mut orders.proxy(Msg::AddonsMsg));
+                page::addons::update(
+                    page_msg, 
+                    page_model, 
+                    &mut model.context, 
+                    &mut orders.proxy(Msg::AddonsMsg)
+                );
             }
         }
     }
 }
 
-fn init_page(url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> PageId {
+fn init_page(mut url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> PageId {
     match url.remaining_hash_path_parts().as_slice() {
         [] | [BOARD] => PageId::Board,
         [DISCOVER] => {
-            page::discover::init(None, &mut orders.proxy(Msg::DiscoverMsg));
+            page::discover::init(&mut model.discover_model, None, &mut orders.proxy(Msg::DiscoverMsg));
             PageId::Discover
         }
         [DISCOVER, encoded_base, encoded_path] => {
@@ -227,7 +254,7 @@ fn init_page(url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> Page
                     return PageId::NotFound;
                 }
             };
-            page::discover::init(Some(resource_request), &mut orders.proxy(Msg::DiscoverMsg));
+            page::discover::init(&mut model.discover_model, Some(resource_request), &mut orders.proxy(Msg::DiscoverMsg));
             PageId::Discover
         }
         [DETAIL, type_name, id, rest @ ..] => {
@@ -243,7 +270,7 @@ fn init_page(url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> Page
         },
         [PLAYER] => PageId::Player,
         [ADDONS] => {
-            page::addons::init(None, &mut orders.proxy(Msg::AddonsMsg));
+            page::addons::init(&mut model.addons_model, None, &mut orders.proxy(Msg::AddonsMsg));
             PageId::Addons
         }
         [ADDONS, encoded_base, encoded_path] => {
@@ -254,7 +281,7 @@ fn init_page(url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> Page
                     return PageId::NotFound;
                 }
             };
-            page::addons::init(Some(resource_request), &mut orders.proxy(Msg::AddonsMsg));
+            page::addons::init(&mut model.addons_model, Some(resource_request), &mut orders.proxy(Msg::AddonsMsg));
             PageId::Addons
         }
         _ => PageId::NotFound,
@@ -302,19 +329,19 @@ fn view(model: &Model) -> Node<Msg> {
             C!["route-container",],
             model.page_id.map(|page_id| {
                 match page_id {
-                    PageId::Board => page::board::view().into_nodes(),
+                    PageId::Board => page::board::view(&model.context.root_base_url).into_nodes(),
                     PageId::Detail => page::detail::view().into_nodes(),
                     PageId::Discover => {
-                        if let Some(page_model) = &mut model.discover_model {
-                            page::discover::view(page_model).map_msg(Msg::DiscoverMsg).into_nodes()
+                        if let Some(page_model) = &model.discover_model {
+                            page::discover::view(page_model, &model.context).map_msg(Msg::DiscoverMsg).into_nodes()
                         } else {
                             vec![]
                         }
                     },
                     PageId::Player => page::player::view().into_nodes(),
                     PageId::Addons => {
-                        if let Some(page_model) = &mut model.addons_model {
-                            page::addons::view(page_model).map_msg(Msg::AddonsMsg)
+                        if let Some(page_model) = &model.addons_model {
+                            page::addons::view(page_model, &model.context).map_msg(Msg::AddonsMsg)
                         } else {
                             vec![]
                         }

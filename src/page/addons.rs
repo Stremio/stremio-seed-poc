@@ -1,4 +1,4 @@
-use crate::entity::multi_select;
+use crate::{entity::multi_select, Context, Urls as RootUrls};
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -20,6 +20,34 @@ const TYPE_ALL: &str = "all";
 const BASE: &str = "https://v3-cinemeta.strem.io/manifest.json";
 const RESOURCE: &str = "addon_catalog";
 
+// ------ ------
+//     Init
+// ------ ------
+
+pub fn init(
+    model: &mut Option<Model>,
+    resource_request: Option<ResourceRequest>,
+    orders: &mut impl Orders<Msg>,
+) {
+    load_catalog(resource_request, orders);
+
+    model.get_or_insert_with(|| {
+        Model {
+            core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
+            catalog_selector_model: catalog_selector::init(),
+            type_selector_model: type_selector::init(),
+            search_query: String::new(),
+            modal: None,
+        }
+    });
+}
+
+fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
+    orders.notify(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
+    ))));
+}
+
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest::new(
         BASE,
@@ -32,54 +60,11 @@ pub fn default_resource_request() -> ResourceRequest {
 // ------ ------
 
 pub struct Model {
+    core_msg_sub_handle: SubHandle,
     catalog_selector_model: catalog_selector::Model,
     type_selector_model: type_selector::Model,
     search_query: String,
     modal: Option<Modal>,
-}
-
-// ------ ------
-//     Init
-// ------ ------
-
-pub fn init(
-    resource_request: Option<ResourceRequest>,
-    orders: &mut impl Orders<Msg>,
-) -> Model {
-    load_catalog(resource_request, orders);
-    Model {
-        catalog_selector_model: catalog_selector::init(),
-        type_selector_model: type_selector::init(),
-        search_query: String::new(),
-        modal: None,
-    }
-}
-
-fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    orders.notify(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
-    ))));
-}
-
-// ------ ------
-//     Sink
-// ------ ------
-
-pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) -> Option<GMsg> {
-    match g_msg {
-        GMsg::GoTo(Route::Addons(resource_request)) => {
-            load_catalog(resource_request, orders);
-            return None;
-        }
-        GMsg::Core(ref core_msg) => {
-            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(_))) = core_msg.as_ref()
-            {
-                model.search_query = String::new();
-            }
-        }
-        _ => (),
-    }
-    Some(g_msg)
 }
 
 // ------ ------
@@ -88,6 +73,7 @@ pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) -> Op
 
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
+    CoreMsg(Rc<CoreMsg>),
     CatalogSelectorMsg(catalog_selector::Msg),
     CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
     TypeSelectorMsg(type_selector::Msg),
@@ -100,10 +86,16 @@ pub enum Msg {
     CloseModal,
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    let catalog = &model.shared.core.addon_catalog;
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
+    let catalog = &context.core_model.addon_catalog;
 
     match msg {
+        Msg::CoreMsg(core_msg) => {
+            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(_))) = core_msg.as_ref()
+            {
+                model.search_query = String::new();
+            }
+        }
         // ------ CatalogSelector  ------
         Msg::CatalogSelectorMsg(msg) => {
             let msg_to_parent = catalog_selector::update(
@@ -118,8 +110,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-            let req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req))));
+            let res_req = catalog_selector::resource_request(groups_with_selected_items);
+            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(res_req)));
         }
 
         // ------ TypeSelector  ------
@@ -131,7 +123,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 type_selector::groups(
                     &catalog.catalogs,
                     &catalog.selected,
-                    &model.shared.core.ctx.content.addons,
+                    &context.core_model.ctx.content.addons,
                 ),
                 Msg::TypeSelectorChanged,
             );
@@ -140,8 +132,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
-            let req = type_selector::resource_request(groups_with_selected_items);
-            orders.send_g_msg(GMsg::GoTo(Route::Addons(Some(req))));
+            let res_req = type_selector::resource_request(groups_with_selected_items);
+            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(res_req)));
         }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
@@ -157,8 +149,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-pub fn view(model: &Model) -> Vec<Node<Msg>> {
-    let catalog = &model.shared.core.addon_catalog;
+pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
+    let catalog = &context.core_model.addon_catalog;
 
     vec![
         div![
@@ -181,7 +173,7 @@ pub fn view(model: &Model) -> Vec<Node<Msg>> {
                         &type_selector::groups(
                             &catalog.catalogs,
                             &catalog.selected,
-                            &model.shared.core.ctx.content.addons
+                            &context.core_model.ctx.content.addons
                         )
                     )
                     .map_msg(Msg::TypeSelectorMsg),
@@ -191,9 +183,9 @@ pub fn view(model: &Model) -> Vec<Node<Msg>> {
                 div![
                     C!["addons-list-container"],
                     view_content(
-                        &model.shared.core.addon_catalog.content,
+                        &context.core_model.addon_catalog.content,
                         &model.search_query,
-                        &model.shared.core.ctx.content.addons,
+                        &context.core_model.ctx.content.addons,
                         &catalog.selected
                     ),
                 ]
@@ -400,7 +392,7 @@ fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
             attrs! {
                 At::Title => addon.manifest.name,
             },
-            addon.manifest.name,
+            &addon.manifest.name,
         ],
         div![
             C!["version-container"],
