@@ -15,7 +15,7 @@ dependencies = ["fmt_check", "clippy", "test_h_firefox"]
 
 [tasks.bundle]
 description = "Bundle the app into `/dist` folder"
-dependencies = ["less_compile", "build_release", "wasm_opt"]
+dependencies = ["less_compile", "build_release"]
 command = "cargo"
 args = ["play", "scripts/bundle.rs"]
 
@@ -98,15 +98,6 @@ args = ["--port", "${PORT}", "dist"]
 description = "Combine the build and serve tasks"
 workspace = false
 dependencies = ["build", "serve"]
-
-[tasks.wasm_opt]
-description = "Optimize `package_bg.wasm` by `wasm_opt`"
-script_runner = "@shell"
-script = [
-'''
-npm run wasm:opt
-'''
-]
 
 # ---- TEST ----
 

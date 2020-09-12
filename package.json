@@ -1,8 +1,7 @@
 {
   "scripts": {
     "less:compile": "lessc --glob less/App/styles.less styles.css",
-    "less:watch": "npm-watch",
-    "wasm:opt": "wasm-opt -Os pkg/package_bg.wasm -o pkg/package_bg.wasm"
+    "less:watch": "npm-watch"
   },
   "watch": {
     "less:compile": {
@@ -18,7 +17,6 @@
   "devDependencies": {
     "less": "^3.10.3",
     "less-plugin-glob": "^3.0.0",
-    "npm-watch": "^0.6.0",
-    "wasm-opt": "^1.1.0"
+    "npm-watch": "^0.6.0"
   }
 }
