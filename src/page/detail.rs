@@ -1,19 +1,19 @@
+use crate::UpdateCoreModel;
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
-use crate::UpdateCoreModel;
 
 // ------ ------
 //     Init
 // ------ ------
 
 pub fn init(
-    model: Option<&mut Model>,
+    model: &mut Option<Model>,
     type_name: &str,
     id: &str,
     video_id: Option<&str>,
     orders: &mut impl Orders<Msg>,
-) -> Model {
+) {
     // @TODO refactor and integrate
     // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
     orders.notify(UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
@@ -24,7 +24,7 @@ pub fn init(
         },
     )))));
 
-    Model {}
+    model.get_or_insert_with(|| Model {});
 }
 
 // ------ ------
@@ -354,10 +354,7 @@ fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![
-            C!["label-container",],
-            div![C!["label"], "Add to library",]
-        ]
+        div![C!["label-container",], div![C!["label"], "Add to library",]]
     ]
 }
 
@@ -392,10 +389,7 @@ fn view_action_button_trailer<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![
-            C!["label-container",],
-            div![C!["label"], "Trailer",]
-        ]
+        div![C!["label-container",], div![C!["label"], "Trailer",]]
     ]
 }
 
@@ -437,10 +431,7 @@ fn view_action_button_imdb<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![
-            C!["label-container",],
-            div![C!["label"], "7.0 / 10",]
-        ]
+        div![C!["label-container",], div![C!["label"], "7.0 / 10",]]
     ]
 }
 

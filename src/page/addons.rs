@@ -1,8 +1,8 @@
 use crate::{entity::multi_select, Context, Urls as RootUrls};
+use enclose::enc;
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use enclose::enc;
 use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg,
 };
@@ -31,14 +31,12 @@ pub fn init(
 ) {
     load_catalog(resource_request, orders);
 
-    model.get_or_insert_with(|| {
-        Model {
-            core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
-            catalog_selector_model: catalog_selector::init(),
-            type_selector_model: type_selector::init(),
-            search_query: String::new(),
-            modal: None,
-        }
+    model.get_or_insert_with(|| Model {
+        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
+        catalog_selector_model: catalog_selector::init(),
+        type_selector_model: type_selector::init(),
+        search_query: String::new(),
+        modal: None,
     });
 }
 
@@ -60,7 +58,7 @@ pub fn default_resource_request() -> ResourceRequest {
 // ------ ------
 
 pub struct Model {
-    core_msg_sub_handle: SubHandle,
+    _core_msg_sub_handle: SubHandle,
     catalog_selector_model: catalog_selector::Model,
     type_selector_model: type_selector::Model,
     search_query: String,
@@ -111,7 +109,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let res_req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(res_req)));
+            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(&res_req)));
         }
 
         // ------ TypeSelector  ------
@@ -133,7 +131,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let res_req = type_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(res_req)));
+            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(&res_req)));
         }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
@@ -449,7 +447,10 @@ fn view_uninstall_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             At::TabIndex => -1,
             At::Title => "Uninstall",
         },
-        ev(Ev::Click, enc!((addon) move |_| Msg::UninstallAddonButtonClicked(addon))),
+        ev(
+            Ev::Click,
+            enc!((addon) move |_| Msg::UninstallAddonButtonClicked(addon))
+        ),
         div![C!["label",], "Uninstall"]
     ]
 }
@@ -461,7 +462,10 @@ fn view_install_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             At::TabIndex => -1,
             At::Title => "Install",
         },
-        ev(Ev::Click, enc!((addon) move |_| Msg::InstallAddonButtonClicked(addon))),
+        ev(
+            Ev::Click,
+            enc!((addon) move |_| Msg::InstallAddonButtonClicked(addon))
+        ),
         div![C!["label",], "Install"]
     ]
 }
@@ -473,7 +477,10 @@ fn view_share_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             At::TabIndex => -1,
             At::Title => "Share addon",
         },
-        ev(Ev::Click, enc!((addon) move |_| Msg::ShareAddonButtonClicked(addon))),
+        ev(
+            Ev::Click,
+            enc!((addon) move |_| Msg::ShareAddonButtonClicked(addon))
+        ),
         svg![
             C!["icon",],
             attrs! {

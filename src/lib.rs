@@ -1,7 +1,7 @@
 #![allow(
-    clippy::needless_pass_by_value,
     clippy::non_ascii_literal,
-    clippy::must_use_candidate
+    clippy::must_use_candidate,
+    clippy::wildcard_imports
 )]
 
 mod entity;
@@ -10,13 +10,15 @@ mod page;
 use env_web::Env;
 use futures::compat::Future01CompatExt;
 use seed::{prelude::*, *};
-use std::rc::Rc;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::str::FromStr;
 use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};
+use stremio_core::types::addons::{
+    DescriptorPreview, ParseResourceErr, ResourceRef, ResourceRequest,
+};
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
-use stremio_core::types::addons::{DescriptorPreview, ParseResourceErr, ResourceRef, ResourceRequest};
 
 // ---- url parts ----
 
@@ -106,21 +108,14 @@ impl<'a> Urls<'a> {
     pub fn board(self) -> Url {
         self.base_url().add_hash_path_part(BOARD)
     }
-    pub fn discover(self, res_req: Option<ResourceRequest>) -> Url {
-        let url = self
-            .base_url()
-            .add_hash_path_part(DISCOVER);
-
-        let url = resource_request_to_path_parts(&res_req)
+    pub fn discover(self, res_req: Option<&ResourceRequest>) -> Url {
+        let url = self.base_url().add_hash_path_part(DISCOVER);
+        resource_request_to_path_parts(res_req)
             .into_iter()
-            .fold(url, |url, path_part| {
-                url.add_hash_path_part(path_part)
-            });
-        url
+            .fold(url, |url, path_part| url.add_hash_path_part(path_part))
     }
-    pub fn detail(self, type_name: String, id: String, video_id: Option<String>,) -> Url {
-        self
-            .base_url()
+    pub fn detail(self, type_name: String, id: String, video_id: Option<String>) -> Url {
+        self.base_url()
             .add_hash_path_part(DETAIL)
             .add_hash_path_part(type_name)
             .add_hash_path_part(id)
@@ -129,21 +124,15 @@ impl<'a> Urls<'a> {
     pub fn player(self) -> Url {
         self.base_url().add_hash_path_part(PLAYER)
     }
-    pub fn addons(self, res_req: Option<ResourceRequest>) -> Url {
-        let url = self
-            .base_url()
-            .add_hash_path_part(ADDONS);
-
-        let url = resource_request_to_path_parts(&res_req)
+    pub fn addons(self, res_req: Option<&ResourceRequest>) -> Url {
+        let url = self.base_url().add_hash_path_part(ADDONS);
+        resource_request_to_path_parts(res_req)
             .into_iter()
-            .fold(url, |url, path_part| {
-                url.add_hash_path_part(path_part)
-            });
-        url
+            .fold(url, |url, path_part| url.add_hash_path_part(path_part))
     }
 }
 
-fn resource_request_to_path_parts(req: &Option<ResourceRequest>) -> Vec<String> {
+fn resource_request_to_path_parts(req: Option<&ResourceRequest>) -> Vec<String> {
     let req = if let Some(req) = req {
         req
     } else {
@@ -175,40 +164,27 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::UrlChanged(subs::UrlChanged(url)) => {
             model.page_id = Some(init_page(url, model, orders));
-        },
+        }
         Msg::CoreMsg(core_msg) => {
-            let fx = model
-                .context
-                .core_model
-                .update(&core_msg);
+            let fx = model.context.core_model.update(&core_msg);
 
             if !fx.has_changed {
                 orders.skip();
             }
 
             for cmd in fx.effects {
-                // @TODO ?
                 orders.perform_cmd(async move {
                     match cmd.compat().await {
-                        Ok(core_msg) | Err(core_msg) => Msg::CoreCmdFinished(Rc::new(core_msg))
+                        Ok(core_msg) | Err(core_msg) => Msg::CoreCmdFinished(Rc::new(core_msg)),
                     }
                 });
-
-                // let cmd = cmd.compat().map(|result| {
-                //     result
-                //         .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
-                //         .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)))
-                // });
-                // orders.perform_g_cmd(cmd);
-
-                // GMsg::CoreError(core_error) => log!("core_error", core_error),
             }
-        },
+        }
         Msg::CoreCmdFinished(core_msg) => {
             orders.notify(core_msg);
-        },
+        }
         Msg::DiscoverMsg(page_msg) => {
-            if let Some(page_model) = &mut model.discover_model{
+            if let Some(page_model) = &mut model.discover_model {
                 page::discover::update(
                     page_msg,
                     page_model,
@@ -225,10 +201,10 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::AddonsMsg(page_msg) => {
             if let Some(page_model) = &mut model.addons_model {
                 page::addons::update(
-                    page_msg, 
-                    page_model, 
-                    &mut model.context, 
-                    &mut orders.proxy(Msg::AddonsMsg)
+                    page_msg,
+                    page_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::AddonsMsg),
                 );
             }
         }
@@ -239,45 +215,63 @@ fn init_page(mut url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> 
     match url.remaining_hash_path_parts().as_slice() {
         [] | [BOARD] => PageId::Board,
         [DISCOVER] => {
-            page::discover::init(&mut model.discover_model, None, &mut orders.proxy(Msg::DiscoverMsg));
+            page::discover::init(
+                &mut model.discover_model,
+                None,
+                &mut orders.proxy(Msg::DiscoverMsg),
+            );
             PageId::Discover
         }
         [DISCOVER, encoded_base, encoded_path] => {
-            let resource_request = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
-                Ok(req) => req,
-                Err(error) => {
-                    error!(error);
-                    return PageId::NotFound;
-                }
-            };
-            page::discover::init(&mut model.discover_model, Some(resource_request), &mut orders.proxy(Msg::DiscoverMsg));
+            let resource_request =
+                match resource_request_try_from_url_parts(encoded_base, encoded_path) {
+                    Ok(req) => req,
+                    Err(error) => {
+                        error!(error);
+                        return PageId::NotFound;
+                    }
+                };
+            page::discover::init(
+                &mut model.discover_model,
+                Some(resource_request),
+                &mut orders.proxy(Msg::DiscoverMsg),
+            );
             PageId::Discover
         }
         [DETAIL, type_name, id, rest @ ..] => {
             let video_id = rest.first().map(Deref::deref);
             page::detail::init(
-                model.detail_model.as_mut(), 
-                type_name, 
-                id, 
-                video_id, 
-                &mut orders.proxy(Msg::DetailMsg)
+                &mut model.detail_model,
+                type_name,
+                id,
+                video_id,
+                &mut orders.proxy(Msg::DetailMsg),
             );
             PageId::Detail
-        },
+        }
         [PLAYER] => PageId::Player,
         [ADDONS] => {
-            page::addons::init(&mut model.addons_model, None, &mut orders.proxy(Msg::AddonsMsg));
+            page::addons::init(
+                &mut model.addons_model,
+                None,
+                &mut orders.proxy(Msg::AddonsMsg),
+            );
             PageId::Addons
         }
         [ADDONS, encoded_base, encoded_path] => {
-            let resource_request = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
-                Ok(req) => req,
-                Err(error) => {
-                    error!(error);
-                    return PageId::NotFound;
-                }
-            };
-            page::addons::init(&mut model.addons_model, Some(resource_request), &mut orders.proxy(Msg::AddonsMsg));
+            let resource_request =
+                match resource_request_try_from_url_parts(encoded_base, encoded_path) {
+                    Ok(req) => req,
+                    Err(error) => {
+                        error!(error);
+                        return PageId::NotFound;
+                    }
+                };
+            page::addons::init(
+                &mut model.addons_model,
+                Some(resource_request),
+                &mut orders.proxy(Msg::AddonsMsg),
+            );
             PageId::Addons
         }
         _ => PageId::NotFound,
@@ -329,11 +323,13 @@ fn view(model: &Model) -> Node<Msg> {
                     PageId::Detail => page::detail::view().into_nodes(),
                     PageId::Discover => {
                         if let Some(page_model) = &model.discover_model {
-                            page::discover::view(page_model, &model.context).map_msg(Msg::DiscoverMsg).into_nodes()
+                            page::discover::view(page_model, &model.context)
+                                .map_msg(Msg::DiscoverMsg)
+                                .into_nodes()
                         } else {
                             vec![]
                         }
-                    },
+                    }
                     PageId::Player => page::player::view().into_nodes(),
                     PageId::Addons => {
                         if let Some(page_model) = &model.addons_model {
@@ -341,7 +337,7 @@ fn view(model: &Model) -> Node<Msg> {
                         } else {
                             vec![]
                         }
-                    },
+                    }
                     PageId::NotFound => page::not_found::view().into_nodes(),
                 }
             })

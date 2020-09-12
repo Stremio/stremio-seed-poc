@@ -1,5 +1,5 @@
-use seed::{prelude::*, *};
 use crate::Urls as RootUrls;
+use seed::{prelude::*, *};
 
 // ------ ------
 //     View
