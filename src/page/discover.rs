@@ -61,7 +61,7 @@ impl From<Model> for SharedModel {
 pub fn init(
     shared: SharedModel,
     resource_request: Option<ResourceRequest>,
-    orders: &mut impl Orders<Msg, GMsg>,
+    orders: &mut impl Orders<Msg>,
 ) -> Model {
     load_catalog(resource_request, orders);
     Model {
@@ -73,7 +73,7 @@ pub fn init(
     }
 }
 
-fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg, GMsg>) {
+fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
     // @TODO try to remove `Clone` requirement from Seed or add it into stremio-core? Implement intos, from etc.?
     orders.send_g_msg(GMsg::Core(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
@@ -84,7 +84,7 @@ fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Ord
 //     Sink
 // ------ ------
 
-pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) -> Option<GMsg> {
+pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) -> Option<GMsg> {
     match g_msg {
         GMsg::GoTo(Route::Discover(resource_request)) => {
             load_catalog(resource_request, orders);
@@ -108,7 +108,6 @@ pub fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>)
 
 // @TODO box large fields?
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
-#[derive(Clone)]
 pub enum Msg {
     MetaPreviewClicked(MetaPreview),
     TypeSelectorMsg(type_selector::Msg),
@@ -119,7 +118,7 @@ pub enum Msg {
     ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     let catalog = &model.shared.core.catalog;
 
     match msg {
@@ -203,15 +202,15 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
 //     View
 // ------ ------
 
-pub fn view(model: &Model) -> impl View<Msg> {
+pub fn view(model: &Model) -> Node<Msg> {
     let catalog = &model.shared.core.catalog;
 
     div![
-        class!["discover-container"],
+        C!["discover-container"],
         div![
-            class!["discover-content"],
+            C!["discover-content"],
             div![
-                class!["controls-container"],
+                C!["controls-container"],
                 // type selector
                 type_selector::view(
                     &model.type_selector_model,
@@ -234,7 +233,7 @@ pub fn view(model: &Model) -> impl View<Msg> {
                 view_reset_button(),
             ],
             div![
-                class!["catalog-content-container"],
+                C!["catalog-content-container"],
                 view_content(
                     &model.shared.core.catalog.content,
                     model.selected_meta_preview_id.as_ref()
@@ -267,13 +266,13 @@ fn view_content(
 ) -> Node<Msg> {
     match content {
         Loadable::Err(catalog_error) => div![
-            class!["message-container",],
+            C!["message-container",],
             format!("{:#?}", catalog_error)
         ],
-        Loadable::Loading => div![class!["message-container",], "Loading"],
+        Loadable::Loading => div![C!["message-container",], "Loading"],
         Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
         Loadable::Ready(meta_previews) => div![
-            class!["meta-items-container",],
+            C!["meta-items-container",],
             meta_previews
                 .iter()
                 .map(|meta_preview| view_meta_preview(meta_preview, selected_meta_preview_id))
@@ -298,28 +297,28 @@ fn view_meta_preview(
     };
 
     div![
-        class![
+        C![
             "meta-item",
             "meta-item-container",
             poster_shape_class,
             "button-container",
-            "selected" => is_selected,
+            IF!("selected" => is_selected),
         ],
         attrs! {
             At::TabIndex => 0,
             At::Title => &meta_preview.name,
         },
-        simple_ev(Ev::Click, Msg::MetaPreviewClicked(meta_preview.clone())),
+        ev(Ev::Click, |_| Msg::MetaPreviewClicked(meta_preview.clone())),
         div![
-            class!["poster-container",],
+            C!["poster-container",],
             div![
-                class!["poster-image-layer",],
+                C!["poster-image-layer",],
                 view_poster(&meta_preview.poster),
             ],
         ],
         div![
-            class!["title-bar-container",],
-            div![class!["title-label",], &meta_preview.name]
+            C!["title-bar-container",],
+            div![C!["title-label",], &meta_preview.name]
         ],
     ]
 }
@@ -328,13 +327,13 @@ fn view_poster(poster: &Option<String>) -> Node<Msg> {
     // @TODO Show placeholder image also if poster_url is present but can't be laoded?
     match poster {
         Some(poster_url) => img![
-            class!["poster-image",],
+            C!["poster-image",],
             attrs! {
                 At::Src => poster_url,
             }
         ],
         None => svg![
-            class!["placeholder-icon",],
+            C!["placeholder-icon",],
             attrs! {
                 At::ViewBox => "0 0 1125 1024",
                 "icon" => "ic_series",

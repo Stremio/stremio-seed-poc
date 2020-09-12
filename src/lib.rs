@@ -104,10 +104,10 @@ pub enum GMsg {
     CoreError(Rc<CoreMsg>),
 }
 
-fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     if let GMsg::GoTo(ref route) = g_msg {
         let url = Url::try_from(route.to_href()).expect("`Url` from `Route`");
-        seed::push_route(url);
+        url.go_and_push();
     }
 
     let unhandled_g_msg = match model {
@@ -161,7 +161,6 @@ fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
 
 // @TODO box large fields?
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
-#[derive(Clone)]
 enum Msg {
     RouteChanged(Route),
     DiscoverMsg(page::discover::Msg),
@@ -169,7 +168,7 @@ enum Msg {
     AddonsMsg(page::addons::Msg),
 }
 
-fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::RouteChanged(route) => {
             change_model_by_route(route, model, orders);
@@ -196,7 +195,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
     }
 }
 
-fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) {
+fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg>) {
     let shared = |model: &mut Model| SharedModel::from(take(model));
     *model = match route {
         Route::Board => Model::Board(shared(model)),
@@ -230,11 +229,11 @@ fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orde
 //     View
 // ------ ------
 
-fn view(model: &Model) -> impl View<Msg> {
+fn view(model: &Model) -> Node<Msg> {
     div![
-        class!["router", "routes-container"],
+        C!["router", "routes-container"],
         div![
-            class!["route-container",],
+            C!["route-container",],
             match &model {
                 Model::Redirect => page::blank::view().els(),
                 Model::Board(_) => page::board::view().els(),
