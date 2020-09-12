@@ -2,6 +2,7 @@ use crate::{entity::multi_select, route::Route, GMsg, SharedModel};
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
+use enclose::enc;
 use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg,
 };
@@ -112,7 +113,6 @@ pub enum Msg {
     InstallAddonButtonClicked(DescriptorPreview),
     ShareAddonButtonClicked(DescriptorPreview),
     CloseModal,
-    NoOp,
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -165,9 +165,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::InstallAddonButtonClicked(_addon) => model.modal = Some(Modal::InstallAddon),
         Msg::ShareAddonButtonClicked(_addon) => model.modal = Some(Modal::ShareAddon),
         Msg::CloseModal => model.modal = None,
-        Msg::NoOp => {
-            orders.skip();
-        }
     }
 }
 
@@ -218,7 +215,7 @@ pub fn view(model: &Model) -> Vec<Node<Msg>> {
             ],
         ],
         if let Some(modal) = &model.modal {
-            modal::view(modal, Msg::CloseModal, Msg::NoOp)
+            modal::view(modal, || Msg::CloseModal)
         } else {
             empty![]
         },
@@ -475,7 +472,7 @@ fn view_uninstall_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             At::TabIndex => -1,
             At::Title => "Uninstall",
         },
-        ev(Ev::Click, |_| Msg::UninstallAddonButtonClicked(addon.clone())),
+        ev(Ev::Click, enc!((addon) move |_| Msg::UninstallAddonButtonClicked(addon))),
         div![C!["label",], "Uninstall"]
     ]
 }
@@ -487,7 +484,7 @@ fn view_install_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             At::TabIndex => -1,
             At::Title => "Install",
         },
-        ev(Ev::Click, |_| Msg::InstallAddonButtonClicked(addon.clone())),
+        ev(Ev::Click, enc!((addon) move |_| Msg::InstallAddonButtonClicked(addon))),
         div![C!["label",], "Install"]
     ]
 }
@@ -499,7 +496,7 @@ fn view_share_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             At::TabIndex => -1,
             At::Title => "Share addon",
         },
-        ev(Ev::Click, |_| Msg::ShareAddonButtonClicked(addon.clone())),
+        ev(Ev::Click, enc!((addon) move |_| Msg::ShareAddonButtonClicked(addon))),
         svg![
             C!["icon",],
             attrs! {

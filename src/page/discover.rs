@@ -1,6 +1,7 @@
 use crate::{entity::multi_select, route::Route, GMsg, SharedModel};
 use seed::{prelude::*, *};
 use std::rc::Rc;
+use enclose::enc;
 use stremio_core::state_types::{
     Action, ActionLoad, CatalogEntry, CatalogError, Internal, Loadable, Msg as CoreMsg, TypeEntry,
 };
@@ -302,13 +303,13 @@ fn view_meta_preview(
             "meta-item-container",
             poster_shape_class,
             "button-container",
-            IF!("selected" => is_selected),
+            IF!(is_selected => "selected"),
         ],
         attrs! {
             At::TabIndex => 0,
             At::Title => &meta_preview.name,
         },
-        ev(Ev::Click, |_| Msg::MetaPreviewClicked(meta_preview.clone())),
+        ev(Ev::Click, enc!((meta_preview) move |_| Msg::MetaPreviewClicked(meta_preview))),
         div![
             C!["poster-container",],
             div![

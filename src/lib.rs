@@ -235,14 +235,14 @@ fn view(model: &Model) -> Node<Msg> {
         div![
             C!["route-container",],
             match &model {
-                Model::Redirect => page::blank::view().els(),
-                Model::Board(_) => page::board::view().els(),
+                Model::Redirect => page::blank::view().into_nodes(),
+                Model::Board(_) => page::board::view().into_nodes(),
                 Model::Discover(model) =>
-                    page::discover::view(model).els().map_msg(Msg::DiscoverMsg),
-                Model::Detail(_) => page::detail::view().els(),
-                Model::Player(_) => page::player::view().els(),
-                Model::Addons(model) => page::addons::view(model).els().map_msg(Msg::AddonsMsg),
-                Model::NotFound(_) => page::not_found::view().els(),
+                    page::discover::view(model).map_msg(Msg::DiscoverMsg).into_nodes(),
+                Model::Detail(_) => page::detail::view().into_nodes(),
+                Model::Player(_) => page::player::view().into_nodes(),
+                Model::Addons(model) => page::addons::view(model).map_msg(Msg::AddonsMsg),
+                Model::NotFound(_) => page::not_found::view().into_nodes(),
             }
         ]
     ]
@@ -254,8 +254,5 @@ fn view(model: &Model) -> Node<Msg> {
 
 #[wasm_bindgen(start)]
 pub fn start() {
-    App::builder(update, view)
-        .routes(routes)
-        .sink(sink)
-        .build_and_start();
+    App::start("app", init, update, view);
 }

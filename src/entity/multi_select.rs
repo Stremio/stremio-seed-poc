@@ -49,7 +49,6 @@ pub const fn init(id: &'static str) -> Model {
 pub enum Msg {
     ToggleMenu,
     ItemClicked(GroupId, GroupItemId),
-    NoOp,
 }
 
 // @TODO: remove after Msg::ItemClicked refactor
@@ -76,7 +75,6 @@ pub fn update<T: 'static + Debug, ParentMsg>(
                         .expect("menu element as `HtmlElement`")
                         .focus()
                         .expect("focus menu element");
-                    Msg::NoOp
                 });
             }
             None
@@ -163,7 +161,6 @@ pub fn update<T: 'static + Debug, ParentMsg>(
                 None
             }
         }
-        Msg::NoOp => None,
     }
 }
 
@@ -189,7 +186,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 "popup-container",
                 "label-container",
                 "button-container",
-                IF!("active" => model.opened),
+                IF!(model.opened => "active"),
             ],
             attrs! {
                 At::TabIndex => 0,
@@ -253,14 +250,18 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
         C![
             "option-container",
             "button-container",
-            IF!("selected" => item.selected),
+            IF!(item.selected => "selected"),
         ],
         attrs! {
             At::Title => item.label,
         },
         ev(
             Ev::Click,
-            |_| Msg::ItemClicked(group_id.to_owned(), item.id.clone())
+            {
+                let group_id = group_id.to_owned();
+                let item_id = item.id.clone();
+                move |_| Msg::ItemClicked(group_id, item_id)
+            }
         ),
         div![C!["label"], item.label,],
         svg![
