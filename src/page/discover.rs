@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, route::Route, GMsg, SharedModel};
+use crate::entity::multi_select;
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use enclose::enc;
@@ -36,23 +36,10 @@ pub fn default_resource_request() -> ResourceRequest {
 // ------ ------
 
 pub struct Model {
-    shared: SharedModel,
     selected_meta_preview_id: Option<MetaPreviewId>,
     type_selector_model: type_selector::Model,
     catalog_selector_model: catalog_selector::Model,
     extra_prop_selector_model: extra_prop_selector::Model,
-}
-
-impl Model {
-    pub fn shared(&mut self) -> &mut SharedModel {
-        &mut self.shared
-    }
-}
-
-impl From<Model> for SharedModel {
-    fn from(model: Model) -> Self {
-        model.shared
-    }
 }
 
 // ------ ------
@@ -60,13 +47,11 @@ impl From<Model> for SharedModel {
 // ------ ------
 
 pub fn init(
-    shared: SharedModel,
     resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg>,
 ) -> Model {
     load_catalog(resource_request, orders);
     Model {
-        shared,
         type_selector_model: type_selector::init(),
         catalog_selector_model: catalog_selector::init(),
         extra_prop_selector_model: extra_prop_selector::init(),

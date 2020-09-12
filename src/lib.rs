@@ -7,20 +7,50 @@
 mod entity;
 mod helper;
 mod page;
-mod route;
 
 use env_web::Env;
 use futures::compat::Future01CompatExt;
 use futures::FutureExt;
 use helper::take;
-use route::Route;
 use seed::{prelude::*, *};
 use std::convert::TryFrom;
 use std::rc::Rc;
+use std::ops::Deref;
+use std::str::FromStr;
 use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};
-use stremio_core::types::addons::DescriptorPreview;
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
+use stremio_core::types::addons::{DescriptorPreview, ParseResourceErr, ResourceRef, ResourceRequest};
+
+// ---- url parts ----
+
+const BOARD: &str = "board";
+const DISCOVER: &str = "discover";
+const DETAIL: &str = "detail";
+const PLAYER: &str = "player";
+const ADDONS: &str = "addons";
+
+// ------ ------
+//     Init
+// ------ ------
+
+fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
+    let base_url = url.to_hash_base_url();
+    orders
+        .subscribe(Msg::UrlChanged)
+        .subscribe(Msg::CoreMsg)
+        .notify(subs::UrlChanged(url));
+
+    Model {
+        core_model: CoreModel::default(),
+        base_url,
+        page_id: None,
+        // ---- page models ----
+        detail_model: None,
+        discover_model: None,
+        addons_model: None,
+    }
+}
 
 // ------ ------
 //     Model
@@ -28,53 +58,26 @@ use stremio_derive::Model;
 
 // @TODO box large fields?
 #[allow(clippy::large_enum_variant)]
-pub enum Model {
-    Redirect,
-    Board(SharedModel),
-    Detail(page::detail::Model),
-    Discover(page::discover::Model),
-    Player(SharedModel),
-    Addons(page::addons::Model),
-    NotFound(SharedModel),
+pub struct Model {
+    core_model: CoreModel,
+    base_url: Url,
+    page_id: Option<PageId>,
+    // ---- page models ----
+    detail_model: Option<page::detail::Model>,
+    discover_model: Option<page::discover::Model>,
+    addons_model: Option<page::addons::Model>,
 }
 
-impl Model {
-    pub fn shared(&mut self) -> Option<&mut SharedModel> {
-        match self {
-            Self::Redirect => None,
-            Self::Discover(module_model) => Some(module_model.shared()),
-            Self::Detail(module_model) => Some(module_model.shared()),
-            Self::Addons(module_model) => Some(module_model.shared()),
-            Self::Player(shared) | Self::NotFound(shared) | Self::Board(shared) => Some(shared),
-        }
-    }
-}
+// ------ PageId ------
 
-impl Default for Model {
-    fn default() -> Self {
-        Self::Redirect
-    }
-}
-
-// ------ SharedModel  ------
-
-#[derive(Default)]
-pub struct SharedModel {
-    core: CoreModel,
-}
-
-impl From<Model> for SharedModel {
-    fn from(model: Model) -> Self {
-        match model {
-            Model::Redirect => Self::default(),
-            Model::Discover(module_model) => module_model.into(),
-            Model::Detail(module_model) => module_model.into(),
-            Model::Addons(module_model) => module_model.into(),
-            Model::Board(shared_model)
-            | Model::Player(shared_model)
-            | Model::NotFound(shared_model) => shared_model,
-        }
-    }
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum PageId {
+    Board,
+    Detail,
+    Discover,
+    Player,
+    Addons,
+    NotFound,
 }
 
 // ------ CoreModel  ------
@@ -87,72 +90,58 @@ struct CoreModel {
 }
 
 // ------ ------
-//    Routes
+//     Urls
 // ------ ------
 
-fn routes(url: Url) -> Option<Msg> {
-    Some(Msg::RouteChanged(url.into()))
-}
-
-// ------ ------
-//     Sink
-// ------ ------
-
-pub enum GMsg {
-    GoTo(Route),
-    Core(Rc<CoreMsg>),
-    CoreError(Rc<CoreMsg>),
-}
-
-fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    if let GMsg::GoTo(ref route) = g_msg {
-        let url = Url::try_from(route.to_href()).expect("`Url` from `Route`");
-        url.go_and_push();
+struct_urls!();
+impl<'a> Urls<'a> {
+    pub fn board(self) -> Url {
+        self.base_url().add_hash_path_part(BOARD)
     }
+    pub fn discover(self, res_req: Option<ResourceRequest>) -> Url {
+        let mut url = self
+            .base_url()
+            .add_hash_path_part(DISCOVER);
 
-    let unhandled_g_msg = match model {
-        Model::Discover(module_model) => {
-            page::discover::sink(g_msg, module_model, &mut orders.proxy(Msg::DiscoverMsg))
+        for path_part in resource_request_to_path_parts(&res_req) {
+            url.add_hash_path_part(path_part);
         }
-        Model::Addons(module_model) => {
-            page::addons::sink(g_msg, module_model, &mut orders.proxy(Msg::AddonsMsg))
+        url
+    }
+    pub fn detail(self, type_name: String, id: String, video_id: Option<String>,) -> Url {
+        self
+            .base_url()
+            .add_hash_path_part(DETAIL)
+            .add_hash_path_part(type_name)
+            .add_hash_path_part(id)
+            .add_hash_path_part(video_id.unwrap_or_default())
+    }
+    pub fn player(self) -> Url {
+        self.base_url().add_hash_path_part(PLAYER)
+    }
+    pub fn addons(self, res_req: Option<ResourceRequest>) -> Url {
+        let url = self
+            .base_url()
+            .add_hash_path_part(ADDONS);
+
+        for path_part in resource_request_to_path_parts(&res_req) {
+            url.add_hash_path_part(path_part);
         }
-        Model::Redirect
-        | Model::Board(_)
-        | Model::Detail(_)
-        | Model::Player(_)
-        | Model::NotFound(_) => Some(g_msg),
+        url
+    }
+}
+
+fn resource_request_to_path_parts(req: &Option<ResourceRequest>) -> Vec<String> {
+    let req = if let Some(req) = req {
+        req
+    } else {
+        return Vec::new();
     };
 
-    if let Some(unhandled_g_msg) = unhandled_g_msg {
-        match unhandled_g_msg {
-            GMsg::GoTo(route) => {
-                orders.send_msg(Msg::RouteChanged(route));
-            }
-            // ------ Core  ------
-            GMsg::Core(core_msg) => {
-                let fx = model
-                    .shared()
-                    .expect("get `SharedModel` from `Model")
-                    .core
-                    .update(&core_msg);
-
-                if !fx.has_changed {
-                    orders.skip();
-                }
-
-                for cmd in fx.effects {
-                    let cmd = cmd.compat().map(|result| {
-                        result
-                            .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
-                            .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)))
-                    });
-                    orders.perform_g_cmd(cmd);
-                }
-            }
-            GMsg::CoreError(core_error) => log!("core_error", core_error),
-        };
-    }
+    // @TODO do we have to encode it?
+    let encoded_base = String::from(js_sys::encode_uri_component(&req.base));
+    let encoded_path = String::from(js_sys::encode_uri_component(&req.path.to_string()));
+    vec![encoded_base, encoded_path]
 }
 
 // ------ ------
@@ -162,7 +151,8 @@ fn sink(g_msg: GMsg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // @TODO box large fields?
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 enum Msg {
-    RouteChanged(Route),
+    UrlChanged(subs::UrlChanged),
+    CoreMsg(Rc<CoreMsg>),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
     AddonsMsg(page::addons::Msg),
@@ -170,59 +160,135 @@ enum Msg {
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::RouteChanged(route) => {
-            change_model_by_route(route, model, orders);
-        }
-        Msg::DiscoverMsg(module_msg) => {
-            if let Model::Discover(module_model) = model {
+        Msg::UrlChanged(subs::UrlChanged(mut url)) => {
+            model.page_id = Some(init_page(url, model, orders));
+        },
+        Msg::CoreMsg(core_msg) => {
+            let fx = model
+                .core_model
+                .update(&core_msg);
+
+            if !fx.has_changed {
+                orders.skip();
+            }
+
+            for cmd in fx.effects {
+                // @TODO ?
+                orders.perform_cmd(async move {
+                    match cmd.compat().await {
+                        Ok(core_msg) | Err(core_msg) => Msg::CoreMsg(Rc::new(core_msg))
+                    }
+                });
+
+                // let cmd = cmd.compat().map(|result| {
+                //     result
+                //         .map(|core_msg| GMsg::Core(Rc::new(core_msg)))
+                //         .map_err(|core_msg| GMsg::CoreError(Rc::new(core_msg)))
+                // });
+                // orders.perform_g_cmd(cmd);
+
+                // GMsg::CoreError(core_error) => log!("core_error", core_error),
+            }
+        },
+        Msg::DiscoverMsg(page_msg) => {
+            if let Some(page_model) = &mut model.discover_model{
                 page::discover::update(
-                    module_msg,
-                    module_model,
+                    page_msg,
+                    page_model,
                     &mut orders.proxy(Msg::DiscoverMsg),
                 );
             }
         }
-        Msg::DetailMsg(module_msg) => {
-            if let Model::Detail(module_model) = model {
-                page::detail::update(module_msg, module_model, &mut orders.proxy(Msg::DetailMsg));
+        Msg::DetailMsg(page_msg) => {
+            if let Some(page_model) = &mut model.detail_model {
+                page::detail::update(page_msg, page_model, &mut orders.proxy(Msg::DetailMsg));
             }
         }
-        Msg::AddonsMsg(module_msg) => {
-            if let Model::Addons(module_model) = model {
-                page::addons::update(module_msg, module_model, &mut orders.proxy(Msg::AddonsMsg));
+        Msg::AddonsMsg(page_msg) => {
+            if let Some(page_model) = &mut model.addons_model {
+                page::addons::update(page_msg, page_model, &mut orders.proxy(Msg::AddonsMsg));
             }
         }
     }
 }
 
-fn change_model_by_route(route: Route, model: &mut Model, orders: &mut impl Orders<Msg>) {
-    let shared = |model: &mut Model| SharedModel::from(take(model));
-    *model = match route {
-        Route::Board => Model::Board(shared(model)),
-        Route::Detail {
-            type_name,
-            id,
-            video_id,
-        } => Model::Detail(page::detail::init(
-            shared(model),
-            type_name,
-            id,
-            video_id,
-            &mut orders.proxy(Msg::DetailMsg),
-        )),
-        Route::Discover(resource_request) => Model::Discover(page::discover::init(
-            shared(model),
-            resource_request,
-            &mut orders.proxy(Msg::DiscoverMsg),
-        )),
-        Route::Player => Model::Player(shared(model)),
-        Route::Addons(resource_request) => Model::Addons(page::addons::init(
-            shared(model),
-            resource_request,
-            &mut orders.proxy(Msg::AddonsMsg),
-        )),
-        Route::NotFound => Model::NotFound(shared(model)),
+fn init_page(url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> PageId {
+    match url.remaining_hash_path_parts().as_slice() {
+        [] | [BOARD] => PageId::Board,
+        [DISCOVER] => {
+            page::discover::init(None, &mut orders.proxy(Msg::DiscoverMsg));
+            PageId::Discover
+        }
+        [DISCOVER, encoded_base, encoded_path] => {
+            let resource_request = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
+                Ok(req) => req,
+                Err(error) => {
+                    error!(error);
+                    return PageId::NotFound;
+                }
+            };
+            page::discover::init(Some(resource_request), &mut orders.proxy(Msg::DiscoverMsg));
+            PageId::Discover
+        }
+        [DETAIL, type_name, id, rest @ ..] => {
+            let video_id = rest.first().map(Deref::deref);
+            page::detail::init(
+                model.detail_model.as_mut(), 
+                type_name, 
+                id, 
+                video_id, 
+                &mut orders.proxy(Msg::DetailMsg)
+            );
+            PageId::Detail
+        },
+        [PLAYER] => PageId::Player,
+        [ADDONS] => {
+            page::addons::init(None, &mut orders.proxy(Msg::AddonsMsg));
+            PageId::Addons
+        }
+        [ADDONS, encoded_base, encoded_path] => {
+            let resource_request = match resource_request_try_from_url_parts(encoded_base, encoded_path) {
+                Ok(req) => req,
+                Err(error) => {
+                    error!(error);
+                    return PageId::NotFound;
+                }
+            };
+            page::addons::init(Some(resource_request), &mut orders.proxy(Msg::AddonsMsg));
+            PageId::Addons
+        }
+        _ => PageId::NotFound,
+    }
+}
+
+#[derive(Debug)]
+enum ParseResourceRequestError {
+    UriDecode(String),
+    Resource(ParseResourceErr),
+}
+
+fn resource_request_try_from_url_parts(
+    uri_encoded_base: &str,
+    uri_encoded_path: &str,
+) -> Result<ResourceRequest, ParseResourceRequestError> {
+    // @TODO do we have to decode it?
+
+    let base: String = {
+        js_sys::decode_uri_component(uri_encoded_base)
+            .map_err(|_| ParseResourceRequestError::UriDecode(uri_encoded_base.to_owned()))?
+            .into()
     };
+
+    let path: String = {
+        js_sys::decode_uri_component(uri_encoded_path)
+            .map_err(|_| ParseResourceRequestError::UriDecode(uri_encoded_path.to_owned()))?
+            .into()
+    };
+
+    Ok(ResourceRequest {
+        base,
+        path: ResourceRef::from_str(&path).map_err(ParseResourceRequestError::Resource)?,
+    })
 }
 
 // ------ ------
@@ -234,16 +300,28 @@ fn view(model: &Model) -> Node<Msg> {
         C!["router", "routes-container"],
         div![
             C!["route-container",],
-            match &model {
-                Model::Redirect => page::blank::view().into_nodes(),
-                Model::Board(_) => page::board::view().into_nodes(),
-                Model::Discover(model) =>
-                    page::discover::view(model).map_msg(Msg::DiscoverMsg).into_nodes(),
-                Model::Detail(_) => page::detail::view().into_nodes(),
-                Model::Player(_) => page::player::view().into_nodes(),
-                Model::Addons(model) => page::addons::view(model).map_msg(Msg::AddonsMsg),
-                Model::NotFound(_) => page::not_found::view().into_nodes(),
-            }
+            model.page_id.map(|page_id| {
+                match page_id {
+                    PageId::Board => page::board::view().into_nodes(),
+                    PageId::Detail => page::detail::view().into_nodes(),
+                    PageId::Discover => {
+                        if let Some(page_model) = &mut model.discover_model {
+                            page::discover::view(page_model).map_msg(Msg::DiscoverMsg).into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    },
+                    PageId::Player => page::player::view().into_nodes(),
+                    PageId::Addons => {
+                        if let Some(page_model) = &mut model.addons_model {
+                            page::addons::view(page_model).map_msg(Msg::AddonsMsg)
+                        } else {
+                            vec![]
+                        }
+                    },
+                    PageId::NotFound => page::not_found::view().into_nodes(),
+                }
+            })
         ]
     ]
 }
