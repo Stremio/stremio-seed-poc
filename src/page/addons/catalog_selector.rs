@@ -1,5 +1,5 @@
 use super::{BASE, MY_ITEM_ID, RESOURCE, TYPE_ALL};
-use crate::{entity::multi_select, GMsg};
+use crate::entity::multi_select;
 use itertools::Itertools;
 use seed::prelude::*;
 use std::fmt::Debug;
@@ -25,13 +25,12 @@ pub const fn init() -> Model {
 //    Update
 // ------ ------
 
-#[derive(Clone)]
 pub struct Msg(multi_select::Msg);
 
 pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
-    orders: &mut impl Orders<Msg, GMsg>,
+    orders: &mut impl Orders<Msg>,
     groups: Vec<multi_select::Group<T>>,
     on_change: impl FnOnce(Vec<multi_select::Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {

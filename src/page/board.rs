@@ -5,7 +5,7 @@ use seed::{prelude::*, *};
 //     View
 // ------ ------
 
-pub fn view<Ms: 'static>() -> impl View<Ms> {
+pub fn view<Ms: 'static>() -> Node<Ms> {
     div![
         h1![
             style! {

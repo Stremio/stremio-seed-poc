@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, page::discover::ExtraPropOption, GMsg};
+use crate::{entity::multi_select, page::discover::ExtraPropOption};
 use seed::prelude::*;
 use std::fmt::Debug;
 use stremio_core::types::addons::{ManifestExtraProp, ResourceRequest};
@@ -21,13 +21,12 @@ pub const fn init() -> Model {
 //    Update
 // ------ ------
 
-#[derive(Clone)]
 pub struct Msg(multi_select::Msg);
 
 pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
-    orders: &mut impl Orders<Msg, GMsg>,
+    orders: &mut impl Orders<Msg>,
     groups: Vec<multi_select::Group<T>>,
     on_change: impl FnOnce(Vec<multi_select::Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {

@@ -46,7 +46,6 @@ pub const fn init(id: &'static str) -> Model {
 //    Update
 // ------ ------
 
-#[derive(Clone)]
 pub enum Msg {
     ToggleMenu,
     ItemClicked(GroupId, GroupItemId),
@@ -55,10 +54,10 @@ pub enum Msg {
 
 // @TODO: remove after Msg::ItemClicked refactor
 #[allow(clippy::collapsible_if)]
-pub fn update<T: 'static + Debug, ParentMsg, GMs>(
+pub fn update<T: 'static + Debug, ParentMsg>(
     msg: Msg,
     model: &mut Model,
-    orders: &mut impl Orders<Msg, GMs>,
+    orders: &mut impl Orders<Msg>,
     mut groups: Vec<Group<T>>,
     on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg,
 ) -> Option<ParentMsg> {
@@ -183,25 +182,25 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
     } else {
         div![
             id!(model.id),
-            class![
+            C![
                 "dropdown",
                 "select-input-container",
                 "multiselect-container",
                 "popup-container",
                 "label-container",
                 "button-container",
-                "active" => model.opened,
+                IF!("active" => model.opened),
             ],
             attrs! {
                 At::TabIndex => 0,
             },
-            simple_ev(Ev::Click, Msg::ToggleMenu),
+            ev(Ev::Click, |_| Msg::ToggleMenu),
             div![
-                class!["label"],
+                C!["label"],
                 selected_items.iter().map(|item| &item.label).join(", "),
             ],
             svg![
-                class!["icon"],
+                C!["icon"],
                 attrs! {
                     At::ViewBox => "0 0 1731 1024",
                     "icon" => "ic_arrow_down",
@@ -212,13 +211,13 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
             ],
             if model.opened {
                 div![
-                    class![MENU_CLASS, "menu-direction-bottom",],
+                    C![MENU_CLASS, "menu-direction-bottom",],
                     attrs! {
                         At::TabIndex => 0,
                     },
-                    simple_ev(Ev::Blur, Msg::ToggleMenu),
+                    ev(Ev::Blur, |_| Msg::ToggleMenu),
                     div![
-                        class!["multiselect-menu-container"],
+                        C!["multiselect-menu-container"],
                         groups.iter().map(view_group).collect::<Vec<_>>()
                     ]
                 ]
@@ -251,21 +250,21 @@ pub fn view_group<T: Clone>(group: &Group<T>) -> Node<Msg> {
 
 pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Msg> {
     div![
-        class![
+        C![
             "option-container",
             "button-container",
-            "selected" => item.selected,
+            IF!("selected" => item.selected),
         ],
         attrs! {
             At::Title => item.label,
         },
-        simple_ev(
+        ev(
             Ev::Click,
-            Msg::ItemClicked(group_id.to_owned(), item.id.clone())
+            |_| Msg::ItemClicked(group_id.to_owned(), item.id.clone())
         ),
-        div![class!["label"], item.label,],
+        div![C!["label"], item.label,],
         svg![
-            class!["icon"],
+            C!["icon"],
             attrs! {
                 At::ViewBox => "0 0 1331 1024",
                 "icon" => "ic_check",
