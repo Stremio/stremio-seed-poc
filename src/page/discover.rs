@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, Context, UpdateCoreModel, Urls as RootUrls, PageId};
+use crate::{entity::multi_select, Context, PageId, UpdateCoreModel, Urls as RootUrls};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -36,19 +36,15 @@ pub fn init(
     let base_url = url.to_hash_base_url();
 
     let resource_request = match url.remaining_hash_path_parts().as_slice() {
-        [base, path] => {
-            path
-                .parse()
-                .map_err(|error| error!(error))
-                .map(|path| {
-                    ResourceRequest {
-                        base: base.to_string(),
-                        path,
-                    }
-                })
-                .ok()
-        },
-        _ => None
+        [base, path] => path
+            .parse()
+            .map_err(|error| error!(error))
+            .map(|path| ResourceRequest {
+                base: base.to_string(),
+                path,
+            })
+            .ok(),
+        _ => None,
     };
 
     load_catalog(resource_request, orders);
@@ -142,7 +138,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 let detail_urls = RootUrls::new(&context.root_base_url).detail_urls();
 
                 orders.request_url(if meta_preview.type_name == "movie" {
-                    detail_urls.with_video_id(type_name, id, id) 
+                    detail_urls.with_video_id(type_name, id, id)
                 } else {
                     detail_urls.without_video_id(type_name, id)
                 });

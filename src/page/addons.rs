@@ -32,19 +32,15 @@ pub fn init(
     let base_url = url.to_hash_base_url();
 
     let resource_request = match url.remaining_hash_path_parts().as_slice() {
-        [base, path] => {
-            path
-                .parse()
-                .map_err(|error| error!(error))
-                .map(|path| {
-                    ResourceRequest {
-                        base: base.to_string(),
-                        path,
-                    }
-                })
-                .ok()
-        },
-        _ => None
+        [base, path] => path
+            .parse()
+            .map_err(|error| error!(error))
+            .map(|path| ResourceRequest {
+                base: (*base).to_owned(),
+                path,
+            })
+            .ok(),
+        _ => None,
     };
 
     load_catalog(resource_request, orders);
