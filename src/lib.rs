@@ -10,7 +10,6 @@ mod page;
 use env_web::Env;
 use futures::compat::Future01CompatExt;
 use seed::{prelude::*, *};
-use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};
@@ -81,7 +80,7 @@ pub struct Context {
 // ------ PageId ------
 
 #[derive(Copy, Clone, Eq, PartialEq)]
-enum PageId {
+pub enum PageId {
     Board,
     Detail,
     Discover,
@@ -108,41 +107,41 @@ impl<'a> Urls<'a> {
     pub fn board(self) -> Url {
         self.base_url().add_hash_path_part(BOARD)
     }
-    pub fn discover(self, res_req: Option<&ResourceRequest>) -> Url {
-        let url = self.base_url().add_hash_path_part(DISCOVER);
-        resource_request_to_path_parts(res_req)
-            .into_iter()
-            .fold(url, |url, path_part| url.add_hash_path_part(path_part))
+    pub fn discover_urls(self) -> page::discover::Urls<'a> {
+        page::discover::Urls::new(self.base_url().add_hash_path_part(DISCOVER))
     }
-    pub fn detail(self, type_name: String, id: String, video_id: Option<String>) -> Url {
-        self.base_url()
-            .add_hash_path_part(DETAIL)
-            .add_hash_path_part(type_name)
-            .add_hash_path_part(id)
-            .add_hash_path_part(video_id.unwrap_or_default())
+    pub fn detail_urls(self) -> page::detail::Urls<'a> {
+        page::detail::Urls::new(self.base_url().add_hash_path_part(DETAIL))
     }
     pub fn player(self) -> Url {
         self.base_url().add_hash_path_part(PLAYER)
     }
-    pub fn addons(self, res_req: Option<&ResourceRequest>) -> Url {
-        let url = self.base_url().add_hash_path_part(ADDONS);
-        resource_request_to_path_parts(res_req)
-            .into_iter()
-            .fold(url, |url, path_part| url.add_hash_path_part(path_part))
+    pub fn addons_urls(self) -> page::addons::Urls<'a> {
+        page::addons::Urls::new(self.base_url().add_hash_path_part(ADDONS))
     }
 }
 
-fn resource_request_to_path_parts(req: Option<&ResourceRequest>) -> Vec<String> {
-    let req = if let Some(req) = req {
-        req
-    } else {
-        return Vec::new();
-    };
+// ------ ------
+//  Url helpers
+// ------ ------
 
-    // @TODO do we have to encode it?
-    let encoded_base = String::from(js_sys::encode_uri_component(&req.base));
-    let encoded_path = String::from(js_sys::encode_uri_component(&req.path.to_string()));
-    vec![encoded_base, encoded_path]
+fn resource_request_to_path_parts(req: &ResourceRequest) -> Vec<String> {
+    vec![req.base.to_owned(), req.path.to_string()]
+}
+
+#[derive(Debug)]
+enum ParseResourceRequestError {
+    Resource(ParseResourceErr),
+}
+
+fn resource_request_try_from_url_parts(
+    base: &str,
+    path: &str,
+) -> Result<ResourceRequest, ParseResourceRequestError> {
+    Ok(ResourceRequest {
+        base: base.to_owned(),
+        path: ResourceRef::from_str(&path).map_err(ParseResourceRequestError::Resource)?,
+    })
 }
 
 // ------ ------
@@ -212,100 +211,32 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 }
 
 fn init_page(mut url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> PageId {
-    match url.remaining_hash_path_parts().as_slice() {
-        [] | [BOARD] => PageId::Board,
-        [DISCOVER] => {
+    match url.next_hash_path_part() {
+        None | Some(BOARD) => Some(PageId::Board),
+        Some(DISCOVER) => {
             page::discover::init(
+                url,
                 &mut model.discover_model,
-                None,
                 &mut orders.proxy(Msg::DiscoverMsg),
-            );
-            PageId::Discover
+            )
         }
-        [DISCOVER, encoded_base, encoded_path] => {
-            let resource_request =
-                match resource_request_try_from_url_parts(encoded_base, encoded_path) {
-                    Ok(req) => req,
-                    Err(error) => {
-                        error!(error);
-                        return PageId::NotFound;
-                    }
-                };
-            page::discover::init(
-                &mut model.discover_model,
-                Some(resource_request),
-                &mut orders.proxy(Msg::DiscoverMsg),
-            );
-            PageId::Discover
-        }
-        [DETAIL, type_name, id, rest @ ..] => {
-            let video_id = rest.first().map(Deref::deref);
+        Some(DETAIL) => {
             page::detail::init(
+                url,
                 &mut model.detail_model,
-                type_name,
-                id,
-                video_id,
                 &mut orders.proxy(Msg::DetailMsg),
-            );
-            PageId::Detail
+            )
         }
-        [PLAYER] => PageId::Player,
-        [ADDONS] => {
+        Some(PLAYER) => Some(PageId::Player),
+        Some(ADDONS) => {
             page::addons::init(
+                url,
                 &mut model.addons_model,
-                None,
                 &mut orders.proxy(Msg::AddonsMsg),
-            );
-            PageId::Addons
+            )
         }
-        [ADDONS, encoded_base, encoded_path] => {
-            let resource_request =
-                match resource_request_try_from_url_parts(encoded_base, encoded_path) {
-                    Ok(req) => req,
-                    Err(error) => {
-                        error!(error);
-                        return PageId::NotFound;
-                    }
-                };
-            page::addons::init(
-                &mut model.addons_model,
-                Some(resource_request),
-                &mut orders.proxy(Msg::AddonsMsg),
-            );
-            PageId::Addons
-        }
-        _ => PageId::NotFound,
-    }
-}
-
-#[derive(Debug)]
-enum ParseResourceRequestError {
-    UriDecode(String),
-    Resource(ParseResourceErr),
-}
-
-fn resource_request_try_from_url_parts(
-    uri_encoded_base: &str,
-    uri_encoded_path: &str,
-) -> Result<ResourceRequest, ParseResourceRequestError> {
-    // @TODO do we have to decode it?
-
-    let base: String = {
-        js_sys::decode_uri_component(uri_encoded_base)
-            .map_err(|_| ParseResourceRequestError::UriDecode(uri_encoded_base.to_owned()))?
-            .into()
-    };
-
-    let path: String = {
-        js_sys::decode_uri_component(uri_encoded_path)
-            .map_err(|_| ParseResourceRequestError::UriDecode(uri_encoded_path.to_owned()))?
-            .into()
-    };
-
-    Ok(ResourceRequest {
-        base,
-        path: ResourceRef::from_str(&path).map_err(ParseResourceRequestError::Resource)?,
-    })
+        _ => None,
+    }.unwrap_or(PageId::NotFound)
 }
 
 // ------ ------

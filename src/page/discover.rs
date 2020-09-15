@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, Context, UpdateCoreModel, Urls as RootUrls};
+use crate::{entity::multi_select, Context, UpdateCoreModel, Urls as RootUrls, resource_request_try_from_url_parts, PageId, resource_request_to_path_parts};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -29,23 +29,34 @@ const RESOURCE: &str = "catalog";
 // ------ ------
 
 pub fn init(
+    mut url: Url,
     model: &mut Option<Model>,
-    resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg>,
-) {
+) -> Option<PageId> {
+    let base_url = url.to_hash_base_url();
+
+    let resource_request = match url.remaining_hash_path_parts().as_slice() {
+        [encoded_base, encoded_path] => {
+            resource_request_try_from_url_parts(encoded_base, encoded_path)
+                .map_err(|error| error!(error)).ok()
+        },
+        _ => None
+    };
+
     load_catalog(resource_request, orders);
 
-    model.get_or_insert_with(|| Model {
+    model.get_or_insert_with(move || Model {
+        base_url,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
         type_selector_model: type_selector::init(),
         catalog_selector_model: catalog_selector::init(),
         extra_prop_selector_model: extra_prop_selector::init(),
         selected_meta_preview_id: None,
     });
+    Some(PageId::Discover)
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    // @TODO try to remove `Clone` requirement from Seed or add it into stremio-core? Implement intos, from etc.?
     orders.notify(UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
     )))));
@@ -63,11 +74,28 @@ pub fn default_resource_request() -> ResourceRequest {
 // ------ ------
 
 pub struct Model {
+    base_url: Url,
     _core_msg_sub_handle: SubHandle,
     selected_meta_preview_id: Option<MetaPreviewId>,
     type_selector_model: type_selector::Model,
     catalog_selector_model: catalog_selector::Model,
     extra_prop_selector_model: extra_prop_selector::Model,
+}
+
+// ------ ------
+//     Urls
+// ------ ------
+
+struct_urls!();
+impl<'a> Urls<'a> {
+    pub fn root(self) -> Url {
+        self.base_url()
+    }
+    pub fn res_req(self, res_req: &ResourceRequest) -> Url {
+        resource_request_to_path_parts(res_req)
+            .into_iter()
+            .fold(self.base_url(), |url, path_part| url.add_hash_path_part(path_part))
+    }
 }
 
 // ------ ------
@@ -100,15 +128,16 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::MetaPreviewClicked(meta_preview) => {
             if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
-                let video_id = IF!(meta_preview.type_name == "movie" => {
-                    meta_preview.id.clone()
-                });
-                let id = meta_preview.id;
-                let type_name = meta_preview.type_name;
+                let id = &meta_preview.id;
+                let type_name = &meta_preview.type_name;
 
-                orders.request_url(
-                    RootUrls::new(&context.root_base_url).detail(type_name, id, video_id),
-                );
+                let detail_urls = RootUrls::new(&context.root_base_url).detail_urls();
+
+                orders.request_url(if meta_preview.type_name == "movie" {
+                    detail_urls.with_video_id(type_name, id, id) 
+                } else {
+                    detail_urls.without_video_id(type_name, id)
+                });
             } else {
                 model.selected_meta_preview_id = Some(meta_preview.id);
             }
@@ -129,7 +158,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let res_req = type_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(&res_req)));
+            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
 
         // ------ CatalogSelector  ------
@@ -147,7 +176,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let res_req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(&res_req)));
+            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
 
         // ------ ExtraPropSelector  ------
@@ -167,7 +196,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             if let Some(res_req) =
                 extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
             {
-                orders.request_url(RootUrls::new(&context.root_base_url).discover(Some(&res_req)));
+                orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
             }
         }
     }
@@ -205,7 +234,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                 )
                 .map_msg(Msg::ExtraPropSelectorMsg),
                 // reset button
-                view_reset_button(&context.root_base_url),
+                view_reset_button(&model.base_url),
             ],
             div![
                 C!["catalog-content-container"],
@@ -218,7 +247,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     ]
 }
 
-fn view_reset_button(root_base_url: &Url) -> Node<Msg> {
+fn view_reset_button(base_url: &Url) -> Node<Msg> {
     a![
         style! {
             St::Width => px(100),
@@ -229,7 +258,7 @@ fn view_reset_button(root_base_url: &Url) -> Node<Msg> {
             St::Cursor => "pointer",
         },
         attrs! {
-            At::Href => RootUrls::new(root_base_url).discover(None)
+            At::Href => Urls::new(base_url).root()
         },
         "Reset",
     ]
