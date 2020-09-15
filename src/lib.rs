@@ -11,11 +11,8 @@ use env_web::Env;
 use futures::compat::Future01CompatExt;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use std::str::FromStr;
 use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};
-use stremio_core::types::addons::{
-    DescriptorPreview, ParseResourceErr, ResourceRef, ResourceRequest,
-};
+use stremio_core::types::addons::DescriptorPreview;
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
 
@@ -119,29 +116,6 @@ impl<'a> Urls<'a> {
     pub fn addons_urls(self) -> page::addons::Urls<'a> {
         page::addons::Urls::new(self.base_url().add_hash_path_part(ADDONS))
     }
-}
-
-// ------ ------
-//  Url helpers
-// ------ ------
-
-fn resource_request_to_path_parts(req: &ResourceRequest) -> Vec<String> {
-    vec![req.base.to_owned(), req.path.to_string()]
-}
-
-#[derive(Debug)]
-enum ParseResourceRequestError {
-    Resource(ParseResourceErr),
-}
-
-fn resource_request_try_from_url_parts(
-    base: &str,
-    path: &str,
-) -> Result<ResourceRequest, ParseResourceRequestError> {
-    Ok(ResourceRequest {
-        base: base.to_owned(),
-        path: ResourceRef::from_str(&path).map_err(ParseResourceRequestError::Resource)?,
-    })
 }
 
 // ------ ------
