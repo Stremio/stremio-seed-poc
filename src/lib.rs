@@ -135,8 +135,28 @@ enum Msg {
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::UrlChanged(subs::UrlChanged(url)) => {
-            model.page_id = Some(init_page(url, model, orders));
+        Msg::UrlChanged(subs::UrlChanged(mut url)) => {
+            let page_id = match url.next_hash_path_part() {
+                None | Some(BOARD) => Some(PageId::Board),
+                Some(DISCOVER) => page::discover::init(
+                    url,
+                    &mut model.discover_model,
+                    &mut orders.proxy(Msg::DiscoverMsg),
+                ),
+                Some(DETAIL) => page::detail::init(
+                    url,
+                    &mut model.detail_model,
+                    &mut orders.proxy(Msg::DetailMsg),
+                ),
+                Some(PLAYER) => Some(PageId::Player),
+                Some(ADDONS) => page::addons::init(
+                    url,
+                    &mut model.addons_model,
+                    &mut orders.proxy(Msg::AddonsMsg),
+                ),
+                _ => None,
+            };
+            model.page_id = page_id.or(Some(PageId::NotFound));
         }
         Msg::CoreMsg(core_msg) => {
             let fx = model.context.core_model.update(&core_msg);
@@ -182,35 +202,6 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
     }
-}
-
-fn init_page(mut url: Url, model: &mut Model, orders: &mut impl Orders<Msg>) -> PageId {
-    match url.next_hash_path_part() {
-        None | Some(BOARD) => Some(PageId::Board),
-        Some(DISCOVER) => {
-            page::discover::init(
-                url,
-                &mut model.discover_model,
-                &mut orders.proxy(Msg::DiscoverMsg),
-            )
-        }
-        Some(DETAIL) => {
-            page::detail::init(
-                url,
-                &mut model.detail_model,
-                &mut orders.proxy(Msg::DetailMsg),
-            )
-        }
-        Some(PLAYER) => Some(PageId::Player),
-        Some(ADDONS) => {
-            page::addons::init(
-                url,
-                &mut model.addons_model,
-                &mut orders.proxy(Msg::AddonsMsg),
-            )
-        }
-        _ => None,
-    }.unwrap_or(PageId::NotFound)
 }
 
 // ------ ------

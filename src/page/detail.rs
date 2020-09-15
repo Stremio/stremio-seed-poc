@@ -1,4 +1,4 @@
-use crate::{UpdateCoreModel, PageId};
+use crate::{PageId, UpdateCoreModel};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
@@ -8,7 +8,7 @@ use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
 // ------ ------
 
 pub fn init(
-    mut url: Url, 
+    mut url: Url,
     model: &mut Option<Model>,
     orders: &mut impl Orders<Msg>,
 ) -> Option<PageId> {
