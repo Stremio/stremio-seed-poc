@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, Context, UpdateCoreModel, Urls as RootUrls, resource_request_try_from_url_parts, PageId, resource_request_to_path_parts};
+use crate::{entity::multi_select, Context, UpdateCoreModel, Urls as RootUrls, PageId};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -36,9 +36,17 @@ pub fn init(
     let base_url = url.to_hash_base_url();
 
     let resource_request = match url.remaining_hash_path_parts().as_slice() {
-        [encoded_base, encoded_path] => {
-            resource_request_try_from_url_parts(encoded_base, encoded_path)
-                .map_err(|error| error!(error)).ok()
+        [base, path] => {
+            path
+                .parse()
+                .map_err(|error| error!(error))
+                .map(|path| {
+                    ResourceRequest {
+                        base: base.to_string(),
+                        path,
+                    }
+                })
+                .ok()
         },
         _ => None
     };
@@ -92,9 +100,9 @@ impl<'a> Urls<'a> {
         self.base_url()
     }
     pub fn res_req(self, res_req: &ResourceRequest) -> Url {
-        resource_request_to_path_parts(res_req)
-            .into_iter()
-            .fold(self.base_url(), |url, path_part| url.add_hash_path_part(path_part))
+        self.base_url()
+            .add_hash_path_part(&res_req.base)
+            .add_hash_path_part(res_req.path.to_string())
     }
 }
 
