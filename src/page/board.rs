@@ -18,7 +18,7 @@ pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => RootUrls::new(root_base_url).discover(None)
+                At::Href => RootUrls::new(root_base_url).discover_urls().root()
             },
             "Go to Discover ▶"
         ],
@@ -36,7 +36,7 @@ pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => RootUrls::new(root_base_url).addons(None)
+                At::Href => RootUrls::new(root_base_url).addons_urls().root()
             },
             "Go to Addons ▶"
         ]

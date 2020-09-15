@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, Context, Urls as RootUrls};
+use crate::{entity::multi_select, Context, resource_request_to_path_parts, resource_request_try_from_url_parts, PageId};
 use enclose::enc;
 use modal::Modal;
 use seed::{prelude::*, *};
@@ -25,19 +25,31 @@ const RESOURCE: &str = "addon_catalog";
 // ------ ------
 
 pub fn init(
+    mut url: Url,
     model: &mut Option<Model>,
-    resource_request: Option<ResourceRequest>,
     orders: &mut impl Orders<Msg>,
-) {
+) -> Option<PageId> {
+    let base_url = url.to_hash_base_url();
+
+    let resource_request = match url.remaining_hash_path_parts().as_slice() {
+        [encoded_base, encoded_path] => {
+            resource_request_try_from_url_parts(encoded_base, encoded_path)
+                .map_err(|error| error!(error)).ok()
+        },
+        _ => None
+    };
+
     load_catalog(resource_request, orders);
 
-    model.get_or_insert_with(|| Model {
+    model.get_or_insert_with(move || Model {
+        base_url,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
         catalog_selector_model: catalog_selector::init(),
         type_selector_model: type_selector::init(),
         search_query: String::new(),
         modal: None,
     });
+    Some(PageId::Addons)
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
@@ -58,11 +70,28 @@ pub fn default_resource_request() -> ResourceRequest {
 // ------ ------
 
 pub struct Model {
+    base_url: Url,
     _core_msg_sub_handle: SubHandle,
     catalog_selector_model: catalog_selector::Model,
     type_selector_model: type_selector::Model,
     search_query: String,
     modal: Option<Modal>,
+}
+
+// ------ ------
+//     Urls
+// ------ ------
+
+struct_urls!();
+impl<'a> Urls<'a> {
+    pub fn root(self) -> Url {
+        self.base_url()
+    }
+    pub fn res_req(self, res_req: &ResourceRequest) -> Url {
+        resource_request_to_path_parts(res_req)
+            .into_iter()
+            .fold(self.base_url(), |url, path_part| url.add_hash_path_part(path_part))
+    }
 }
 
 // ------ ------
@@ -109,7 +138,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::CatalogSelectorChanged(groups_with_selected_items) => {
             let res_req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(&res_req)));
+            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
 
         // ------ TypeSelector  ------
@@ -131,7 +160,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::TypeSelectorChanged(groups_with_selected_items) => {
             let res_req = type_selector::resource_request(groups_with_selected_items);
-            orders.request_url(RootUrls::new(&context.root_base_url).addons(Some(&res_req)));
+            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,

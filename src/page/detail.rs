@@ -1,4 +1,4 @@
-use crate::UpdateCoreModel;
+use crate::{UpdateCoreModel, PageId};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
@@ -8,23 +8,26 @@ use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
 // ------ ------
 
 pub fn init(
+    mut url: Url, 
     model: &mut Option<Model>,
-    type_name: &str,
-    id: &str,
-    video_id: Option<&str>,
     orders: &mut impl Orders<Msg>,
-) {
+) -> Option<PageId> {
+    let type_name = url.next_hash_path_part()?.to_owned();
+    let id = url.next_hash_path_part()?.to_owned();
+    let video_id = url.next_hash_path_part().map(ToOwned::to_owned);
+
     // @TODO refactor and integrate
     // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
     orders.notify(UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::Detail {
-            type_name: type_name.to_owned(),
-            id: id.to_owned(),
-            video_id: video_id.map(ToOwned::to_owned),
+            type_name,
+            id,
+            video_id,
         },
     )))));
 
     model.get_or_insert_with(|| Model {});
+    Some(PageId::Detail)
 }
 
 // ------ ------
@@ -33,6 +36,25 @@ pub fn init(
 
 pub struct Model {
     // @TODO
+}
+
+// ------ ------
+//     Urls
+// ------ ------
+
+struct_urls!();
+impl<'a> Urls<'a> {
+    pub fn without_video_id(self, type_name: &str, id: &str) -> Url {
+        self.base_url()
+            .add_hash_path_part(type_name)
+            .add_hash_path_part(id)
+    }
+    pub fn with_video_id(self, type_name: &str, id: &str, video_id: &str) -> Url {
+        self.base_url()
+            .add_hash_path_part(type_name)
+            .add_hash_path_part(id)
+            .add_hash_path_part(video_id)
+    }
 }
 
 // ------ ------

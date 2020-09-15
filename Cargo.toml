@@ -21,9 +21,9 @@ js-sys = "0.3"
 enclose = "1.1.8"
 itertools = "0.8.1"
 
-seed = { git = "https://github.com/seed-rs/seed", rev = "ddb0ae7" }
+# seed = { git = "https://github.com/seed-rs/seed", rev = "14afc43" }
 #seed = { git = "ssh://git@github.com/MartinKavik/seed.git" }
-#seed = { path = "../seed" }
+seed = { path = "../seed" }
 
 stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
 #stremio-core = { path = "../stremio-core" }
