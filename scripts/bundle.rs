@@ -27,14 +27,8 @@ fn bundle_assets() {
 
 fn bundle_index_html() {
     let mut index_html_content = fs::read_to_string("index.html").expect("read index.html");
-    let text_min_js_content = fs::read_to_string("text.min.js").expect("read text.min.js");
     let styles_css_content = fs::read_to_string("styles.css").expect("read styles.css");
     let package_js_content = fs::read_to_string("pkg/package.js").expect("read pkg/package.js");
-
-    index_html_content = index_html_content.replace(
-        "<script src='text.min.js'></script>",
-        &format!("<script>{}</script>", text_min_js_content)
-    );
 
     index_html_content = index_html_content.replace(
         r#"<link rel="stylesheet" type="text/css" href="styles.css">"#,
@@ -42,7 +36,7 @@ fn bundle_index_html() {
     );
 
     index_html_content = index_html_content.replace(
-        r#"<script type="module"> import init from '/pkg/package.js'; init('/pkg/package_bg.wasm'); </script>"#,
+        r#"<script type="module">import init from '/pkg/package.js'; init('/pkg/package_bg.wasm');</script>"#,
         &format!(r#"<script type="module">{} init('/stremio-{}.wasm'); </script>"#, package_js_content, VERSION)
     );
 
