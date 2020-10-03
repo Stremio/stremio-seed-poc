@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, Context, PageId, UpdateCoreModel, Urls as RootUrls};
+use crate::{entity::multi_select, Context, PageId, Actions, Urls as RootUrls};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -61,7 +61,7 @@ pub fn init(
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    orders.notify(UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
         ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
     )))));
 }
