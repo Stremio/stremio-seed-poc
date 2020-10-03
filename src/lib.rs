@@ -25,6 +25,15 @@ const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
 
 // ------ ------
+//    Actions
+// ------ ------
+
+#[derive(Clone)]
+pub enum Actions {
+    UpdateCoreModel(Rc<CoreMsg>)
+}
+
+// ------ ------
 //     Init
 // ------ ------
 
@@ -32,7 +41,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
     let root_base_url = url.to_hash_base_url();
     orders
         .subscribe(Msg::UrlChanged)
-        .subscribe(|UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
+        .subscribe(|Actions::UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
         .subscribe(Msg::CoreMsg)
         .notify(subs::UrlChanged(url));
 
@@ -48,9 +57,6 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         addons_model: None,
     }
 }
-
-#[derive(Clone)]
-struct UpdateCoreModel(Rc<CoreMsg>);
 
 // ------ ------
 //     Model
