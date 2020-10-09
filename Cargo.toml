@@ -24,7 +24,9 @@ itertools = "0.8.1"
 # seed = { git = "https://github.com/seed-rs/seed", rev = "14afc43" }
 #seed = { git = "ssh://git@github.com/MartinKavik/seed.git" }
 seed = { path = "../seed" }
-seed_style = { git = "https://github.com/arn-the-long-beard/seed_style_preview.git", package = "seed_style_preview", branch = "hot_fix/update_with_new_hooks" }
+
+# seed_style = { git = "https://github.com/arn-the-long-beard/seed_style_preview.git", package = "seed_style_preview", branch = "hot_fix/update_with_new_hooks" }
+seed_style = { path = "../seed_style_preview", package = "seed_style_preview" }
 
 stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
 #stremio-core = { path = "../stremio-core" }
@@ -35,7 +37,8 @@ stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
 env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
 #env-web = { path = "../stremio-core/env-web" }
 
-seed_hooks = { git = "https://github.com/arn-the-long-beard/seed_hooks.git", branch = "hot_fix/update_with_new_hooks" }
+# seed_hooks = { git = "https://github.com/arn-the-long-beard/seed_hooks.git", branch = "hot_fix/update_with_new_hooks" }
+seed_hooks = { path = "../seed_hooks" }
 
 [dependencies.web-sys]
 version = "0.3.30"
