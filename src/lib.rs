@@ -6,6 +6,7 @@
 
 mod entity;
 mod page;
+mod styles;
 
 use env_web::Env;
 use futures::compat::Future01CompatExt;
@@ -42,7 +43,7 @@ pub enum Actions {
 // ------ ------
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    init_styles();
+    styles::init();
 
     let root_base_url = url.to_hash_base_url();
     orders
@@ -62,103 +63,6 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         discover_model: None,
         addons_model: None,
     }
-}
-
-fn init_styles() {
-    load_app_themes(&[default_breakpoint_theme, default_scale_theme]);
-
-    GlobalStyle::default()
-    .style(
-        "body", // @TODO: should be "html" once possible
-        s()
-            .font_size(px(16))
-            .box_sizing(CssBoxSizing::BorderBox)
-            .raw("text-rendering: optimizeLegibility;")
-            .raw(format!("-webkit-text-size-adjust: {};", pc(100)).as_str())
-            .raw(format!("-moz-text-size-adjust: {};", pc(100)).as_str())
-    )
-    .style(
-        "body",
-        s()
-            .color("#4a4a4a")
-            .font_size(em(1))
-            .font_weight("400")
-            .line_height("1.5")
-    )
-    .style(
-        "body, button, input, select, textarea", 
-        s()
-            .font_family(r#"BlinkMacSystemFont,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Fira Sans","Droid Sans","Helvetica Neue",Helvetica,Arial,sans-serif"#)
-    )
-    .style(
-        "*, ::after, ::before",
-        s()
-            .box_sizing(CssBoxSizing::Inherit)
-    )
-    .style(
-        "a",
-        s()
-            .color("#3273dc")
-            .cursor(CssCursor::Pointer)
-            .text_decoration(CssTextDecoration::None)
-    )
-    .style(
-        "a",
-        s()
-            .hover()
-            .color("#363636")
-    )
-    .style(
-        "span",
-        s()
-            .font_style(CssFontStyle::Inherit)
-            .font_weight(CssFontWeight::Inherit)
-    )
-    .style(
-        "blockquote, body, dd, dl, dt, fieldset, figure, h1, h2, h3, h4, h5, h6, hr, html, iframe, legend, li, ol, p, pre, textarea, ul",
-        s()
-            .m("0")
-            .p("0")
-    )
-    .activate_init_styles();
-}
-
-#[derive(Hash, PartialEq, Eq, Clone, Debug)]
-pub enum Breakpoint {
-    // basic
-    Mobile,
-    Tablet,
-    Desktop,
-    WideScreen,
-    FullHD,
-    // extra
-    TabletOnly,
-    Touch,
-    DesktopOnly,
-    WideScreenOnly,
-}
-impl BreakpointTheme for Breakpoint {} 
-
-fn default_breakpoint_theme() -> Theme {
-    use Breakpoint::*;
-    Theme::new("default_breakpoint_theme")
-        // basic
-        .set_breakpoint(Mobile, (0, Some(769))) 
-        .set_breakpoint(Tablet, (769, Some(1024)))
-        .set_breakpoint(Desktop, (1024, Some(1216)))
-        .set_breakpoint(WideScreen, (1216, Some(1408)))
-        .set_breakpoint(FullHD, (1408, None))
-        .breakpoint_scale([769, 1024, 1216, 1408]) 
-        // extra
-        .set_breakpoint(TabletOnly, (769, Some(1024)))
-        .set_breakpoint(Touch, (0, Some(1024)))
-        .set_breakpoint(DesktopOnly, (1024, Some(1216)))
-        .set_breakpoint(WideScreenOnly, (1216, Some(1408)))
-}
-
-fn default_scale_theme() -> Theme {
-    Theme::new("default_scale_theme")
-        .font_size_scale(&[rem(3), rem(2.5), rem(2), rem(1.5), rem(1.25), rem(1), rem(0.75)])
 }
 
 // ------ ------
@@ -317,13 +221,16 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-// #[topo::nested]
+#[topo::nested]
 fn view(model: &Model) -> Node<Msg> {
     let dummy_text = use_state(|| "remove me");
     log!(dummy_text.get());
 
     div![
         C!["router", "routes-container"],
+        s()
+            .width(pc(100))
+            .height(pc(100)),
         div![
             C!["route-container",],
             model.page_id.map(|page_id| {
