@@ -1,4 +1,2 @@
-mod init;
-pub use init::init;
-
+pub mod global;
 pub mod themes;

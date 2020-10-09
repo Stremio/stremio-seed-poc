@@ -43,7 +43,7 @@ pub enum Actions {
 // ------ ------
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    styles::init();
+    styles::global::init();
 
     let root_base_url = url.to_hash_base_url();
     orders
