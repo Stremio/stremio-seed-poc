@@ -377,8 +377,8 @@ fn view_meta_preview(
         IF!(is_selected => {
             s()
                 .after()
-                .outline_width(format!("calc(1.5 * {})", global::focus_outline_size).as_str())
-                .raw(format!("outline-offset: calc(-1.5 * {});", global::focus_outline_size).as_str())
+                .outline_width(format!("calc(1.5 * {})", global::FOCUS_OUTLINE_SIZE).as_str())
+                .raw(format!("outline-offset: calc(-1.5 * {});", global::FOCUS_OUTLINE_SIZE).as_str())
         }),
         attrs! {
             At::TabIndex => 0,

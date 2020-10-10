@@ -1,39 +1,20 @@
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
-use std::collections::HashMap;
-use crate::styles::themes::{self, Breakpoint, Color};
+use crate::styles::themes::{self, Breakpoint, Color, get_color_value};
 
 mod font_faces;
 use font_faces::GlobalStyleFontFaces;
 
-pub const landscape_shape_ratio: f64 = 0.5625;
-pub const poster_shape_ration: f64 = 1.464;
-pub const scroll_bar_width: &str = "6px";
-pub const focus_outline_size: &str = "2px";
-pub const color_facebook: &str = "#4267b2";
-pub const color_twitter: &str = "#1DA1F2";
-pub const color_placeholder: &str = "#60606080";
+pub const LANDSCAPE_SHAPE_RATIO: f64 = 0.5625;
+pub const POSTER_SHAPE_RATIO: f64 = 1.464;
+pub const SCROLL_BAR_WIDTH: &str = "6px";
+pub const FOCUS_OUTLINE_SIZE: &str = "2px";
+pub const COLOR_FACEBOOK: &str = "#4267b2";
+pub const COLOR_TWITTER: &str = "#1DA1F2";
+pub const COLOR_PLACEHOLDER: &str = "#60606080";
 
 pub fn init() {
     load_app_themes(&[themes::default_color_theme, themes::default_breakpoint_theme]);
-
-    let get_color_value = |color: Color| {
-        app_themes().get_with(|themes| {
-            themes
-                .iter()
-                .find(|theme| theme.name == "default_color_theme")
-                .map(|theme| {
-                    let colors = theme
-                        .anymap.get::<HashMap<Color, CssColor>>().unwrap();
-                    let css_color = colors.get(&color).unwrap();
-                    let string_color = css_color.to_string();
-                    string_color
-                        .strip_prefix("color: ").unwrap()
-                        .strip_suffix(";").unwrap()
-                        .to_owned()
-                })
-        }).unwrap()
-    };
 
     GlobalStyle::new()
         .add_font_faces()
@@ -85,7 +66,7 @@ pub fn init() {
         .style(
             "::-webkit-scrollbar",
             s()
-                .width(scroll_bar_width)
+                .width(SCROLL_BAR_WIDTH)
         )
         .style(
             "::-webkit-scrollbar-thumb",

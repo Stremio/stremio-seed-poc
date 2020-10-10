@@ -1,5 +1,24 @@
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
+use std::collections::HashMap;
+
+pub fn get_color_value(color: Color) -> String {
+    app_themes().get_with(|themes| {
+        themes
+            .iter()
+            .find(|theme| theme.name == "default_color_theme")
+            .map(|theme| {
+                let colors = theme
+                    .anymap.get::<HashMap<Color, CssColor>>().unwrap();
+                let css_color = colors.get(&color).unwrap();
+                let string_color = css_color.to_string();
+                string_color
+                    .strip_prefix("color: ").unwrap()
+                    .strip_suffix(";").unwrap()
+                    .to_owned()
+            })
+    }).unwrap()
+}
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Breakpoint {
