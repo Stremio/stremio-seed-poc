@@ -3,6 +3,12 @@ use seed_style::*;
 use std::collections::HashMap;
 use crate::styles::themes::{self, Breakpoint, Color};
 
+mod font_faces;
+use font_faces::GlobalStyleFontFaces;
+
+mod routes_container;
+use routes_container::GlobalStyleRoutesContainer;
+
 pub fn init() {
     let landscape_shape_ratio = 0.5625;
     let poster_shape_ration = 1.464;
@@ -32,7 +38,9 @@ pub fn init() {
         }).unwrap()
     };
 
-    GlobalStyle::default()
+    GlobalStyle::new()
+        .add_font_faces()
+        .add_routes_container()
         .style(
             "html",
             s()
@@ -127,80 +135,5 @@ pub fn init() {
                 .width(pc(100))
                 .height(pc(100))
         )
-        .add_font_faces()
         .activate_init_styles();
-}
-
-trait GlobalStyleExt {
-    fn add_font_faces(self) -> Self;
-}
-
-impl GlobalStyleExt for GlobalStyle {
-    fn add_font_faces(self) -> Self where Self: Sized {
-        self
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Italic)
-                    .font_weight("300")
-                    .raw("src: url('/fonts/Roboto-LightItalic.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Italic)
-                    .font_weight("400")
-                    .raw("src: url('/fonts/Roboto-RegularItalic.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Italic)
-                    .font_weight("500")
-                    .raw("src: url('/fonts/Roboto-MediumItalic.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Italic)
-                    .font_weight("700")
-                    .raw("src: url('/fonts/Roboto-BoldItalic.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Normal)
-                    .font_weight("300")
-                    .raw("src: url('/fonts/Roboto-Light.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Normal)
-                    .font_weight("400")
-                    .raw("src: url('/fonts/Roboto-Regular.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Normal)
-                    .font_weight("500")
-                    .raw("src: url('/fonts/Roboto-Medium.ttf') format('truetype');") 
-            )
-            .style(
-                "@font-face",
-                s()
-                    .font_family("'Roboto'")
-                    .font_style(CssFontStyle::Normal)
-                    .font_weight("700")
-                    .raw("src: url('/fonts/Roboto-Bold.ttf') format('truetype');") 
-            )
-    }
 }
