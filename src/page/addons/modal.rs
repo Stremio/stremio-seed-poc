@@ -1,4 +1,6 @@
 use seed::{prelude::*, *};
+use seed_style::{px, em, pc, rem, Style};
+use seed_style::*;
 
 // @TODO DRY + add logic + push to url
 
@@ -14,8 +16,19 @@ pub enum Modal {
 pub fn view<Ms: 'static>(modal: &Modal, close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["modals-container"],
+        s()
+            .width("0")
+            .height("0"),
         div![
             C!["modal-container",],
+            s()
+                .position(CssPosition::Absolute)
+                .top("0")
+                .right("0")
+                .bottom("0")
+                .left("0")
+                .z_index("1")
+                .overflow(CssOverflow::Hidden),
             ev(Ev::Click, move |event| {
                 IF!(event.target() == event.current_target() => close_msg())
             }),
