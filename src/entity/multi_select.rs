@@ -2,6 +2,9 @@ use itertools::Itertools;
 use seed::{prelude::*, *};
 use std::fmt::Debug;
 use wasm_bindgen::JsCast;
+use seed_style::{px, em, pc, rem, Style};
+use seed_style::*;
+use crate::styles::themes::{Color, get_color_value};
 
 const MENU_CLASS: &str = "popup-menu-container";
 
@@ -188,16 +191,53 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 "button-container",
                 IF!(model.opened => "active"),
             ],
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .align_items(CssAlignItems::Center)
+                .padding("0 1rem")
+                .background_color(Color::BackgroundLighter),
+            s()
+                .flex_grow("0")
+                .flex_shrink("1")
+                .flex_basis("15rem")
+                .height(rem(3))
+                .margin_right(rem(1)),
+            s()
+                .position(CssPosition::Relative)
+                .overflow(CssOverflow::Visible),
+            IF!(model.opened => {
+                s()
+                    .background_color(Color::SurfaceLight)
+            }),
             attrs! {
                 At::TabIndex => 0,
             },
             ev(Ev::Click, |_| Msg::ToggleMenu),
             div![
                 C!["label"],
+                s()
+                    .flex("1")
+                    .max_height(rem(2.4))
+                    .color(Color::SurfaceLighter),
+                IF!(model.opened => {
+                    s()
+                        .color(Color::BackgroundDarker)
+                }),
                 selected_items.iter().map(|item| &item.label).join(", "),
             ],
             svg![
                 C!["icon"],
+                s()
+                    .flex(CssFlex::None)
+                    .width(rem(1))
+                    .height(rem(1))
+                    .margin_left(rem(1))
+                    .fill(Color::SurfaceLighter),
+                IF!(model.opened => {
+                    s()
+                        .fill(Color::BackgroundDarker)
+                }),
                 attrs! {
                     At::ViewBox => "0 0 1731 1024",
                     "icon" => "ic_arrow_down",
@@ -209,12 +249,29 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
             if model.opened {
                 div![
                     C![MENU_CLASS, "menu-direction-bottom",],
+                    IF!(MENU_CLASS == "popup-menu-container" => {
+                        s()
+                            .width(pc(100))
+                            .position(CssPosition::Absolute)
+                            .right("0")
+                            .z_index("1")
+                            .overflow(CssOverflow::Visible)
+                            .box_shadow(format!(
+                                "0 1.35rem 2.7rem {}, 0 1.1rem 0.85rem {}", 
+                                get_color_value(Color::BackgroundDarker40), 
+                                get_color_value(Color::BackgroundDarker20)).as_str())
+                            .cursor(CssCursor::Auto)
+                            .top("100%")
+                    }),
                     attrs! {
                         At::TabIndex => 0,
                     },
                     ev(Ev::Blur, |_| Msg::ToggleMenu),
                     div![
                         C!["multiselect-menu-container"],
+                        s()
+                            .max_height("calc(3.2rem * 7)")
+                            .overflow(CssOverflow::Auto),
                         groups.iter().map(view_group).collect::<Vec<_>>()
                     ]
                 ]
@@ -252,6 +309,22 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             "button-container",
             IF!(item.selected => "selected"),
         ],
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .align_items(CssAlignItems::Center)
+            .padding(rem(1))
+            .background_color(Color::BackgroundLighter),
+        IF!(item.selected => {
+            s()
+                .background_color(Color::SurfaceDarker)
+        }),
+        s()
+            .hover()
+            .background_color(Color::SurfaceDark),
+        s()
+            .focus()
+            .background_color(Color::SurfaceDark),
         attrs! {
             At::Title => item.label,
         },
@@ -260,9 +333,23 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             let item_id = item.id.clone();
             move |_| Msg::ItemClicked(group_id, item_id)
         }),
-        div![C!["label"], &item.label,],
+        div![
+            C!["label"],
+            s()
+                .flex("1")
+                .max_height(rem(4.8))
+                .color(Color::SurfaceLighter),
+            &item.label,
+        ],
         svg![
             C!["icon"],
+            s()
+                .flex(CssFlex::None)
+                .display(CssDisplay::None)
+                .width(rem(1))
+                .height(rem(1))
+                .margin_left(rem(1))
+                .fill(Color::SurfaceLighter),
             attrs! {
                 At::ViewBox => "0 0 1331 1024",
                 "icon" => "ic_check",
