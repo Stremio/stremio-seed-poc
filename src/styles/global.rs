@@ -6,15 +6,15 @@ use crate::styles::themes::{self, Breakpoint, Color};
 mod font_faces;
 use font_faces::GlobalStyleFontFaces;
 
-pub fn init() {
-    let landscape_shape_ratio = 0.5625;
-    let poster_shape_ration = 1.464;
-    let scroll_bar_width = px(6);
-    let focus_outline_size = px(2);
-    let color_facebook = "#4267b2";
-    let color_twitter = "#1DA1F2";
-    let color_placeholder = "#60606080";
+pub const landscape_shape_ratio: f64 = 0.5625;
+pub const poster_shape_ration: f64 = 1.464;
+pub const scroll_bar_width: &str = "6px";
+pub const focus_outline_size: &str = "2px";
+pub const color_facebook: &str = "#4267b2";
+pub const color_twitter: &str = "#1DA1F2";
+pub const color_placeholder: &str = "#60606080";
 
+pub fn init() {
     load_app_themes(&[themes::default_color_theme, themes::default_breakpoint_theme]);
 
     let get_color_value = |color: Color| {
@@ -42,33 +42,33 @@ pub fn init() {
             s()
                 .width(pc(100))
                 .height(pc(100))
-                .min_width(pc(100))
-                .min_height(pc(100))
+                .min_width(px(800))
+                .min_height(px(600))
                 .font_family("'Roboto', 'sans-serif'")
                 .overflow(CssOverflow::Auto)
         )
         .style(
             "html",
             s()
-                .only_and_above(Breakpoint::XXLarge)
+                .only_and_above(Breakpoint::XLarge)
                 .font_size(px(18))
         )
         .style(
             "html",
             s()
-                .only_and_below(Breakpoint::XXLarge)
+                .only_and_below(Breakpoint::XLarge)
                 .font_size(px(16))
         )
         .style(
             "html",
             s()
-                .only_and_below(Breakpoint::Large)
+                .only_and_below(Breakpoint::Medium)
                 .font_size(px(15))
         )
         .style(
             "html",
             s()
-                .only_and_below(Breakpoint::Medium)
+                .only_and_below(Breakpoint::Small)
                 .font_size(px(14))
         )
         .style(
