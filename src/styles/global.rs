@@ -6,9 +6,6 @@ use crate::styles::themes::{self, Breakpoint, Color};
 mod font_faces;
 use font_faces::GlobalStyleFontFaces;
 
-mod routes_container;
-use routes_container::GlobalStyleRoutesContainer;
-
 pub fn init() {
     let landscape_shape_ratio = 0.5625;
     let poster_shape_ration = 1.464;
@@ -40,7 +37,6 @@ pub fn init() {
 
     GlobalStyle::new()
         .add_font_faces()
-        .add_routes_container()
         .style(
             "html",
             s()

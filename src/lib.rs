@@ -230,9 +230,18 @@ fn view(model: &Model) -> Node<Msg> {
         C!["router", "routes-container"],
         s()
             .width(pc(100))
-            .height(pc(100)),
+            .height(pc(100))
+            .position(CssPosition::Relative)
+            .z_index("0"),
         div![
             C!["route-container",],
+            s()
+                .position(CssPosition::Absolute)
+                .top("0")
+                .right("0")
+                .bottom("0")
+                .left("0")
+                .z_index("0"),
             model.page_id.map(|page_id| {
                 match page_id {
                     PageId::Board => page::board::view(&model.context.root_base_url).into_nodes(),
