@@ -10,6 +10,9 @@ use stremio_core::types::{
     addons::{ResourceRef, ResourceRequest, ResourceResponse},
     PosterShape,
 };
+use seed_style::{px, em, pc, rem, Style};
+use seed_style::*;
+use crate::styles::{themes::{Color, Breakpoint}, global};
 
 mod catalog_selector;
 mod extra_prop_selector;
@@ -215,10 +218,35 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
 
     div![
         C!["discover-container"],
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Column)
+            .width(pc(100))
+            .height(pc(100))
+            .background_color(Color::Background),
         div![
             C!["discover-content"],
+            s()
+                .flex("1")
+                .align_self(CssAlignSelf::Stretch)
+                .display(CssDisplay::Grid)
+                .grid_template_columns("1fr 28rem")
+                .grid_template_rows("7rem 1fr")
+                .grid_template_areas(r#""controls-area meta-preview-area" "catalog-content-area meta-preview-area""#),
+            s()
+                .only_and_below(Breakpoint::Minimum)
+                .grid_template_columns("1fr")
+                .grid_template_rows("fit-content(19rem) 1fr")
+                .grid_template_areas(r#""controls-area" "catalog-content-area""#),
             div![
                 C!["controls-container"],
+                s()
+                    .grid_area("controls-area")
+                    .display(CssDisplay::Flex)
+                    .flex_direction(CssFlexDirection::Row)
+                    .margin("2rem 0")
+                    .padding("0 2rem")
+                    .overflow(CssOverflow::Visible),
                 // type selector
                 type_selector::view(
                     &model.type_selector_model,
@@ -242,6 +270,12 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
             ],
             div![
                 C!["catalog-content-container"],
+                s()
+                    .grid_area("catalog-content-area")
+                    .margin_right(rem(2)),
+                s()
+                    .only_and_below(Breakpoint::Minimum)
+                    .margin_right("0"),
                 view_content(
                     &context.core_model.catalog.content,
                     model.selected_meta_preview_id.as_ref()
@@ -253,14 +287,12 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
 
 fn view_reset_button(base_url: &Url) -> Node<Msg> {
     a![
-        style! {
-            St::Width => px(100),
-            St::Padding => "8px 20px",
-            St::Cursor => "pointer",
-            St::Display => "inline-block",
-            St::Margin => px(5),
-            St::Cursor => "pointer",
-        },
+        s()
+            .width(px(100))
+            .padding("8px 20px")
+            .cursor(CssCursor::Pointer)
+            .display(CssDisplay::InlineBlock)
+            .margin(px(5)),
         attrs! {
             At::Href => Urls::new(base_url).root()
         },
@@ -272,14 +304,45 @@ fn view_content(
     content: &Loadable<Vec<MetaPreview>, CatalogError>,
     selected_meta_preview_id: Option<&MetaPreviewId>,
 ) -> Node<Msg> {
+    let message_container_style = s()
+        .padding("0 2rem")
+        .font_size(rem(2))
+        .color(Color::SurfaceLighter);
+
     match content {
         Loadable::Err(catalog_error) => {
-            div![C!["message-container",], format!("{:#?}", catalog_error)]
+            div![C!["message-container",], message_container_style, format!("{:#?}", catalog_error)]
         }
-        Loadable::Loading => div![C!["message-container",], "Loading"],
+        Loadable::Loading => div![C!["message-container",], message_container_style, "Loading"],
         Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
         Loadable::Ready(meta_previews) => div![
             C!["meta-items-container",],
+            s()
+                .display(CssDisplay::Grid)
+                .max_height(pc(100))
+                .grid_auto_rows("max-content")
+                .grid_gap(rem(1.5))
+                .align_items(CssAlignItems::Center)
+                .padding("0 2rem")
+                .overflow_y(CssOverflowY::Auto),
+            s()
+                .only_and_above(Breakpoint::XXLarge)
+                .grid_template_columns("repeat(8, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::XLarge)
+                .grid_template_columns("repeat(7, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::Medium)
+                .grid_template_columns("repeat(6, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::Small)
+                .grid_template_columns("repeat(5, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::XSmall)
+                .grid_template_columns("repeat(4, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::Minimum)
+                .grid_template_columns("repeat(5, 1fr)"),
             meta_previews
                 .iter()
                 .map(|meta_preview| view_meta_preview(meta_preview, selected_meta_preview_id))
@@ -311,6 +374,12 @@ fn view_meta_preview(
             "button-container",
             IF!(is_selected => "selected"),
         ],
+        IF!(is_selected => {
+            s()
+                .after()
+                .outline_width(format!("calc(1.5 * {})", global::focus_outline_size).as_str())
+                .raw(format!("outline-offset: calc(-1.5 * {});", global::focus_outline_size).as_str())
+        }),
         attrs! {
             At::TabIndex => 0,
             At::Title => &meta_preview.name,
@@ -331,7 +400,7 @@ fn view_meta_preview(
 }
 
 fn view_poster(poster: &Option<String>) -> Node<Msg> {
-    // @TODO Show placeholder image also if poster_url is present but can't be laoded?
+    // @TODO Show placeholder image also if poster_url is present but can't be loaded?
     match poster {
         Some(poster_url) => img![
             C!["poster-image",],
