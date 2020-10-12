@@ -1,6 +1,7 @@
 use seed::{prelude::*, *};
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
+use crate::styles::themes::{Color, get_color_value};
 
 // @TODO DRY + add logic + push to url
 
@@ -48,6 +49,8 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
             "addon-prompt-container",
             "modal-dialog-container"
         ],
+        s()
+            .width(rem(50)),
         div![
             C![
                 "close-button-container",
@@ -193,6 +196,8 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     "action-button",
                     "button-container",
                 ],
+                s()
+                    .background_color(Color::SurfaceDark),
                 attrs!{
                     At::TabIndex => 0,
                     At::Title => "Cancel"
@@ -219,6 +224,8 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
 fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["share-prompt-container", "modal-dialog-container"],
+        s()
+            .width(rem(30)),
         div![
             C!["close-button-container", "button-container",],
             attrs! {
@@ -326,6 +333,8 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
 fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["add-addon-prompt-container", "modal-dialog-container"],
+        s()
+            .width(rem(30)),
         div![
             C!["close-button-container", "button-container",],
             attrs! {
@@ -349,6 +358,13 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             C!["modal-dialog-content",],
             input![
                 C!["url-content", "text-input",],
+                s()
+                    .flex("1")
+                    .width(pc(100))
+                    .padding(rem(0.5))
+                    .font_size(rem(0.9))
+                    .color(Color::SurfaceDark)
+                    .border(format!("thin solid {}", get_color_value(Color::Surface)).as_str()),
                 attrs! {
                     At::Size => 1,
                     // @TODO typed names once Seed has all official types attrs
@@ -367,6 +383,8 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             C!["modal-dialog-buttons",],
             div![
                 C!["cancel-button", "action-button", "button-container",],
+                s()
+                    .background_color(Color::SurfaceDark),
                 attrs! {
                     At::TabIndex => 0,
                     At::Title => "Cancel",
