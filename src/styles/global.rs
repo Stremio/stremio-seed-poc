@@ -85,7 +85,7 @@ pub fn init() {
                 .padding("0")
                 .box_sizing(CssBoxSizing::BorderBox)
                 .font_size(rem(1))
-                .line_height(rem(1.2))
+                .line_height(em(1.2))
                 .font_family(CssFontFamily::Inherit)
                 .border("none")
                 .outline(CssOutline::None)

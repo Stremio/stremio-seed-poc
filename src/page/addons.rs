@@ -8,6 +8,9 @@ use stremio_core::state_types::{
 };
 use stremio_core::types::addons::{Descriptor, DescriptorPreview, ManifestPreview};
 use stremio_core::types::addons::{ResourceRef, ResourceRequest};
+use seed_style::{px, em, pc, rem, Style};
+use seed_style::*;
+use crate::styles::themes::Color;
 
 mod catalog_selector;
 mod modal;
@@ -186,10 +189,27 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
     vec![
         div![
             C!["addons-container"],
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Column)
+                .width(pc(100))
+                .height(pc(100))
+                .background_color(Color::Background),
             div![
                 C!["addons-content"],
+                s()
+                    .flex("1")
+                    .display(CssDisplay::Flex)
+                    .align_self(CssAlignSelf::Stretch)
+                    .flex_direction(CssFlexDirection::Column),
                 div![
                     C!["top-bar-container"],
+                    s()
+                        .flex(CssFlex::None)
+                        .display(CssDisplay::Flex)
+                        .flex_direction(CssFlexDirection::Row)
+                        .margin(rem(2))
+                        .overflow(CssOverflow::Visible),
                     // add addon button
                     view_add_addon_button(),
                     // catalog selector
@@ -213,6 +233,11 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
                 ],
                 div![
                     C!["addons-list-container"],
+                    s()
+                        .flex("1")
+                        .align_self(CssAlignSelf::Stretch)
+                        .padding("0 2rem")
+                        .overflow_y(CssOverflowY::Auto),
                     view_content(
                         &context.core_model.addon_catalog.content,
                         &model.search_query,
@@ -233,6 +258,19 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
 fn view_add_addon_button() -> Node<Msg> {
     div![
         C!["add-button-container", "button-container",],
+        s()
+            .flex(CssFlex::None)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .align_items(CssAlignItems::Center)
+            .height(rem(3))
+            .max_width(rem(15))
+            .margin_right(rem(1))
+            .padding("0 1rem")
+            .background_color(Color::Signal5),
+        s()
+            .hover()
+            .filter("brightness(1.2"),
         attrs! {
             At::TabIndex => 0,
             At::Title => "Add addon",
@@ -240,6 +278,12 @@ fn view_add_addon_button() -> Node<Msg> {
         ev(Ev::Click, |_| Msg::AddAddonButtonClicked),
         svg![
             C!["icon",],
+            s()
+                .flex(CssFlex::None)
+                .width(rem(1.5))
+                .height(rem(1.5))
+                .margin_right(rem(1))
+                .fill(Color::SurfaceLighter),
             attrs! {
                 At::ViewBox => "0 0 1024 1024",
                 "icon" => "ic_plus",
@@ -248,15 +292,49 @@ fn view_add_addon_button() -> Node<Msg> {
                 At::D => "M576.151 576.151h383.699c35.429 0 64.151-28.721 64.151-64.151s-28.721-64.151-64.151-64.151v-0h-383.699v-383.699c0-35.429-28.721-64.151-64.151-64.151s-64.151 28.721-64.151 64.151h-0v383.699h-383.699c-35.429 0-64.151 28.721-64.151 64.151s28.721 64.151 64.151 64.151v0h383.699v383.699c0 35.429 28.721 64.151 64.151 64.151s64.151-28.721 64.151-64.151v0z"
             }]
         ],
-        div![C!["add-button-label"], "Add addon"]
+        div![
+            C!["add-button-label"], 
+            s()
+                .flex_grow("0")
+                .flex_shrink("1")
+                .flex_basis(CssFlexBasis::Auto)
+                .max_height(rem(2.4))
+                .font_size(rem(1.1))
+                .color(Color::SurfaceLighter),
+            "Add addon",
+        ]
     ]
 }
 
 fn view_search_input(search_query: &str) -> Node<Msg> {
     div![
         C!["search-bar-container",],
+        s()
+            .flex_grow("0")
+            .flex_shrink("1")
+            .flex_basis("15rem")
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .align_items(CssAlignItems::Center)
+            .height(rem(3))
+            .margin_right(rem(1))
+            .padding("0 1rem")
+            .background_color(Color::BackgroundLighter)
+            .cursor(CssCursor::Text),
+        s()
+            .hover()
+            .filter("brightness(1.2)"),
+        s()
+            .focus_within()
+            .filter("brightness(1.2)"),
         svg![
             C!["icon",],
+            s()
+                .display(CssDisplay::Block)
+                .width(rem(1.2))
+                .height(rem(1.2))
+                .margin_right(rem(1))
+                .fill(Color::SurfaceLighter),
             attrs! {
                 At::ViewBox => "0 0 1025 1024",
                 "icon" => "ic_search",
@@ -267,6 +345,15 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
         ],
         input![
             C!["search-input", "text-input"],
+            s()
+                .flex("1")
+                .align_self(CssAlignSelf::Stretch)
+                .color(Color::SurfaceLighter),
+            s()
+                .placeholder()
+                .max_height(rem(1.2))
+                .opacity("1")
+                .color(Color::SurfaceLight),
             attrs! {
                 At::Size => 1,
                 // @TODO typed names once Seed has all official types attrs
@@ -323,12 +410,23 @@ fn view_content(
         }
     }
 
+    let style_message_container =
+            s()
+                .padding("0 2rem")
+                .font_size(rem(2))
+                .color(Color::SurfaceLighter);
+
     match content {
         Loadable::Err(catalog_error) => vec![div![
             C!["message-container",],
+            style_message_container,
             format!("{:#?}", catalog_error)
         ]],
-        Loadable::Loading => vec![div![C!["message-container",], "Loading"]],
+        Loadable::Loading => vec![div![
+            C!["message-container",], 
+            style_message_container,
+            "Loading",
+        ]],
         Loadable::Ready(addons) if addons.is_empty() => Vec::new(),
         Loadable::Ready(addons) => view_addons(addons, search_query, installed_addons),
     }
@@ -381,6 +479,9 @@ fn view_addons(
 fn view_addon(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
     div![
         C!["addon-container", "addon", "button-container",],
+        s()
+            .width(pc(100))
+            .margin_bottom(rem(2)),
         attrs! {
             At::TabIndex => 0,
         },
