@@ -82,18 +82,35 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                         "title-container",
                         "title-with-logo-container"
                     ],
-                    // @TODO where is title's left margin??
-                    style!{
-                        St::TextAlign => "center",
-                    },
+                    s()
+                        .font_size(rem(3))
+                        .font_weight("300")
+                        .word_break("break-all"),
+                    s()
+                        .first_line()
+                        .line_height(rem(5)),
+                    s()
+                        .text_align(CssTextAlign::Center),
                     div![
                         C![
                             "logo-container"
                         ],
+                        s()
+                            .width(rem(5))
+                            .height(rem(5))
+                            .margin_right(rem(0.5))
+                            .background_color(Color::SurfaceLight20)
+                            .float(CssFloat::Left),
                         img![
                             C![
                                 "logo"
                             ],
+                            s()
+                                .display(CssDisplay::Block)
+                                .width(pc(100))
+                                .height(pc(100))
+                                .raw(r#"object-fit: contain;"#)
+                                .raw(r#"object-position: center;"#),
                             attrs!{
                                 At::Src => "https://holamovies.herokuapp.com/holamovies.png",
                             }
@@ -104,6 +121,9 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                         C![
                             "version-container",
                         ],
+                        s()
+                            .font_size(rem(1.5))
+                            .font_weight("400"),
                         "v.2.0.1"
                     ]
                 ],
@@ -111,10 +131,14 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     C![
                         "section-container",
                     ],
+                    s()
+                        .margin_top(rem(1)),
                     span![
                         C![
                             "section-header"
                         ],
+                        s()
+                            .font_size(rem(1.2)),
                         "Watch movies in spanish and english"
                     ]
                 ],
@@ -122,10 +146,14 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     C![
                         "section-container",
                     ],
+                    s()
+                        .margin_top(rem(1)),
                     span![
                         C![
                             "section-header"
                         ],
+                        s()
+                            .font_size(rem(1.2)),
                         "URL: ",
                     ],
                     span![
@@ -133,6 +161,11 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                             "addon-prompt-section-label",
                             "transport-url-label"
                         ],
+                        s()
+                            .font_size(rem(1.2))
+                            .font_weight("300"),
+                        s()
+                            .user_select("text"),
                         "https://holamovies.herokuapp.com/manifest.json",
                     ]
                 ],
@@ -140,10 +173,14 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     C![
                         "section-container",
                     ],
+                    s()
+                        .margin_top(rem(1)),
                     span![
                         C![
                             "section-header"
                         ],
+                        s()
+                            .font_size(rem(1.2)),
                         "Supported types: ",
                     ],
                     span![
@@ -151,6 +188,11 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                             "addon-prompt-section-label",
                             "transport-url-label"
                         ],
+                        s()
+                            .font_size(rem(1.2))
+                            .font_weight("300"),
+                        s()
+                            .user_select("text"),
                         "movie",
                     ]
                 ],
@@ -158,10 +200,14 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     C![
                         "section-container",
                     ],
+                    s()
+                        .margin_top(rem(1)),
                     span![
                         C![
                             "section-header"
                         ],
+                        s()
+                            .font_size(rem(1.2)),
                         "Supported catalogs: ",
                     ],
                     span![
@@ -169,6 +215,11 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                             "addon-prompt-section-label",
                             "transport-url-label"
                         ],
+                        s()
+                            .font_size(rem(1.2))
+                            .font_weight("300"),
+                        s()
+                            .user_select("text"),
                         "",
                     ]
                 ],
@@ -176,11 +227,18 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     C![
                         "section-container",
                     ],
+                    s()
+                        .margin_top(rem(1)),
                     div![
                         C![
                             "addon-prompt-section-label",
                             "disclaimer-label",
                         ],
+                        s()
+                            .font_size(rem(1.2))
+                            .font_weight("300"),
+                        s()
+                            .font_style(CssFontStyle::Italic),
                         "Using third-party add-ons will always be subject to your responsibility and the governing law of the jurisdiction you are located.",
                     ]
                 ],
