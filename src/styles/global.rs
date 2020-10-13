@@ -12,6 +12,7 @@ pub const FOCUS_OUTLINE_SIZE: &str = "2px";
 pub const COLOR_FACEBOOK: &str = "#4267b2";
 pub const COLOR_TWITTER: &str = "#1DA1F2";
 pub const COLOR_PLACEHOLDER: &str = "#60606080";
+pub const ITEM_SIZE: &str = "28rem";
 
 pub fn init() {
     load_app_themes(&[themes::default_color_theme, themes::default_breakpoint_theme]);
