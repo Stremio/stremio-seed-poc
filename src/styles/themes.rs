@@ -2,6 +2,7 @@ use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
 use std::collections::HashMap;
 
+// @TODO refactor + hide in the library
 pub fn get_color_value(color: Color) -> String {
     app_themes().get_with(|themes| {
         themes
