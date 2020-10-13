@@ -918,14 +918,35 @@ fn view_video_scroll_container<Ms: 'static>() -> Node<Ms> {
             s()
                 .last_child()
                 .margin_bottom(rem(2)),
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .flex_wrap(CssFlexWrap::Wrap)
+                .background_color(Color::SurfaceDarker60),
+            s()
+                .hover()
+                .background_color(Color::SurfaceDarker),
+            s()
+                .focus()
+                .background_color(Color::SurfaceDarker),
             attrs! {
                 At::TabIndex => 0,
                 At::Title => "How to create a Stremio add-on with Node.js",
             },
             div![
                 C!["poster-container",],
+                s()
+                    .flex(CssFlex::None)
+                    .align_self(CssAlignSelf::Center)
+                    .padding(rem(0.5)),
                 img![
                     C!["poster",],
+                    s()
+                        .display(CssDisplay::Block)
+                        .width(rem(5))
+                        .max_height(rem(10))
+                        .raw("object-fit: contain;")
+                        .raw("object-position: center;"),
                     attrs! {
                         At::Src => "https://theme.zdassets.com/theme_assets/2160011/77a6ad5aee11a07eb9b87281070f1aadf946f2b3.png",
                         At::Alt => " ",
@@ -934,16 +955,53 @@ fn view_video_scroll_container<Ms: 'static>() -> Node<Ms> {
             ],
             div![
                 C!["info-container",],
+                s()
+                    .flex("1")
+                    .align_self(CssAlignSelf::Stretch)
+                    .display(CssDisplay::Flex)
+                    .flex_direction(CssFlexDirection::Row)
+                    .flex_wrap(CssFlexWrap::Wrap)
+                    .align_content(CssAlignContent::FlexStart)
+                    .padding(rem(0.5)),
+                s()
+                    .first_child()
+                    .align_content(CssAlignContent::Center),
                 div![
                     C!["name-container",],
+                    s()
+                        .flex_grow("0")
+                        .flex_shrink("0")
+                        .flex_basis("100%")
+                        .max_height(em(4.8))
+                        .color(Color::SurfaceLighter),
                     "1. How to create a Stremio add-on with Node.js",
                 ],
-                div![C!["released-container",], "Jun 30, 19",]
+                div![
+                    C!["released-container",], 
+                    s()
+                        .flex_grow("0")
+                        .flex_shrink("0")
+                        .flex_basis("100%")
+                        .margin_top(rem(0.5))
+                        .font_size(rem(0.8))
+                        .max_height(em(2.4))
+                        .color(Color::SurfaceLight),
+                    "Jun 30, 19",
+                ]
             ],
             div![
                 C!["next-icon-container",],
+                s()
+                    .flex(CssFlex::None)
+                    .align_self(CssAlignSelf::Center)
+                    .padding(rem(0.5)),
                 svg![
                     C!["next-icon",],
+                    s()
+                        .display(CssDisplay::Block)
+                        .width(rem(1))
+                        .height(rem(1.5))
+                        .fill(Color::SurfaceLighter),
                     attrs! {
                         At::ViewBox => "0 0 565 1024",
                         "icon" => "ic_arrow_thin_right",
