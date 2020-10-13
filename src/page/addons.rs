@@ -10,7 +10,7 @@ use stremio_core::types::addons::{Descriptor, DescriptorPreview, ManifestPreview
 use stremio_core::types::addons::{ResourceRef, ResourceRequest};
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
-use crate::styles::themes::Color;
+use crate::styles::{self, themes::{Color, get_color_value}};
 
 mod catalog_selector;
 mod modal;
@@ -480,6 +480,14 @@ fn view_addon(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
     div![
         C!["addon-container", "addon", "button-container",],
         s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .flex_wrap(CssFlexWrap::Wrap)
+            .align_items(CssAlignItems::FlexStart)
+            .padding(rem(1))
+            .background_color(Color::BackgroundLighter)
+            .cursor(CssCursor::Inherit),
+        s()
             .width(pc(100))
             .margin_bottom(rem(2)),
         attrs! {
@@ -494,9 +502,20 @@ fn view_addon(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
 fn view_logo_container(logo_url: &Option<String>) -> Node<Msg> {
     div![
         C!["logo-container"],
+        s()
+            .flex(CssFlex::None)
+            .width(rem(8))
+            .height(rem(8))
+            .background_color(Color::BackgroundDarker),
         if let Some(logo_url) = logo_url {
             img![
                 C!["logo",],
+                s()
+                    .display(CssDisplay::Block)
+                    .width(pc(100))
+                    .height(pc(100))
+                    .raw(r#"object-fit: contain;"#)
+                    .raw(r#"object-position: center;"#),
                 attrs! {
                     At::Src => logo_url,
                 }
@@ -504,6 +523,12 @@ fn view_logo_container(logo_url: &Option<String>) -> Node<Msg> {
         } else {
             svg![
                 C!["icon",],
+                s()
+                    .display(CssDisplay::Block)
+                    .width(pc(100))
+                    .height(pc(100))
+                    .padding(rem(1))
+                    .fill(Color::SurfaceLighter),
                 attrs! {
                     At::ViewBox => "0 0 1043 1024",
                     "icon" => "ic_addons",
@@ -519,8 +544,26 @@ fn view_logo_container(logo_url: &Option<String>) -> Node<Msg> {
 fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
     div![
         C!["info-container"],
+        s()
+            .flex_grow("1000")
+            .flex_shrink("1")
+            .flex_basis("0")
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .flex_wrap(CssFlexWrap::Wrap)
+            .align_items(CssAlignItems::Baseline)
+            .min_width(rem(40))
+            .padding("0 0.5rem"),
         div![
             C!["name-container"],
+            s()
+                .flex_grow("0")
+                .flex_shrink("1")
+                .flex_basis(CssFlexBasis::Auto)
+                .padding("0 0.5rem")
+                .max_height(em(3.6))
+                .font_size(rem(1.5))
+                .color(Color::SurfaceLighter),
             attrs! {
                 At::Title => addon.manifest.name,
             },
@@ -528,6 +571,13 @@ fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
         ],
         div![
             C!["version-container"],
+            s()
+                .flex_grow("1")
+                .flex_shrink("1")
+                .flex_basis(CssFlexBasis::Auto)
+                .padding("0 0.5rem")
+                .max_height(em(2.4))
+                .color(Color::SurfaceLight),
             attrs! {
                 At::Title => format!("v.{}", addon.manifest.version),
             },
@@ -535,11 +585,28 @@ fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
         ],
         div![
             C!["types-container"],
+            s()
+                .flex_grow("0")
+                .flex_shrink("0")
+                .flex_basis("100%")
+                .margin_top(rem(0.5))
+                .padding("0 0.5rem")
+                .max_height(em(2.4))
+                .color(Color::SurfaceLight)
+                .text_transform(CssTextTransform::Capitalize),
             format_addon_types(&addon.manifest.types),
         ],
         if let Some(description) = &addon.manifest.description {
             div![
                 C!["description-container"],
+                s()
+                    .flex_grow("0")
+                    .flex_shrink("0")
+                    .flex_basis("100%")
+                    .margin_top(rem(0.5))
+                    .padding("0 0.5rem")
+                    .max_height(em(4.8))
+                    .color(Color::SurfaceLight),
                 attrs! {
                     At::Title => description,
                 },
@@ -562,21 +629,80 @@ fn format_addon_types(types: &[String]) -> String {
     }
 }
 
+struct ButtonContainerStyles {
+    styles: Vec<Style>,
+    icon: Style,
+    label: Style,
+}
+
 fn view_buttons_container(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
+    let button_container_styles = ButtonContainerStyles {
+        styles:  vec![
+            s()
+                .flex(CssFlex::None)
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .align_items(CssAlignItems::Center)
+                .justify_content(CssJustifyContent::Center)
+                .width(rem(17))
+                .height(rem(3.5))
+                .padding("0 1rem"),
+            s()
+                .not(":first-child")
+                .margin_top(rem(1)),
+            s()
+                .not(":last-child")
+                .margin_right(rem(1)),
+        ],
+        icon: s()
+            .flex(CssFlex::None)
+            .display(CssDisplay::Block)
+            .width(rem(1.5))
+            .height(rem(1.5))
+            .margin_right(rem(1)),
+        label: s()
+            .flex_grow("0")
+            .flex_shrink("1")
+            .flex_basis(CssFlexBasis::Auto)
+            .max_height("500")
+            .font_size(rem(1.2))
+            .font_weight("500")
+            .text_align(CssTextAlign::Center)
+    };
+    
     div![
         C!["buttons-container"],
+        s()
+            .flex_grow("1")
+            .flex_shrink("0")
+            .flex_basis("0")
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .flex_wrap(CssFlexWrap::Wrap)
+            .align_items(CssAlignItems::FlexEnd)
+            .min_width(rem(17)),
         if addon_installed {
-            view_uninstall_addon_button(addon)
+            view_uninstall_addon_button(addon, &button_container_styles)
         } else {
-            view_install_addon_button(addon)
+            view_install_addon_button(addon, &button_container_styles)
         },
-        view_share_addon_button(addon)
+        view_share_addon_button(addon, &button_container_styles)
     ]
 }
 
-fn view_uninstall_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
+fn view_uninstall_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
     div![
         C!["uninstall-button-container", "button-container",],
+        style.styles,
+        s()
+            .outline_color(Color::SurfaceLight)
+            .outline_style(CssOutlineStyle::Solid),
+        s()
+            .hover()
+            .outline_color(Color::SurfaceLight),
+        s()
+            .style_other(":hover .label")
+            .color(Color::SurfaceLight),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Uninstall",
@@ -585,13 +711,25 @@ fn view_uninstall_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             Ev::Click,
             enc!((addon) move |_| Msg::UninstallAddonButtonClicked(addon))
         ),
-        div![C!["label",], "Uninstall"]
+        div![
+            C!["label",],
+            &style.label,
+            s()
+                .color(Color::SurfaceDark),
+            "Uninstall"
+        ]
     ]
 }
 
-fn view_install_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
+fn view_install_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
     div![
         C!["install-button-container", "button-container",],
+        style.styles,
+        s()
+            .background_color(Color::Signal5),
+        s()
+            .hover()
+            .filter("brightness(1.2)"),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Install",
@@ -600,13 +738,36 @@ fn view_install_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
             Ev::Click,
             enc!((addon) move |_| Msg::InstallAddonButtonClicked(addon))
         ),
-        div![C!["label",], "Install"]
+        div![
+            C!["label",], 
+            &style.label,
+            s()
+                .color(Color::SurfaceLighter),
+            "Install"
+        ]
     ]
 }
 
-fn view_share_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
+fn view_share_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
     div![
         C!["share-button-container", "button-container",],
+        style.styles,
+        s()
+            .hover()
+            .outline(CssOutline::None)
+            .background_color(Color::SecondaryLight),
+        s()
+            .style_other(":hover .icon")
+            .fill(Color::SurfaceLighter),
+        s()
+            .style_other(":hover .label")
+            .color(Color::SurfaceLighter),
+        s()
+            .outline(format!(
+                "{} solid {}", 
+                get_color_value(Color::SecondaryLighter),
+                styles::global::FOCUS_OUTLINE_SIZE
+            ).as_str()),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Share addon",
@@ -617,6 +778,9 @@ fn view_share_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
         ),
         svg![
             C!["icon",],
+            &style.icon,
+            s()
+                .fill(Color::SecondaryLighter),
             attrs! {
                 At::ViewBox => "0 0 1024 1024",
                 "icon" => "ic_share",
@@ -625,6 +789,12 @@ fn view_share_addon_button(addon: &DescriptorPreview) -> Node<Msg> {
                 At::D => "M846.005 679.454c-62.726 0.19-117.909 32.308-150.171 80.95l-0.417 0.669-295.755-96.979c2.298-11.196 3.614-24.064 3.614-37.239 0-0.038-0-0.075-0-0.113l0 0.006c0-0.039 0-0.085 0-0.132 0-29.541-6.893-57.472-19.159-82.272l0.486 1.086 221.967-143.059c42.092 37.259 97.727 60.066 158.685 60.235l0.035 0c0.81 0.010 1.768 0.016 2.726 0.016 128.794 0 233.38-103.646 234.901-232.079l0.001-0.144c0-131.737-106.794-238.532-238.532-238.532s-238.532 106.794-238.532 238.532h0c0.012 33.532 7.447 65.325 20.752 93.828l-0.573-1.367-227.087 146.372c-32.873-23.074-73.687-36.92-117.729-37.045l-0.031-0c-0.905-0.015-1.974-0.023-3.044-0.023-108.186 0-196.124 86.69-198.139 194.395l-0.003 0.189c2.017 107.893 89.956 194.583 198.142 194.583 1.070 0 2.139-0.008 3.205-0.025l-0.161 0.002c0.108 0 0.235 0 0.363 0 60.485 0 114.818-26.336 152.159-68.168l0.175-0.2 313.826 103.002c-0.004 0.448-0.006 0.976-0.006 1.506 0 98.47 79.826 178.296 178.296 178.296s178.296-79.826 178.296-178.296c0-98.468-79.823-178.293-178.29-178.296l-0-0zM923.106 851.727c0.054 1.079 0.084 2.343 0.084 3.614 0 42.748-34.654 77.402-77.402 77.402s-77.402-34.654-77.402-77.402c0-42.748 34.654-77.402 77.402-77.402 0.076 0 0.152 0 0.229 0l-0.012-0c0.455-0.010 0.99-0.015 1.527-0.015 41.12 0 74.572 32.831 75.572 73.711l0.002 0.093zM626.748 230.4c3.537-73.358 63.873-131.495 137.788-131.495s134.251 58.137 137.776 131.179l0.012 0.316c-3.537 73.358-63.873 131.495-137.788 131.495s-134.251-58.137-137.776-131.179l-0.012-0.316zM301.176 626.748c-1.34 53.35-44.907 96.087-98.456 96.087-0.54 0-1.078-0.004-1.616-0.013l0.081 0.001c-1.607 0.096-3.486 0.151-5.377 0.151-53.061 0-96.075-43.014-96.075-96.075s43.014-96.075 96.075-96.075c1.892 0 3.77 0.055 5.635 0.162l-0.258-0.012c0.459-0.008 1-0.012 1.543-0.012 53.443 0 96.943 42.568 98.445 95.648l0.003 0.139z"
             }]
         ],
-        div![C!["label",], "Share addon"]
+        div![
+            C!["label",], 
+            &style.label, 
+            s()
+                .color(Color::SecondaryLighter),
+            "Share addon"
+        ]
     ]
 }
