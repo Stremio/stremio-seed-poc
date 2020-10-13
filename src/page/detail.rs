@@ -2,6 +2,9 @@ use crate::{PageId, Actions};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
+use seed_style::{px, em, pc, rem, Style};
+use seed_style::*;
+use crate::styles::{self, themes::{Color, get_color_value}};
 
 // ------ ------
 //     Init
@@ -72,18 +75,37 @@ pub fn update(_: Msg, _: &mut Model, _: &mut impl Orders<Msg>) {
 // ------ ------
 
 pub fn view<Ms: 'static>() -> Node<Ms> {
+    let list_style = s()
+        .flex_grow("0")
+        .flex_shrink("0")
+        .flex_basis(CssFlexBasis::Auto)
+        .align_self(CssAlignSelf::Stretch);
+
     div![
         C!["detail-container",],
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Column)
+            .width(pc(100))
+            .height(pc(100))
+            .background_color(Color::Background),
         view_nav(),
         div![
             C!["detail-content"],
+            s()
+                .position(CssPosition::Relative)
+                .z_index("0")
+                .flex("1")
+                .align_self(CssAlignSelf::Stretch)
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row),
             view_background_image_layer(),
             view_meta_preview_container(),
             // @TODO switch by `type_name` (?)
             if true {
-                view_streams_list_container()
+                view_streams_list_container(&list_style)
             } else {
-                view_videos_list_container()
+                view_videos_list_container(&list_style)
             }
         ]
     ]
@@ -92,6 +114,9 @@ pub fn view<Ms: 'static>() -> Node<Ms> {
 fn view_nav<Ms: 'static>() -> Node<Ms> {
     div![
         C!["nav-bar", "nav-bar-container",],
+        s()
+            .flex(CssFlex::None)
+            .align_self(CssAlignSelf::Stretch),
         div![
             C![
                 "nav-tab-button",
@@ -123,8 +148,22 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
 fn view_background_image_layer<Ms: 'static>() -> Node<Ms> {
     div![
         C!["background-image-layer"],
+        s()
+            .position(CssPosition::Absolute)
+            .top("0")
+            .right("0")
+            .bottom("0")
+            .left("0")
+            .z_index("-1"),
         img![
             C!["background-image"],
+            s()
+                .display(CssDisplay::Block)
+                .width(pc(100))
+                .height(pc(100))
+                .raw("object-fit: cover;")
+                .raw("object-position: top left;")
+                .filter("brightness(50%)"),
             attrs! {
                 At::Src => "https://images.metahub.space/background/medium/tt0320691/img",
                 At::Alt => " ",
@@ -138,6 +177,9 @@ fn view_background_image_layer<Ms: 'static>() -> Node<Ms> {
 fn view_meta_preview_container<Ms: 'static>() -> Node<Ms> {
     div![
         C!["meta-preview", "meta-preview-container",],
+        s()
+            .flex("1")
+            .align_self(CssAlignSelf::Stretch),
         view_meta_info_container(),
         view_action_buttons_container(),
     ]
@@ -487,9 +529,10 @@ fn view_action_button_share<Ms: 'static>() -> Node<Ms> {
 
 // ------ view streams list ------
 
-fn view_streams_list_container<Ms: 'static>() -> Node<Ms> {
+fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
     div![
         C!["streams-list", "streams-list-container",],
+        list_style,
         div![
             C!["streams-scroll-container",],
             // stream
@@ -588,9 +631,10 @@ fn view_install_addons_button<Ms: 'static>() -> Node<Ms> {
 
 // ------ view videos list ------
 
-fn view_videos_list_container<Ms: 'static>() -> Node<Ms> {
+fn view_videos_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
     div![
         C!["videos-list", "videos-list-container",],
+        list_style,
         view_season_bar_container(),
         view_video_scroll_container(),
     ]
