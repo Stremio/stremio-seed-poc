@@ -545,7 +545,7 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
                 .flex_basis(CssFlexBasis::Auto)
                 .align_self(CssAlignSelf::Stretch)
                 .overflow_y(CssOverflowY::Auto),
-            // stream
+            // stream 1
             div![
                 C!["stream", "stream-container", "button-container",],
                 s()
@@ -557,22 +557,63 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
                 s()
                     .last_child()
                     .margin_bottom("0"),
+                s()
+                    .display(CssDisplay::Flex)
+                    .flex_direction(CssFlexDirection::Row)
+                    .align_items(CssAlignItems::Center)
+                    .flex_wrap(CssFlexWrap::Wrap)
+                    .background_color(Color::SurfaceDarker60),
+                s()
+                    .hover()
+                    .background_color(Color::SurfaceDarker),
+                s()
+                    .focus()
+                    .background_color(Color::SurfaceDarker),
                 attrs! {
                     At::TabIndex => 0,
                     At::Title => "Google Sample Videos",
                 },
                 div![
                     C!["stream-addon-container",],
-                    div![C!["addon-name",], "Google",]
+                    s()
+                        .flex(CssFlex::None)
+                        .padding(rem(0.5)),
+                    div![
+                        C!["addon-name",], 
+                        s()
+                            .width(rem(6))
+                            .max_height(rem(3.6))
+                            .font_size(rem(1.1))
+                            .text_align(CssTextAlign::Center)
+                            .color(Color::SurfaceLighter),
+                        "Google",
+                    ]
                 ],
                 div![
                     C!["info-container",],
-                    div![C!["description-label",], "Google sample videos",]
+                    s()
+                        .flex("1")
+                        .padding(rem(0.5)),
+                    div![
+                        C!["description-label",], 
+                        s()
+                            .max_height(em(3.6))
+                            .color(Color::SurfaceLighter),
+                        "Google sample videos",
+                    ]
                 ],
                 div![
                     C!["play-icon-container",],
+                    s()
+                        .flex(CssFlex::None)
+                        .padding(rem(1.5)),
                     svg![
                         C!["play-icon",],
+                        s()
+                            .display(CssDisplay::Block)
+                            .width(rem(2))
+                            .height(rem(2))
+                            .fill(Color::SurfaceLighter),
                         attrs! {
                             At::ViewBox => "0 0 899 1024",
                             "icon" => "ic_play",
@@ -583,25 +624,75 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
                     ],
                 ],
             ],
-            // stream
+            // stream 2
             div![
                 C!["stream", "stream-container", "button-container",],
+                s()
+                    .width(styles::global::ITEM_SIZE)
+                    .margin("1rem 2rem"),
+                s()
+                    .first_child()
+                    .margin_top(rem(2)),
+                s()
+                    .last_child()
+                    .margin_bottom("0"),
+                s()
+                    .display(CssDisplay::Flex)
+                    .flex_direction(CssFlexDirection::Row)
+                    .align_items(CssAlignItems::Center)
+                    .flex_wrap(CssFlexWrap::Wrap)
+                    .background_color(Color::SurfaceDarker60),
+                s()
+                    .hover()
+                    .background_color(Color::SurfaceDarker),
+                s()
+                    .focus()
+                    .background_color(Color::SurfaceDarker),
                 attrs! {
                     At::TabIndex => 0,
                     At::Title => "Stremio demo videos",
                 },
                 div![
                     C!["stream-addon-container",],
-                    div![C!["addon-name",], "Stremio",]
+                    s()
+                        .flex(CssFlex::None)
+                        .padding(rem(0.5)),
+                    div![
+                        C!["addon-name",], 
+                        s()
+                            .width(rem(6))
+                            .max_height(rem(3.6))
+                            .font_size(rem(1.1))
+                            .text_align(CssTextAlign::Center)
+                            .color(Color::SurfaceLighter),
+                        "Stremio",
+                    ]
                 ],
                 div![
                     C!["info-container",],
-                    div![C!["description-label",], "Stremio demo videos",]
+                    s()
+                        .flex("1")
+                        .padding(rem(0.5)),
+                    div![
+                        C!["description-label",], 
+                        s()
+                            .max_height(em(3.6))
+                            .color(Color::SurfaceLighter),
+                        "Stremio demo videos",
+                    ]
                 ],
                 div![
                     C!["play-icon-container",],
+                    s()
+                        .flex(CssFlex::None)
+                        .padding(rem(1.5)),
                     svg![
                         C!["play-icon",],
+                        s()
+                            .display(CssDisplay::Block)
+                            .width(rem(2))
+                            .height(rem(2))
+                            .fill(Color::SurfaceLighter),
                         attrs! {
                             At::ViewBox => "0 0 899 1024",
                             "icon" => "ic_play",
@@ -613,16 +704,22 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
                 ],
                 div![
                     C!["progress-bar-container",],
+                    s()
+                        .flex_grow("0")
+                        .flex_shrink("0")
+                        .flex_basis("100%")
+                        .background_color(Color::BackgroundLighter),
                     div![
                         C!["progress-bar",],
-                        style! {
-                            St::Width => unit!(30, %),
-                        }
+                        s()
+                            .width(pc(30))
+                            .height(rem(0.5))
+                            .background_color(Color::Primary),
                     ]
                 ]
-            ],
+            ]
         ],
-        view_install_addons_button(),
+        view_install_addons_button()
     ]
 }
 
