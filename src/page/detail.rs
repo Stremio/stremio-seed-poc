@@ -783,6 +783,10 @@ fn view_install_addons_button<Ms: 'static>() -> Node<Ms> {
 fn view_videos_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
     div![
         C!["videos-list", "videos-list-container",],
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Column)
+            .background_color(Color::BackgroundDark80),
         list_style,
         view_season_bar_container(),
         view_video_scroll_container(),
@@ -824,6 +828,10 @@ fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
         s()
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row),
+        s()
+            .flex(CssFlex::None)
+            .width(styles::global::ITEM_SIZE)
+            .margin("2rem 2rem 1rem 2rem"),
         div![
             C!["prev-season-button", "button-container",],
             &season_button_styles,
@@ -892,8 +900,24 @@ fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
 fn view_video_scroll_container<Ms: 'static>() -> Node<Ms> {
     div![
         C!["videos-scroll-container",],
+        s()
+            .flex("1")
+            .align_self(CssAlignSelf::Stretch)
+            .overflow_y(CssOverflowY::Auto),
+        s()
+            .style_other(":first_child .video:first_child")
+            .margin_top(rem(2)),
         div![
             C!["video", "video-container", "button-container",],
+            s()
+                .width(styles::global::ITEM_SIZE)
+                .margin("1rem 2rem"),
+            s()
+                .first_child()
+                .margin_top("0"),
+            s()
+                .last_child()
+                .margin_bottom(rem(2)),
             attrs! {
                 At::TabIndex => 0,
                 At::Title => "How to create a Stremio add-on with Node.js",
