@@ -790,15 +790,49 @@ fn view_videos_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
 }
 
 fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
+    let season_button_styles = vec![
+        s()
+            .flex(CssFlex::None)
+            .padding(rem(1))
+            .background_color(Color::SurfaceDarker60),
+        s()
+            .hover()
+            .background_color(Color::SurfaceDarker),
+        s()
+            .focus()
+            .background_color(Color::SurfaceDarker),
+    ];
+
+    let season_button_icon_style = 
+        s()
+            .display(CssDisplay::Block)
+            .width(rem(2))
+            .height(rem(2))
+            .fill(Color::SurfaceLighter);
+
+    let seasons_popup_label_style = 
+        s()
+            .flex(CssFlex::None)
+            .max_width(pc(50))
+            .max_height(em(3.6))
+            .padding("0 0.2rem")
+            .font_size(rem(1.2))
+            .color(Color::SurfaceLighter);
+
     div![
         C!["seasons-bar", "seasons-bar-container",],
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row),
         div![
             C!["prev-season-button", "button-container",],
+            &season_button_styles,
             attrs! {
                 At::TabIndex => 0,
             },
             svg![
                 C!["icon",],
+                &season_button_icon_style,
                 attrs! {
                     At::ViewBox => "0 0 606 1024",
                     "icon" => "ic_arrow_left",
@@ -810,20 +844,39 @@ fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
         ],
         div![
             C!["seasons-popup-label-container", "button-container",],
+            s()
+                .flex("1")
+                .align_self(CssAlignSelf::Stretch)
+                .display(CssDisplay::Flex)
+                .align_items(CssAlignItems::Center)
+                .justify_content(CssJustifyContent::Center)
+                .margin("0 1rem")
+                .background_color(Color::SurfaceDarker60),
+            s()
+                .hover()
+                .background_color(Color::SurfaceDarker),
+            s()
+                .focus()
+                .background_color(Color::SurfaceDarker),
+            s()
+                .active()
+                .background_color(Color::SurfaceDarker),
             attrs! {
                 At::TabIndex => 0,
                 At::Title => "Season 1",
             },
-            div![C!["season-label"], "Season",],
-            div![C!["number-label",], "1",]
+            div![C!["season-label"], &seasons_popup_label_style, "Season",],
+            div![C!["number-label",], &seasons_popup_label_style, "1",]
         ],
         div![
             C!["next-season-button", "button-container",],
+            &season_button_styles,
             attrs! {
                 At::TabIndex => 0,
             },
             svg![
                 C!["icon",],
+                &season_button_icon_style,
                 attrs! {
                     At::ViewBox => "0 0 606 1024",
                     "icon" => "ic_arrow_right",
