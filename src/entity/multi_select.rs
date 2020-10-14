@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use wasm_bindgen::JsCast;
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
-use crate::styles::themes::{Color, get_color_value};
+use crate::styles::{self, themes::{Color, get_color_value}};
 
 const MENU_CLASS: &str = "popup-menu-container";
 
@@ -191,6 +191,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 "button-container",
                 IF!(model.opened => "active"),
             ],
+            styles::button_container(),
             s()
                 .display(CssDisplay::Flex)
                 .flex_direction(CssFlexDirection::Row)
@@ -309,6 +310,7 @@ pub fn view_group_item<T: Clone>(group_id: &str, item: &GroupItem<T>) -> Node<Ms
             "button-container",
             IF!(item.selected => "selected"),
         ],
+        styles::button_container(),
         s()
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
