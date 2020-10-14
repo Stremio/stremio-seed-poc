@@ -425,6 +425,7 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
                         .border(format!("thin solid {}", get_color_value(Color::Surface)).as_str()),
                     input![
                         C!["url-content", "text-input",],
+                        styles::text_input(),
                         s()
                             .flex("1")
                             .min_width(rem(12))
@@ -531,6 +532,7 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             C!["modal-dialog-content",],
             input![
                 C!["url-content", "text-input",],
+                styles::text_input(),
                 s()
                     .flex("1")
                     .width(pc(100))
