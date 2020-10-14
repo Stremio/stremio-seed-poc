@@ -346,6 +346,7 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
         ],
         input![
             C!["search-input", "text-input"],
+            styles::text_input(),
             s()
                 .flex("1")
                 .align_self(CssAlignSelf::Stretch)

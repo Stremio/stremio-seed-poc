@@ -21,3 +21,8 @@ pub fn button_container() -> Vec<Style> {
             .pointer_events("none"),
     ]
 }
+
+pub fn text_input() -> Style {
+    s()
+        .user_select("text")
+} 
