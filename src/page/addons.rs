@@ -258,6 +258,7 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
 fn view_add_addon_button() -> Node<Msg> {
     div![
         C!["add-button-container", "button-container",],
+        styles::button_container(),
         s()
             .flex(CssFlex::None)
             .display(CssDisplay::Flex)
@@ -479,6 +480,7 @@ fn view_addons(
 fn view_addon(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
     div![
         C!["addon-container", "addon", "button-container",],
+        styles::button_container(),
         s()
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
@@ -693,6 +695,7 @@ fn view_buttons_container(addon: &DescriptorPreview, addon_installed: bool) -> N
 fn view_uninstall_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
     div![
         C!["uninstall-button-container", "button-container",],
+        styles::button_container(),
         style.styles,
         s()
             .outline_color(Color::SurfaceLight)
@@ -724,6 +727,7 @@ fn view_uninstall_addon_button(addon: &DescriptorPreview, style: &ButtonContaine
 fn view_install_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
     div![
         C!["install-button-container", "button-container",],
+        styles::button_container(),
         style.styles,
         s()
             .background_color(Color::Signal5),
@@ -751,6 +755,7 @@ fn view_install_addon_button(addon: &DescriptorPreview, style: &ButtonContainerS
 fn view_share_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
     div![
         C!["share-button-container", "button-container",],
+        styles::button_container(),
         style.styles,
         s()
             .hover()
@@ -763,11 +768,8 @@ fn view_share_addon_button(addon: &DescriptorPreview, style: &ButtonContainerSty
             .style_other(":hover .label")
             .color(Color::SurfaceLighter),
         s()
-            .outline(format!(
-                "{} solid {}", 
-                get_color_value(Color::SecondaryLighter),
-                styles::global::FOCUS_OUTLINE_SIZE
-            ).as_str()),
+            .outline_color(Color::SecondaryLighter)
+            .outline_style(CssOutlineStyle::Solid),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Share addon",

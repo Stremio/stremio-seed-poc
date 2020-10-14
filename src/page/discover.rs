@@ -12,7 +12,7 @@ use stremio_core::types::{
 };
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
-use crate::styles::{themes::{Color, Breakpoint}, global};
+use crate::styles::{self, themes::{Color, Breakpoint}, global};
 
 mod catalog_selector;
 mod extra_prop_selector;
@@ -374,6 +374,7 @@ fn view_meta_preview(
             "button-container",
             IF!(is_selected => "selected"),
         ],
+        styles::button_container(),
         IF!(is_selected => {
             s()
                 .after()

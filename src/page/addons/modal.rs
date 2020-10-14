@@ -1,7 +1,7 @@
 use seed::{prelude::*, *};
 use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
-use crate::styles::themes::{Color, get_color_value};
+use crate::styles::{self, themes::{Color, get_color_value}};
 
 // @TODO DRY + add logic + push to url
 
@@ -56,6 +56,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                 "close-button-container",
                 "button-container",
             ],
+            styles::button_container(),
             attrs!{
                 At::TabIndex => 0,
                 At::Title => "Close",
@@ -254,6 +255,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     "action-button",
                     "button-container",
                 ],
+                styles::button_container(),
                 s()
                     .background_color(Color::SurfaceDark),
                 attrs!{
@@ -268,6 +270,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     "action-button",
                     "button-container",
                 ],
+                styles::button_container(),
                 attrs!{
                     At::TabIndex => 0,
                     At::Title => "Install"
@@ -286,6 +289,7 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
             .width(rem(30)),
         div![
             C!["close-button-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => 0,
                 At::Title => "Close",
@@ -310,6 +314,7 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
                     C!["buttons-container",],
                     a![
                         C!["button-container", "facebook-button",],
+                        styles::button_container(),
                         attrs! {
                             At::TabIndex => 0,
                             At::Href => "https://example.com",
@@ -329,6 +334,7 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
                     ],
                     a![
                         C!["button-container", "twitter-button",],
+                        styles::button_container(),
                         attrs! {
                             At::TabIndex => 0,
                             At::Href => "https://example.com",
@@ -367,6 +373,7 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
                     ],
                     div![
                         C!["copy-button", "button-container",],
+                        styles::button_container(),
                         attrs! {
                             At::TabIndex => 0,
                         },
@@ -395,6 +402,8 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             .width(rem(30)),
         div![
             C!["close-button-container", "button-container",],
+            styles::button_container(),
+            styles::button_container(),
             attrs! {
                 At::TabIndex => 0,
                 At::Title => "Close",
@@ -441,6 +450,7 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             C!["modal-dialog-buttons",],
             div![
                 C!["cancel-button", "action-button", "button-container",],
+                styles::button_container(),
                 s()
                     .background_color(Color::SurfaceDark),
                 attrs! {
@@ -452,6 +462,7 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             ],
             div![
                 C!["action-button", "button-container",],
+                styles::button_container(),
                 attrs! {
                     At::TabIndex => 0,
                     At::Title => "Add",

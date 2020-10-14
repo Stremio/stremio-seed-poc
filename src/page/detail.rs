@@ -123,6 +123,7 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
                 "nav-tab-button-container",
                 "button-container",
             ],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "back",
@@ -257,6 +258,7 @@ fn view_genres<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Action",
@@ -266,6 +268,7 @@ fn view_genres<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Fantasy",
@@ -275,6 +278,7 @@ fn view_genres<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Thriller",
@@ -289,6 +293,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Kevin Grevioux",
@@ -298,6 +303,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Len Wiseman",
@@ -307,6 +313,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Danny McBride",
@@ -320,6 +327,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
 fn view_directors<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![a![
         C!["link-container", "button-container",],
+        styles::button_container(),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Len Wiseman",
@@ -333,6 +341,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Kate Beckinsale",
@@ -342,6 +351,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Scott Speedman",
@@ -351,6 +361,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Michael Sheen",
@@ -360,6 +371,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
                 At::Title => "Shane Brolly",
@@ -389,6 +401,7 @@ fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        styles::button_container(),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Add to library"
@@ -429,6 +442,7 @@ fn view_action_button_trailer<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        styles::button_container(),
         attrs! {
             At::TabIndex => 0,
             At::Title => "Trailer",
@@ -464,6 +478,7 @@ fn view_action_button_imdb<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        styles::button_container(),
         attrs! {
             At::TabIndex => 0,
             At::Title => "7.0 / 10",
@@ -506,6 +521,7 @@ fn view_action_button_share<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        styles::button_container(),
         attrs! {
             At::TabIndex => -1,
             At::Title => "Share"
@@ -548,6 +564,7 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
             // stream 1
             div![
                 C!["stream", "stream-container", "button-container",],
+                styles::button_container(),
                 s()
                     .width(styles::global::ITEM_SIZE)
                     .margin("1rem 2rem"),
@@ -627,6 +644,7 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
             // stream 2
             div![
                 C!["stream", "stream-container", "button-container",],
+                styles::button_container(),
                 s()
                     .width(styles::global::ITEM_SIZE)
                     .margin("1rem 2rem"),
@@ -726,6 +744,7 @@ fn view_streams_list_container<Ms: 'static>(list_style: &Style) -> Node<Ms> {
 fn view_install_addons_button<Ms: 'static>() -> Node<Ms> {
     a![
         C!["install-addons-container", "button-container",],
+        styles::button_container(),
         s()
             .flex(CssFlex::None)
             .align_self(CssAlignSelf::Stretch)
@@ -834,6 +853,7 @@ fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
             .margin("2rem 2rem 1rem 2rem"),
         div![
             C!["prev-season-button", "button-container",],
+            styles::button_container(),
             &season_button_styles,
             attrs! {
                 At::TabIndex => 0,
@@ -852,6 +872,7 @@ fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
         ],
         div![
             C!["seasons-popup-label-container", "button-container",],
+            styles::button_container(),
             s()
                 .flex("1")
                 .align_self(CssAlignSelf::Stretch)
@@ -878,6 +899,7 @@ fn view_season_bar_container<Ms: 'static>() -> Node<Ms> {
         ],
         div![
             C!["next-season-button", "button-container",],
+            styles::button_container(),
             &season_button_styles,
             attrs! {
                 At::TabIndex => 0,
@@ -909,6 +931,7 @@ fn view_video_scroll_container<Ms: 'static>() -> Node<Ms> {
             .margin_top(rem(2)),
         div![
             C!["video", "video-container", "button-container",],
+            styles::button_container(),
             s()
                 .width(styles::global::ITEM_SIZE)
                 .margin("1rem 2rem"),
