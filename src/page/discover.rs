@@ -374,6 +374,10 @@ fn view_meta_preview(
             "button-container",
             IF!(is_selected => "selected"),
         ],
+        // @TODO: Rewrite styles for `meta-item-container` to Rust
+        s()
+            .position(CssPosition::Relative)
+            .overflow(CssOverflow::Visible),
         styles::button_container(),
         IF!(is_selected => {
             s()
@@ -391,11 +395,62 @@ fn view_meta_preview(
         ),
         div![
             C!["poster-container",],
-            div![C!["poster-image-layer",], view_poster(&meta_preview.poster),],
+            s()
+                .position(CssPosition::Relative)
+                .z_index("0")
+                .background_color(Color::BackgroundLight),
+            match meta_preview.poster_shape {
+                PosterShape::Square => {
+                    s()
+                        .padding_top(pc(100))
+                }
+                PosterShape::Landscape => {
+                    s()
+                        .padding_top(format!("calc(100% * {})", styles::global::LANDSCAPE_SHAPE_RATIO).as_str())
+                }
+                _ => {
+                    s()
+                        .padding_top(format!("calc(100% * {})", styles::global::POSTER_SHAPE_RATIO).as_str())
+                }
+            },
+            div![
+                C!["poster-image-layer",], 
+                s()
+                    .position(CssPosition::Absolute)
+                    .top("0")
+                    .right("0")
+                    .bottom("0")
+                    .left("0")
+                    .z_index("-3")
+                    .display(CssDisplay::Flex)
+                    .flex_direction(CssFlexDirection::Row)
+                    .align_items(CssAlignItems::Center)
+                    .justify_content(CssJustifyContent::Center),
+                view_poster(&meta_preview.poster),
+            ],
         ],
         div![
             C!["title-bar-container",],
-            div![C!["title-label",], &meta_preview.name]
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .align_items(CssAlignItems::Center)
+                .justify_content(CssJustifyContent::FlexEnd)
+                .height(rem(2.8))
+                .background_color(Color::BackgroundLight)
+                .overflow(CssOverflow::Visible),
+            div![
+                C!["title-label",], 
+                s()
+                    .flex("1")
+                    .max_height(rem(2.4))
+                    .padding_left(rem(0.5))
+                    .color(Color::SurfaceLighter),
+                s()
+                    .only_child()
+                    .padding_right(rem(0.5)),
+                &meta_preview.name
+            ]
         ],
     ]
 }
@@ -405,12 +460,23 @@ fn view_poster(poster: &Option<String>) -> Node<Msg> {
     match poster {
         Some(poster_url) => img![
             C!["poster-image",],
+            s()
+                .flex(CssFlex::None)
+                .width(pc(100))
+                .height(pc(100))
+                .raw("object-position: center;")
+                .raw("object-fit: cover;"),
             attrs! {
                 At::Src => poster_url,
             }
         ],
         None => svg![
             C!["placeholder-icon",],
+            s()
+                .flex(CssFlex::None)
+                .width(pc(100))
+                .height(pc(50))
+                .fill(Color::SurfaceLight20),
             attrs! {
                 At::ViewBox => "0 0 1125 1024",
                 "icon" => "ic_series",
