@@ -10,7 +10,7 @@ use stremio_core::types::{
     addons::{ResourceRef, ResourceRequest, ResourceResponse},
     PosterShape,
 };
-use seed_style::{px, em, pc, rem, Style};
+use seed_style::{px, pc, rem};
 use seed_style::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 

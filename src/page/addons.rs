@@ -8,9 +8,9 @@ use stremio_core::state_types::{
 };
 use stremio_core::types::addons::{Descriptor, DescriptorPreview, ManifestPreview};
 use stremio_core::types::addons::{ResourceRef, ResourceRequest};
-use seed_style::{px, em, pc, rem, Style};
+use seed_style::{em, pc, rem, Style};
 use seed_style::*;
-use crate::styles::{self, themes::{Color, get_color_value}};
+use crate::styles::{self, themes::Color};
 
 mod catalog_selector;
 mod modal;

@@ -11,7 +11,7 @@ mod styles;
 use env_web::Env;
 use futures::compat::Future01CompatExt;
 use seed::{prelude::*, *};
-use seed_style::{px, em, pc, rem, Style};
+use seed_style::pc;
 use seed_style::*;
 use std::rc::Rc;
 use stremio_core::state_types::{CatalogFiltered, Ctx, Msg as CoreMsg, Update};

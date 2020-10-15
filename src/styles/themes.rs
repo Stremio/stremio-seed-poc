@@ -1,4 +1,3 @@
-use seed_style::{px, em, pc, rem, Style};
 use seed_style::*;
 use std::collections::HashMap;
 
