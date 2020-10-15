@@ -281,26 +281,49 @@ fn view_meta_info_container<Ms: 'static>() -> Node<Ms> {
 
 fn view_meta_links_containers<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
+        view_meta_link_container("Genres:", view_genres()),
+        view_meta_link_container("Writers:", view_writers()),
+        view_meta_link_container("Directors:", view_directors()),
+        view_meta_link_container("Cast:", view_cast()),
+    ]
+}
+
+fn view_meta_link_container<Ms: 'static>(label: &str, links: Vec<Node<Ms>>) -> Node<Ms> {
+    div![
+        C!["meta-links", "meta-links-container"],
         div![
-            C!["meta-links", "meta-links-container"],
-            div![C!["label-container",], "Genres:"],
-            div![C!["links-container"], view_genres(),]
+            C!["label-container",], 
+            s()
+                .margin_bottom(rem(0.2))
+                .font_size(rem(1.2))
+                .color(Color::SurfaceLighter),
+            label
         ],
         div![
-            C!["meta-links", "meta-links-container"],
-            div![C!["label-container",], "Writers:"],
-            div![C!["links-container"], view_writers(),]
-        ],
-        div![
-            C!["meta-links", "meta-links-container"],
-            div![C!["label-container",], "Directors:"],
-            div![C!["links-container"], view_directors(),]
-        ],
-        div![
-            C!["meta-links", "meta-links-container"],
-            div![C!["label-container",], "Cast:"],
-            div![C!["links-container"], view_cast(),]
-        ],
+            C!["links-container"], 
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .flex_wrap(CssFlexWrap::Wrap),
+            links,
+        ]
+    ]
+}
+
+fn link_container_styles() -> Vec<Style> {
+    vec![
+        s()
+            .flex_grow("0")
+            .flex_shrink("1")
+            .flex_basis(CssFlexBasis::Auto)
+            .margin_right(rem(0.5))
+            .margin_bottom(rem(0.2))
+            .white_space(CssWhiteSpace::NoWrap)
+            .text_overflow("ellipsis")
+            .color(Color::SurfaceLighter),
+        s()
+            .hover()
+            .text_decoration(CssTextDecoration::Underline)
     ]
 }
 
@@ -308,6 +331,7 @@ fn view_genres<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -318,6 +342,7 @@ fn view_genres<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -328,6 +353,7 @@ fn view_genres<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -343,6 +369,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -353,6 +380,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -363,6 +391,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -377,6 +406,7 @@ fn view_writers<Ms: 'static>() -> Vec<Node<Ms>> {
 fn view_directors<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![a![
         C!["link-container", "button-container",],
+        link_container_styles(),
         styles::button_container(),
         attrs! {
             At::TabIndex => -1,
@@ -391,6 +421,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
     vec![
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -401,6 +432,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -411,6 +443,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -421,6 +454,7 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
         ],
         a![
             C!["link-container", "button-container",],
+            link_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
