@@ -444,6 +444,61 @@ fn view_action_buttons_container<Ms: 'static>() -> Node<Ms> {
     ]
 }
 
+fn action_button_container_styles() -> Vec<Style> {
+    vec![
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Column)
+            .justify_content(CssJustifyContent::Center),
+        s()
+            .hover()
+            .background_color(Color::SurfaceDarker60),
+        s()
+            .focus()
+            .background_color(Color::SurfaceDarker60),
+    ]
+}
+
+fn action_button_icon_container_styles() -> Vec<Style> {
+    vec![
+        s()
+            .flex_grow("0")
+            .flex_shrink("0")
+            .flex_basis("50%")
+            .padding_top(pc(15)),
+        s()
+            .only_child()
+            .padding("5% 0")
+    ]
+}
+
+fn action_button_icon_style() -> Style {
+    s()
+        .display(CssDisplay::Block)
+        .width(pc(100))
+        .height(pc(100))
+        .fill(Color::SurfaceLighter)
+}
+
+fn action_button_label_container_style() -> Style {
+    s()
+        .flex_grow("0")
+        .flex_shrink("0")
+        .flex_basis("50%")
+        .display(CssDisplay::Flex)
+        .flex_direction(CssFlexDirection::Row)
+        .align_items(CssAlignItems::Center)
+}
+
+fn action_button_label_style() -> Style {
+    s()
+        .flex("1")
+        .padding("0 0.2rem")
+        .max_height(em(2.4))
+        .text_align(CssTextAlign::Center)
+        .color(Color::SurfaceLighter)
+}
+
 fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
     div![
         C![
@@ -451,6 +506,7 @@ fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        action_button_container_styles(),
         styles::button_container(),
         attrs! {
             At::TabIndex => -1,
@@ -458,8 +514,10 @@ fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
         },
         div![
             C!["icon-container",],
+            action_button_icon_container_styles(),
             svg![
                 C!["icon",],
+                action_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 1264 1024",
                     "icon" => "ic_addlib",
@@ -481,7 +539,15 @@ fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![C!["label-container",], div![C!["label"], "Add to library",]]
+        div![
+            C!["label-container",], 
+            action_button_label_container_style(),
+            div![
+                C!["label"], 
+                action_button_label_style(),
+                "Add to library",
+            ]
+        ]
     ]
 }
 
@@ -492,6 +558,7 @@ fn view_action_button_trailer<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        action_button_container_styles(),
         styles::button_container(),
         attrs! {
             At::TabIndex => 0,
@@ -500,8 +567,10 @@ fn view_action_button_trailer<Ms: 'static>() -> Node<Ms> {
         },
         div![
             C!["icon-container",],
+            action_button_icon_container_styles(),
             svg![
                 C!["icon",],
+                action_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 840 1024",
                     "icon" => "ic_movies",
@@ -517,7 +586,15 @@ fn view_action_button_trailer<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![C!["label-container",], div![C!["label"], "Trailer",]]
+        div![
+            C!["label-container",], 
+            action_button_label_container_style(),
+            div![
+                C!["label"], 
+                action_button_label_style(),
+                "Trailer",
+            ]
+        ]
     ]
 }
 
@@ -528,6 +605,7 @@ fn view_action_button_imdb<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        action_button_container_styles(),
         styles::button_container(),
         attrs! {
             At::TabIndex => 0,
@@ -537,8 +615,10 @@ fn view_action_button_imdb<Ms: 'static>() -> Node<Ms> {
         },
         div![
             C!["icon-container",],
+            action_button_icon_container_styles(),
             svg![
                 C!["icon",],
+                action_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 1762 1024",
                     "icon" => "ic_imdb",
@@ -560,7 +640,15 @@ fn view_action_button_imdb<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![C!["label-container",], div![C!["label"], "7.0 / 10",]]
+        div![
+            C!["label-container",], 
+            action_button_label_container_style(),
+            div![
+                C!["label"], 
+                action_button_label_style(),
+                "7.0 / 10",
+            ]
+        ]
     ]
 }
 
@@ -571,6 +659,7 @@ fn view_action_button_share<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        action_button_container_styles(),
         styles::button_container(),
         attrs! {
             At::TabIndex => -1,
@@ -578,8 +667,10 @@ fn view_action_button_share<Ms: 'static>() -> Node<Ms> {
         },
         div![
             C!["icon-container",],
+            action_button_icon_container_styles(),
             svg![
                 C!["icon",],
+                action_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 1024 1024",
                     "icon" => "ic_share",
@@ -589,7 +680,15 @@ fn view_action_button_share<Ms: 'static>() -> Node<Ms> {
                 }],
             ],
         ],
-        div![C!["label-container",], div![C!["label"], "Share",]]
+        div![
+            C!["label-container",], 
+            action_button_label_container_style(),
+            div![
+                C!["label"], 
+                action_button_label_style(),
+                "Share",
+            ]
+        ]
     ]
 }
 
