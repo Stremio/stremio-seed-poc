@@ -123,6 +123,17 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
                 "nav-tab-button-container",
                 "button-container",
             ],
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .align_items(CssAlignItems::Center)
+                .padding("0 1rem"),
+            s()
+                .hover()
+                .background_color(Color::Secondary),
+            s()
+                .active()
+                .background_color(Color::Background),
             styles::button_container(),
             attrs! {
                 At::TabIndex => -1,
@@ -130,6 +141,15 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
             },
             svg![
                 C!["icon",],
+                s()
+                    .flex(CssFlex::None)
+                    .width(rem(1.5))
+                    .height(rem(1.2))
+                    .margin_right(rem(0.5))
+                    .fill(Color::SurfaceLighter),
+                s()
+                    .only_child()
+                    .margin_right("0"),
                 attrs! {
                     At::ViewBox => "0 0 607 1024",
                     "icon" => "ic_back_ios",
@@ -138,7 +158,14 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
                     At::D => "M607.473 926.419l-412.009-414.419 412.009-414.419-97.28-97.581-510.193 512 510.193 512z"
                 }]
             ],
-            div![C!["label",], "Back"]
+            div![
+                C!["label",], 
+                s()
+                    .flex("1")
+                    .max_height(em(2.4))
+                    .color(Color::SurfaceLighter),
+                "Back"
+            ]
         ],
         h2![C!["title"], "Underworld",]
     ]
