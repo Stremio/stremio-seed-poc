@@ -229,6 +229,11 @@ fn view_meta_preview_container<Ms: 'static>() -> Node<Ms> {
     div![
         C!["meta-preview", "meta-preview-container",],
         s()
+            .position(CssPosition::Relative)
+            .z_index("0")
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Column),
+        s()
             .flex("1")
             .align_self(CssAlignSelf::Stretch),
         view_meta_info_container(),
@@ -241,10 +246,24 @@ fn view_meta_info_container<Ms: 'static>() -> Node<Ms> {
         C![
             "meta-info-container",
         ],
+        s()
+            .flex("1")
+            .align_self(CssAlignSelf::Stretch)
+            .padding("0 1rem")
+            .overflow_y(CssOverflowY::Auto),
         img![
             C![
                 "logo",
             ],
+            s()
+                .display(CssDisplay::Block)
+                .max_width(pc(100))
+                .height(rem(8))
+                .margin_top(rem(1))
+                .padding(rem(1))
+                .background_color(Color::SurfaceDarker20)
+                .raw("object-fit: contain;")
+                .raw("object-position: left center"),
             attrs!{
                 At::Src => "https://images.metahub.space/logo/medium/tt0320691/img",
                 At::Alt => " ",
@@ -254,10 +273,23 @@ fn view_meta_info_container<Ms: 'static>() -> Node<Ms> {
             C![
                 "runtime-release-info-container",
             ],
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .flex_wrap(CssFlexWrap::Wrap)
+                .margin_top(rem(1)),
             div![
                 C![
                     "release-info-label"
                 ],
+                s()
+                    .flex_grow("0")
+                    .flex_shrink("1")
+                    .flex_basis(CssFlexBasis::Auto)
+                    .margin("1rem 1rem 1rem 0")
+                    .font_size(rem(1.2))
+                    .text_align(CssTextAlign::Center)
+                    .color(Color::SurfaceLighter),
                 "2003"
             ]
         ],
@@ -265,12 +297,19 @@ fn view_meta_info_container<Ms: 'static>() -> Node<Ms> {
             C![
                 "name-container"
             ],
+            s()
+                .margin_top(rem(1))
+                .font_size(rem(1.4))
+                .color(Color::SurfaceLighter),
             "Underworld"
         ],
         div![
             C![
                 "description-container",
             ],
+            s()
+                .margin_top(rem(1))
+                .color(Color::SurfaceLighter),
             "Selene, a vampire warrior, is entrenched in a conflict between vampires and werewolves, while falling in love with Michael, a human who is sought by werewolves for unknown reasons."
         ],
         view_meta_links_containers(),
@@ -291,6 +330,8 @@ fn view_meta_links_containers<Ms: 'static>() -> Vec<Node<Ms>> {
 fn view_meta_link_container<Ms: 'static>(label: &str, links: Vec<Node<Ms>>) -> Node<Ms> {
     div![
         C!["meta-links", "meta-links-container"],
+        s()
+            .margin_top(rem(1)),
         div![
             C!["label-container",], 
             s()
@@ -471,6 +512,13 @@ fn view_cast<Ms: 'static>() -> Vec<Node<Ms>> {
 fn view_action_buttons_container<Ms: 'static>() -> Node<Ms> {
     div![
         C!["action-buttons-container",],
+        s()
+            .flex(CssFlex::None)
+            .align_self(CssAlignSelf::Stretch)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .flex_wrap(CssFlexWrap::Wrap)
+            .padding("0 1rem"),
         view_action_button_add_to_library(),
         view_action_button_trailer(),
         view_action_button_imdb(),
@@ -533,6 +581,14 @@ fn action_button_label_style() -> Style {
         .color(Color::SurfaceLighter)
 }
 
+fn meta_preview_action_button_style() -> Style {
+    s()
+        .flex(CssFlex::None)
+        .width(rem(6))
+        .height(rem(6))
+        .margin("1rem 0")
+    }
+
 fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
     div![
         C![
@@ -540,6 +596,7 @@ fn view_action_button_add_to_library<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        meta_preview_action_button_style(),
         action_button_container_styles(),
         styles::button_container(),
         attrs! {
@@ -592,6 +649,7 @@ fn view_action_button_trailer<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        meta_preview_action_button_style(),
         action_button_container_styles(),
         styles::button_container(),
         attrs! {
@@ -639,6 +697,7 @@ fn view_action_button_imdb<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        meta_preview_action_button_style(),
         action_button_container_styles(),
         styles::button_container(),
         attrs! {
@@ -693,6 +752,7 @@ fn view_action_button_share<Ms: 'static>() -> Node<Ms> {
             "action-button-container",
             "button-container",
         ],
+        meta_preview_action_button_style(),
         action_button_container_styles(),
         styles::button_container(),
         attrs! {
