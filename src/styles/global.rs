@@ -1,4 +1,4 @@
-use seed_style::{px, em, pc, rem, Style};
+use seed_style::{px, em, pc, rem};
 use seed_style::*;
 use crate::styles::themes::{self, Breakpoint, Color, get_color_value};
 
@@ -11,7 +11,6 @@ pub const SCROLL_BAR_WIDTH: &str = "6px";
 pub const FOCUS_OUTLINE_SIZE: &str = "2px";
 pub const COLOR_FACEBOOK: &str = "#4267b2";
 pub const COLOR_TWITTER: &str = "#1DA1F2";
-pub const COLOR_PLACEHOLDER: &str = "#60606080";
 pub const ITEM_SIZE: &str = "28rem";
 pub const NAV_BAR_SIZE: &str = "3.2rem";
 

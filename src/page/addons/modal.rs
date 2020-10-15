@@ -1,5 +1,5 @@
 use seed::{prelude::*, *};
-use seed_style::{px, em, pc, rem, Style};
+use seed_style::{pc, rem, Style};
 use seed_style::*;
 use crate::styles::{self, themes::{Color, get_color_value}};
 

@@ -2,7 +2,7 @@ use itertools::Itertools;
 use seed::{prelude::*, *};
 use std::fmt::Debug;
 use wasm_bindgen::JsCast;
-use seed_style::{px, em, pc, rem, Style};
+use seed_style::{pc, rem};
 use seed_style::*;
 use crate::styles::{self, themes::{Color, get_color_value}};
 
