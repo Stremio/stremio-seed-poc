@@ -14,6 +14,110 @@ pub enum Modal {
     UninstallAddon,
 }
 
+// ------ ------
+//    Styles
+// ------ ------
+
+fn modal_dialog_container_style() -> Style {
+    s()
+        .position(CssPosition::Relative)
+        .margin(CssMargin::Auto)
+        .padding(rem(1))
+        .background_color(Color::SurfaceLighter)
+}
+
+fn modal_dialog_h1_style() -> Style {
+    s()
+        .margin_bottom(rem(1))
+        .font_size(rem(1.2))
+}
+
+fn modal_dialog_content_styles() -> Vec<Style> {
+    vec![
+        s()
+            .padding(rem(1)),
+        s()
+            .style_other(">:not(:first-child)")
+            .margin_top(rem(1)),
+    ]
+}
+
+fn modal_dialog_buttons_style() -> Style {
+    s()
+        .margin(rem(1))
+        .display(CssDisplay::Flex)
+        .flex_direction(CssFlexDirection::Row)
+}
+
+fn modal_dialog_close_button_container_styles() -> Vec<Style> {
+    vec![
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .align_items(CssAlignItems::Center)
+            .justify_content(CssJustifyContent::Center)
+            .position(CssPosition::Absolute)
+            .top(rem(0.2))
+            .right(rem(0.2))
+            .width(rem(2))
+            .height(rem(2))
+            .padding(rem(0.5)),
+        s()
+            .hover()
+            .background_color(Color::SurfaceLight),
+        s()
+            .style_other(":hover .icon")
+            .fill(Color::Signal2),
+        s()
+            .style_other(":hover .focus")
+            .fill(Color::Signal2),
+    ]
+}
+
+fn model_dialog_close_button_icon_style() -> Style {
+    s()
+        .flex(CssFlex::None)
+        .display(CssDisplay::Block)
+        .width(pc(100))
+        .height(pc(100))
+        .fill(Color::SurfaceDark)
+}
+
+fn action_button_styles() -> Vec<Style> {
+    vec![
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .align_items(CssAlignItems::Center)
+            .justify_content(CssJustifyContent::Center)
+            .flex("1 0 0")
+            .padding(rem(1))
+            .text_align(CssTextAlign::Center)
+            .color(Color::SurfaceLighter)
+            .background_color(Color::Signal5),
+        s()
+            .hover()
+            .filter("brightness(1.2)"),
+        s()
+            .focus()
+            .outline_width(format!("calc(1.5 * {})", styles::global::FOCUS_OUTLINE_SIZE).as_str())
+            .outline_style(CssOutlineStyle::Solid)
+            .outline_color(Color::SurfaceLighter)
+            .raw(format!("outline-offset: calc(-2 * {});", styles::global::FOCUS_OUTLINE_SIZE).as_str()),
+        s()
+            .disabled()
+            .color(Color::SurfaceDarker)
+            .background_color(Color::SurfaceDark),
+        s()
+            .not(":last-child")
+            .margin_right(rem(2)),
+    ]
+}
+
+// ------ ------
+//     View
+// ------ ------
+
 pub fn view<Ms: 'static>(modal: &Modal, close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["modals-container"],
@@ -30,6 +134,10 @@ pub fn view<Ms: 'static>(modal: &Modal, close_msg: impl Fn() -> Ms + Copy + 'sta
                 .left("0")
                 .z_index("1")
                 .overflow(CssOverflow::Hidden),
+            s()
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Column)
+                .background_color(Color::BackgroundDark),
             ev(Ev::Click, move |event| {
                 IF!(event.target() == event.current_target() => close_msg())
             }),
@@ -49,6 +157,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
             "addon-prompt-container",
             "modal-dialog-container"
         ],
+        modal_dialog_container_style(),
         s()
             .width(rem(50)),
         div![
@@ -56,6 +165,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                 "close-button-container",
                 "button-container",
             ],
+            modal_dialog_close_button_container_styles(),
             styles::button_container(),
             attrs!{
                 At::TabIndex => 0,
@@ -64,6 +174,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
             ev(Ev::Click, move |_| close_msg()),
             svg![
                 C!["icon",],
+                model_dialog_close_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 1024 1024",
                     "icon" => "ic_x",
@@ -77,6 +188,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
             C![
                 "modal-dialog-content",
             ],
+            modal_dialog_content_styles(),
             div![
                 div![
                     C![
@@ -249,12 +361,14 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
             C![
                 "modal-dialog-buttons",
             ],
+            modal_dialog_buttons_style(),
             div![
                 C![
                     "cancel-button",
                     "action-button",
                     "button-container",
                 ],
+                action_button_styles(),
                 styles::button_container(),
                 s()
                     .background_color(Color::SurfaceDark),
@@ -270,6 +384,7 @@ fn view_install_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'st
                     "action-button",
                     "button-container",
                 ],
+                action_button_styles(),
                 styles::button_container(),
                 attrs!{
                     At::TabIndex => 0,
@@ -327,10 +442,12 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
     
     div![
         C!["share-prompt-container", "modal-dialog-container"],
+        modal_dialog_container_style(),
         s()
             .width(rem(30)),
         div![
             C!["close-button-container", "button-container",],
+            modal_dialog_close_button_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => 0,
@@ -339,6 +456,7 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
             ev(Ev::Click, move |_| close_msg()),
             svg![
                 C!["icon",],
+                model_dialog_close_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 1024 1024",
                     "icon" => "ic_x",
@@ -348,9 +466,13 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
                 }]
             ],
         ],
-        h1!["Share addon"],
+        h1![
+            modal_dialog_h1_style(),
+            "Share addon"
+        ],
         div![
             C!["modal-dialog-content",],
+            modal_dialog_content_styles(),
             div![
                 div![
                     C!["buttons-container",],
@@ -505,11 +627,12 @@ fn view_share_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'stat
 fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static) -> Node<Ms> {
     div![
         C!["add-addon-prompt-container", "modal-dialog-container"],
+        modal_dialog_container_style(),
         s()
             .width(rem(30)),
         div![
             C!["close-button-container", "button-container",],
-            styles::button_container(),
+            modal_dialog_close_button_container_styles(),
             styles::button_container(),
             attrs! {
                 At::TabIndex => 0,
@@ -518,6 +641,7 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             ev(Ev::Click, move |_| close_msg()),
             svg![
                 C!["icon",],
+                model_dialog_close_button_icon_style(),
                 attrs! {
                     At::ViewBox => "0 0 1024 1024",
                     "icon" => "ic_x",
@@ -527,9 +651,13 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
                 }]
             ],
         ],
-        h1!["Add addon"],
+        h1![
+            modal_dialog_h1_style(),
+            "Add addon"
+        ],
         div![
             C!["modal-dialog-content",],
+            modal_dialog_content_styles(),
             input![
                 C!["url-content", "text-input",],
                 styles::text_input(),
@@ -556,8 +684,10 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
         ],
         div![
             C!["modal-dialog-buttons",],
+            modal_dialog_buttons_style(),
             div![
                 C!["cancel-button", "action-button", "button-container",],
+                action_button_styles(),
                 styles::button_container(),
                 s()
                     .background_color(Color::SurfaceDark),
@@ -570,6 +700,7 @@ fn view_add_addon_modal<Ms: 'static>(close_msg: impl Fn() -> Ms + Copy + 'static
             ],
             div![
                 C!["action-button", "button-container",],
+                action_button_styles(),
                 styles::button_container(),
                 attrs! {
                     At::TabIndex => 0,
