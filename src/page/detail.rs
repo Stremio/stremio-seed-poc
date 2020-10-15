@@ -117,12 +117,23 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
         s()
             .flex(CssFlex::None)
             .align_self(CssAlignSelf::Stretch),
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .align_items(CssAlignItems::Center)
+            .height(styles::global::NAV_BAR_SIZE)
+            .background_color(Color::SecondaryDark)
+            .overflow(CssOverflow::Visible),
         div![
             C![
                 "nav-tab-button",
                 "nav-tab-button-container",
                 "button-container",
             ],
+            s()
+                .flex(CssFlex::None)
+                .align_self(CssAlignSelf::Stretch)
+                .max_width(rem(11)),
             s()
                 .display(CssDisplay::Flex)
                 .flex_direction(CssFlexDirection::Row)
@@ -167,7 +178,19 @@ fn view_nav<Ms: 'static>() -> Node<Ms> {
                 "Back"
             ]
         ],
-        h2![C!["title"], "Underworld",]
+        h2![
+            C!["title"], 
+            s()
+                .flex("1")
+                .padding("0 1rem")
+                .font_size(rem(1.1))
+                .font_style(CssFontStyle::Normal)
+                .font_weight("400")
+                .white_space(CssWhiteSpace::NoWrap)
+                .text_overflow("ellipsis")
+                .color(Color::SurfaceLighter),
+            "Underworld",
+        ]
     ]
 }
 
