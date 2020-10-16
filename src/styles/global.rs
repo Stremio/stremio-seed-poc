@@ -1,5 +1,5 @@
-use seed_style::{px, em, pc, rem};
-use seed_style::*;
+use seed_styles::{px, em, pc, rem};
+use seed_styles::*;
 use crate::styles::themes::{self, Breakpoint, Color, get_color_value};
 
 mod font_faces;

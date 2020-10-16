@@ -1,4 +1,4 @@
-use seed_style::*;
+use seed_styles::*;
 
 pub trait GlobalStyleFontFaces {
     fn add_font_faces(self) -> Self;

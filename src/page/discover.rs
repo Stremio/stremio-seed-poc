@@ -10,8 +10,8 @@ use stremio_core::types::{
     addons::{ResourceRef, ResourceRequest, ResourceResponse},
     PosterShape,
 };
-use seed_style::{px, pc, rem};
-use seed_style::*;
+use seed_styles::{px, pc, rem};
+use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 
 mod catalog_selector;

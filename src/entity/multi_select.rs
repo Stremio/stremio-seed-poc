@@ -2,8 +2,8 @@ use itertools::Itertools;
 use seed::{prelude::*, *};
 use std::fmt::Debug;
 use wasm_bindgen::JsCast;
-use seed_style::{pc, rem};
-use seed_style::*;
+use seed_styles::{pc, rem};
+use seed_styles::*;
 use crate::styles::{self, themes::{Color, get_color_value}};
 
 const MENU_CLASS: &str = "popup-menu-container";

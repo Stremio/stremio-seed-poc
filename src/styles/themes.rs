@@ -1,4 +1,4 @@
-use seed_style::*;
+use seed_styles::*;
 use std::collections::HashMap;
 
 // @TODO refactor + hide in the library

@@ -8,8 +8,8 @@ use stremio_core::state_types::{
 };
 use stremio_core::types::addons::{Descriptor, DescriptorPreview, ManifestPreview};
 use stremio_core::types::addons::{ResourceRef, ResourceRequest};
-use seed_style::{em, pc, rem, Style};
-use seed_style::*;
+use seed_styles::{em, pc, rem, Style};
+use seed_styles::*;
 use crate::styles::{self, themes::Color};
 
 mod catalog_selector;

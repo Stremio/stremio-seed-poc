@@ -2,8 +2,8 @@ use crate::{PageId, Actions};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
-use seed_style::{em, pc, rem, Style};
-use seed_style::*;
+use seed_styles::{em, pc, rem, Style};
+use seed_styles::*;
 use crate::styles::{self, themes::Color};
 
 // ------ ------
