@@ -28,13 +28,13 @@ seed = { path = "../seed" }
 # seed_style = { git = "https://github.com/arn-the-long-beard/seed_style_preview.git", package = "seed_style_preview", branch = "hot_fix/update_with_new_hooks" }
 seed_style = { path = "../seed_style_preview", package = "seed_style_preview" }
 
-stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
+stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
 #stremio-core = { path = "../stremio-core" }
 
-stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
+stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
 #stremio-derive = { path = "../stremio-core/stremio-derive" }
 
-env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git" }
+env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
 #env-web = { path = "../stremio-core/env-web" }
 
 # seed_hooks = { git = "https://github.com/arn-the-long-beard/seed_hooks.git", branch = "hot_fix/update_with_new_hooks" }

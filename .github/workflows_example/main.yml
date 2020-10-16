@@ -29,7 +29,7 @@ jobs:
         run: cargo make verify_only
 
       - name: Bundle
-        run: cargo make bundle
+        run: cargo make bundle # TODO replace with a with Trunk command
 
 #      - name: Install Netlify CLI
 #        if: github.ref == 'refs/heads/master'

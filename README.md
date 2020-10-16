@@ -2,30 +2,19 @@
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/en/)
 - [Rust](https://www.rust-lang.org/tools/install)
 - `rustup update`
 - `rustup target add wasm32-unknown-unknown`
-- `cargo install --force cargo-make`
-
-## Init project
-
-- `npm install`
+- `cargo install cargo-make`
+- `cargo install wasm-bindgen-cli`
+- `cargo install trunk`
 
 ## Development
 
-- In standalone terminals:
-  - `cargo make watch`
-  - `cargo make watch_less`
-  - `cargo make serve`
+- `trunk serve`
   
-- Open [localhost:8000](http://localhost:8000) in a browser.
-- _Note_: Auto-reload isn't implemented (yet).
-
-## Test release version
-
-- `cargo make bundle`
-- `cargo make serve_dist`
+- Open [localhost:8080](http://localhost:8080) in a browser.
+- _Note_: Auto-reload isn't implemented in [Trunk](https://crates.io/crates/trunk) (yet).
 
 ## Deploy (WIP)
 
