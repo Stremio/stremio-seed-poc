@@ -1,8 +1,8 @@
 pub mod global;
 pub mod themes;
 
-use seed_style::Style;
-use seed_style::*;
+use seed_styles::Style;
+use seed_styles::*;
 use themes::Color;
 
 pub fn button_container() -> Vec<Style> {

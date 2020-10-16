@@ -1,6 +1,6 @@
 use seed::{prelude::*, *};
-use seed_style::{pc, rem, Style};
-use seed_style::*;
+use seed_styles::{pc, rem, Style};
+use seed_styles::*;
 use crate::styles::{self, themes::{Color, get_color_value}};
 
 // @TODO DRY + add logic + push to url
