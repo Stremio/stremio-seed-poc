@@ -1,13 +1,5 @@
 /target
-**/*.rs.bk
 Cargo.lock
-
-# Pycharm
-/.idea
-
 /pkg
-wasm-pack.log
-styles.css
 dist
 
-node_modules
