@@ -69,7 +69,6 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
 //     Model
 // ------ ------
 
-// @TODO box large fields?
 #[allow(clippy::large_enum_variant)]
 pub struct Model {
     context: Context,
@@ -135,7 +134,6 @@ impl<'a> Urls<'a> {
 //    Update
 // ------ ------
 
-// @TODO box large fields?
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 enum Msg {
     UrlChanged(subs::UrlChanged),
@@ -223,9 +221,6 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
 #[topo::nested]
 fn view(model: &Model) -> Node<Msg> {
-    let dummy_text = use_state(|| "remove me");
-    log!(dummy_text.get());
-
     div![
         C!["router", "routes-container"],
         s()

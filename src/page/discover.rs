@@ -109,7 +109,6 @@ impl<'a> Urls<'a> {
 //    Update
 // ------ ------
 
-// @TODO box large fields?
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
