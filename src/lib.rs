@@ -19,7 +19,6 @@ use stremio_core::types::addons::DescriptorPreview;
 use stremio_core::types::MetaPreview;
 use stremio_derive::Model;
 use seed_hooks::*;
-use seed_hooks::state_access::CloneState;
 
 // ---- url parts ----
 
@@ -28,6 +27,7 @@ const DISCOVER: &str = "discover";
 const DETAIL: &str = "detail";
 const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
+const SEARCH: &str = "search";
 
 // ------ ------
 //    Actions
@@ -62,6 +62,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         detail_model: None,
         discover_model: None,
         addons_model: None,
+        search_model: None,
     }
 }
 
@@ -77,6 +78,7 @@ pub struct Model {
     detail_model: Option<page::detail::Model>,
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
+    search_model: Option<page::search::Model>,
 }
 
 // ------ Context ------
@@ -96,6 +98,7 @@ pub enum PageId {
     Player,
     Addons,
     NotFound,
+    Search,
 }
 
 // ------ CoreModel  ------
@@ -128,6 +131,9 @@ impl<'a> Urls<'a> {
     pub fn addons_urls(self) -> page::addons::Urls<'a> {
         page::addons::Urls::new(self.base_url().add_hash_path_part(ADDONS))
     }
+    pub fn search(self, query: &str) -> Url {
+        self.base_url().add_hash_path_part(SEARCH).add_hash_path_part(query)
+    }
 }
 
 // ------ ------
@@ -142,6 +148,7 @@ enum Msg {
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
     AddonsMsg(page::addons::Msg),
+    SearchMsg(page::search::Msg),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -164,6 +171,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     url,
                     &mut model.addons_model,
                     &mut orders.proxy(Msg::AddonsMsg),
+                ),
+                Some(SEARCH) => page::search::init(
+                    url,
+                    &mut model.search_model,
+                    &mut orders.proxy(Msg::SearchMsg),
                 ),
                 _ => None,
             };
@@ -212,6 +224,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 );
             }
         }
+        Msg::SearchMsg(page_msg) => {
+            if let Some(page_model) = &mut model.search_model {
+                page::search::update(page_msg, page_model, &mut orders.proxy(Msg::SearchMsg));
+            }
+        }
     }
 }
 
@@ -258,6 +275,15 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     }
+                    PageId::Search => {
+                        if let Some(page_model) = &model.search_model {
+                            page::search::view(page_model)
+                                .map_msg(Msg::SearchMsg)
+                                .into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    },
                     PageId::NotFound => page::not_found::view().into_nodes(),
                 }
             })
