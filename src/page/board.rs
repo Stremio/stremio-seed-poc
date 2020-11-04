@@ -39,6 +39,15 @@ pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
                 At::Href => RootUrls::new(root_base_url).addons_urls().root()
             },
             "Go to Addons ▶"
+        ],
+        a![
+            style! {
+                St::Padding => px(20),
+            },
+            attrs! {
+                At::Href => RootUrls::new(root_base_url).search("office")
+            },
+            "Go to Search ▶"
         ]
     ]
 }
