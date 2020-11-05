@@ -45,7 +45,7 @@ pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => RootUrls::new(root_base_url).search("office")
+                At::Href => RootUrls::new(root_base_url).search_urls().root()
             },
             "Go to Search ▶"
         ]

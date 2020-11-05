@@ -13,6 +13,10 @@ pub const COLOR_FACEBOOK: &str = "#4267b2";
 pub const COLOR_TWITTER: &str = "#1DA1F2";
 pub const ITEM_SIZE: &str = "28rem";
 pub const NAV_BAR_SIZE: &str = "3.2rem";
+pub const HORIZONTAL_NAV_BAR_SIZE: &str = "4rem";
+pub const VERTICAL_NAV_BAR_SIZE: &str = "5.2rem";
+// @TODO 4rem is HORIZONTAL_NAV_BAR_SIZE - refactor
+pub const SEARCH_BAR_SIZE: &str = "calc(4rem - 1.2rem)";
 
 pub fn init() {
     load_app_themes(&[themes::default_color_theme, themes::default_breakpoint_theme]);

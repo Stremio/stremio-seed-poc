@@ -113,7 +113,7 @@ pub enum Color {
     BackgroundLight60,
     BackgroundLight40,
     BackgroundLight20,
-    Background,
+    // Background,
     Background80,
     Background60,
     Background40,
@@ -178,6 +178,13 @@ pub enum Color {
     Signal560,
     Signal540,
     Signal520,
+    // new
+    Background,
+    BackgroundDark1,
+    BackgroundDark2,
+    BackgroundLight2,
+    BackgroundLight3,
+    SurfaceLight5,
 }
 impl ColorTheme for Color {} 
 
@@ -244,7 +251,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(BackgroundLight60, rgba(25,26,53,0.6))
         .set_color(BackgroundLight40, rgba(25,26,53,0.4))
         .set_color(BackgroundLight20, rgba(25,26,53,0.2))
-        .set_color(Background, rgba(13,14,37,1))
+        // .set_color(Background, rgba(13,14,37,1))
         .set_color(Background80, rgba(13,14,37,0.8))
         .set_color(Background60, rgba(13,14,37,0.6))
         .set_color(Background40, rgba(13,14,37,0.4))
@@ -309,4 +316,11 @@ pub fn default_color_theme() -> Theme {
         .set_color(Signal560, rgba(34,180,103,0.6))
         .set_color(Signal540, rgba(34,180,103,0.4))
         .set_color(Signal520, rgba(34,180,103,0.2))
+        // new
+        .set_color(Background, hsl(243, 24.4, 21))
+        .set_color(BackgroundDark1, hsl(243, 24.4, 16))
+        .set_color(BackgroundDark2, hsl(243, 24.4, 11))
+        .set_color(BackgroundLight2, hsl(243, 24.4, 31))
+        .set_color(BackgroundLight3, hsl(243, 24.4, 36))
+        .set_color(SurfaceLight5, hsl(0, 0, 100))
 }
