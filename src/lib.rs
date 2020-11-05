@@ -131,8 +131,8 @@ impl<'a> Urls<'a> {
     pub fn addons_urls(self) -> page::addons::Urls<'a> {
         page::addons::Urls::new(self.base_url().add_hash_path_part(ADDONS))
     }
-    pub fn search(self, query: &str) -> Url {
-        self.base_url().add_hash_path_part(SEARCH).add_hash_path_part(query)
+    pub fn search_urls(self) -> page::search::Urls<'a> {
+        page::search::Urls::new(self.base_url().add_hash_path_part(SEARCH))
     }
 }
 
@@ -277,7 +277,7 @@ fn view(model: &Model) -> Node<Msg> {
                     }
                     PageId::Search => {
                         if let Some(page_model) = &model.search_model {
-                            page::search::view(page_model)
+                            page::search::view(page_model, &model.context)
                                 .map_msg(Msg::SearchMsg)
                                 .into_nodes()
                         } else {
