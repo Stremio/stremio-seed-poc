@@ -4,6 +4,8 @@ use seed_styles::{pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 
+const search_debounce_time: u32 = 400;
+
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
 }
@@ -17,15 +19,24 @@ pub fn init(
     model: &mut Option<Model>,
     orders: &mut impl Orders<Msg>,
 ) -> Option<PageId> {
+    let base_url = url.to_hash_base_url();
     let search_query = url.next_hash_path_part().map(ToOwned::to_owned);
+    let input_search_query = search_query.clone().unwrap_or_default();
 
     if let Some(model) = model {
-        model.search_query = search_query;
+        if model.search_query != search_query {
+            model.input_search_query = input_search_query;
+            model.search_query = search_query;
+            orders.send_msg(Msg::Search);
+        }
     } else {
         *model = Some(Model {
-            base_url: url.to_hash_base_url(),
-            search_query
-        })
+            base_url,
+            input_search_query,
+            search_query,
+            debounced_search_query_change: None,
+        });
+        orders.send_msg(Msg::Search);
     }
     Some(PageId::Search)
 }
@@ -36,7 +47,9 @@ pub fn init(
 
 pub struct Model {
     base_url: Url,
+    input_search_query: String,
     search_query: Option<String>,
+    debounced_search_query_change: Option<CmdHandle>,
 }
 
 // ------ ------
@@ -58,13 +71,24 @@ impl<'a> Urls<'a> {
 // ------ ------
 
 pub enum Msg {
-    SearchQueryChanged(String),
+    SearchQueryInputChanged(String),
+    UpdateSearchQuery,
+    Search,
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::SearchQueryChanged(query) => {
-            orders.request_url(Urls::new(&model.base_url).query(&query));
+        Msg::SearchQueryInputChanged(query) => {
+            model.input_search_query = query;
+            model.debounced_search_query_change = Some(
+                orders.perform_cmd_with_handle(cmds::timeout(search_debounce_time, || Msg::UpdateSearchQuery))
+            );
+        },
+        Msg::UpdateSearchQuery => {
+            orders.request_url(Urls::new(&model.base_url).query(&model.input_search_query));
+        }
+        Msg::Search => {
+            log!("SEARCH!");
         }
     }
 }
@@ -92,14 +116,14 @@ pub fn view(model: &Model, context: &Context ) -> Node<Msg> {
                 .width(pc(100))
                 .position(CssPosition::Relative)
                 .z_index("0"),
-            horizontal_nav_bar(&context.root_base_url, model.search_query.as_ref()),
+            horizontal_nav_bar(&context.root_base_url, &model.input_search_query),
             vertical_nav_bar(&context.root_base_url),
             nav_content_container(),
         ]
     ]
 }
 
-fn horizontal_nav_bar(root_base_url: &Url, search_query: Option<&String>) -> Node<Msg> {
+fn horizontal_nav_bar(root_base_url: &Url, input_search_query: &str) -> Node<Msg> {
     nav![
         C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
         s()
@@ -117,7 +141,7 @@ fn horizontal_nav_bar(root_base_url: &Url, search_query: Option<&String>) -> Nod
             .padding_right(rem(1)),
         logo_container(),
         spacer(None),
-        search_bar(search_query),
+        search_bar(input_search_query),
         spacer(Some("11rem")),
         addons_top_button(root_base_url),
         fullscreen_button(),
@@ -166,7 +190,7 @@ fn spacer(max_width: Option<&str>) -> Node<Msg> {
     ]
 }
 
-fn search_bar(search_query: Option<&String>) -> Node<Msg> {
+fn search_bar(input_search_query: &str) -> Node<Msg> {
     label![
         C!["search-bar", "search-bar-container"],
         s()
@@ -180,12 +204,12 @@ fn search_bar(search_query: Option<&String>) -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::BackgroundLight3),
-        search_input(search_query),
+        search_input(input_search_query),
         search_button(),
     ]
 }
 
-fn search_input(search_query: Option<&String>) -> Node<Msg> {
+fn search_input(input_search_query: &str) -> Node<Msg> {
     input![
         C!["search-input", "text-input"],
         s()
@@ -211,9 +235,9 @@ fn search_input(search_query: Option<&String>) -> Node<Msg> {
             At::TabIndex => -1,
             At::Type => "text",
             At::Placeholder => "Search or paste link",
-            At::Value => search_query.cloned().unwrap_or_default(),
+            At::Value => input_search_query,
         },
-        input_ev(Ev::Input, Msg::SearchQueryChanged),
+        input_ev(Ev::Input, Msg::SearchQueryInputChanged),
     ]
 }
 
@@ -232,6 +256,7 @@ fn search_button() -> Node<Msg> {
         attrs!{
             At::TabIndex => -1,
         },
+        ev(Ev::Click, |_| Msg::Search),
         search_icon(),
     ]
 }
