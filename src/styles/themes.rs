@@ -184,10 +184,11 @@ pub enum Color {
     BackgroundDark2,
     BackgroundLight2,
     BackgroundLight3,
-    SurfaceLight5,
+    SecondaryLight5_90,
     SecondaryVariant1_90,
     SecondaryVariant1Light1_90,
-    SecondaryVariant2Light1_90
+    SecondaryVariant2Light1_90,
+    SurfaceLight5,
 }
 impl ColorTheme for Color {} 
 
@@ -325,8 +326,9 @@ pub fn default_color_theme() -> Theme {
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))
         .set_color(BackgroundLight2, hsl(243, 24.4, 31))
         .set_color(BackgroundLight3, hsl(243, 24.4, 36))
-        .set_color(SurfaceLight5, hsl(0, 0, 100))
+        .set_color(SecondaryLight5_90, hsla(226.6, 37.2, 61.9, 0.9))
         .set_color(SecondaryVariant1_90, hsla(224.3, 42.1, 66, 0.9))
         .set_color(SecondaryVariant1Light1_90, hsla(224.3, 42.1, 71, 0.9))
         .set_color(SecondaryVariant2Light1_90, hsla(222.8, 100, 78, 0.9))
+        .set_color(SurfaceLight5, hsl(0, 0, 100))
 }
