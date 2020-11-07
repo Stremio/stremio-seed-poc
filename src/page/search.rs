@@ -3,6 +3,8 @@ use seed::{prelude::*, *};
 use seed_styles::{pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
+use serde::Deserialize;
+use localsearch::LocalSearch;
 
 const search_debounce_time: u32 = 400;
 
@@ -35,10 +37,22 @@ pub fn init(
             input_search_query,
             search_query,
             debounced_search_query_change: None,
+            video_groups: Vec::new(),
+            search_results: Vec::new(),
         });
-        orders.send_msg(Msg::Search);
+        orders.perform_cmd(async { 
+            Msg::VideosReceived(get_videos().await.unwrap()) 
+        });
     }
     Some(PageId::Search)
+}
+
+async fn get_videos() -> Result<Vec<Video>, FetchError> {
+    fetch("/data/cinemeta_20_000.json")
+        .await?
+        .check_status()?
+        .json::<Vec<Video>>()
+        .await
 }
 
 // ------ ------
@@ -50,6 +64,38 @@ pub struct Model {
     input_search_query: String,
     search_query: Option<String>,
     debounced_search_query_change: Option<CmdHandle>,
+    video_groups: Vec<VideoGroup>,
+    search_results: Vec<VideoGroupResults>,
+}
+
+struct VideoGroup {
+    label: String,
+    videos: LocalSearch<Video>,
+}
+
+#[derive(Debug)]
+struct VideoGroupResults {
+    label: String,
+    videos: Vec<Video>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+struct Video {
+    id: String,
+    name: String,
+    poster: String,
+    #[serde(rename = "type")]
+    type_: VideoType,
+    imdb_rating: f64,
+    popularity: f64,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+enum VideoType {
+    Movie,
+    Series,
 }
 
 // ------ ------
@@ -73,6 +119,7 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     SearchQueryInputChanged(String),
     UpdateSearchQuery,
+    VideosReceived(Vec<Video>),
     Search,
 }
 
@@ -87,10 +134,76 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::UpdateSearchQuery => {
             orders.request_url(Urls::new(&model.base_url).query(&model.input_search_query));
         }
+        Msg::VideosReceived(videos) => {
+            let mut cinemeta_top_movie = Vec::new();
+            let mut cinemeta_top_series = Vec::new();
+
+            for video in videos {
+                match video.type_ {
+                    VideoType::Movie => cinemeta_top_movie.push(video),  
+                    VideoType::Series => cinemeta_top_series.push(video),
+                }
+            }
+            model.video_groups = vec![
+                VideoGroup {
+                    label: "Cinemeta - top movie".to_owned(),
+                    videos: index(cinemeta_top_movie),
+                },
+                VideoGroup {
+                    label: "Cinemeta - top series".to_owned(),
+                    videos: index(cinemeta_top_series),
+                },
+            ];
+            orders.send_msg(Msg::Search);
+        }
         Msg::Search => {
-            log!("SEARCH!");
+            let mut search_results = Vec::new();
+            if let Some(search_query) = &model.search_query {
+                for group in &model.video_groups {
+
+                    let group_results = group
+                        .videos
+                        .search(search_query, 10)
+                        .into_iter()
+                        .map(|(video, _)| video.clone())
+                        .collect::<Vec<_>>();
+
+                    if !group_results.is_empty() {
+                        search_results.push(VideoGroupResults {
+                            label: group.label.clone(),
+                            videos: group_results,
+                        });
+                    }
+                }
+            }
+            model.search_results = search_results;
+            log!("SEARCH!", model.search_results.len());
         }
     }
+}
+
+fn index(videos: Vec<Video>) -> LocalSearch<Video> {
+    let max_imdb_rating = 10.;
+    let imdb_rating_weight = 1.0;
+    let popularity_weight = 1.0;
+    let score_threshold = 0.48;
+
+    let max_popularity = videos
+        .iter()
+        .map(|video| video.popularity)
+        .max_by(|popularity_a, popularity_b| popularity_a.partial_cmp(popularity_b).unwrap())
+        .unwrap_or_default();
+
+    let boost_computer = move |video: &Video| {
+        let imdb_rating_boost = (video.imdb_rating / max_imdb_rating * imdb_rating_weight).exp();
+        let popularity_boost = (video.popularity / max_popularity * popularity_weight).exp();
+        imdb_rating_boost * popularity_boost
+    };
+
+    LocalSearch::builder(videos, |video: &Video| &video.name)
+        .boost_computer(boost_computer)
+        .score_threshold(score_threshold)
+        .build()
 }
 
 // ------ ------
@@ -118,7 +231,7 @@ pub fn view(model: &Model, context: &Context ) -> Node<Msg> {
                 .z_index("0"),
             horizontal_nav_bar(&context.root_base_url, &model.input_search_query),
             vertical_nav_bar(&context.root_base_url),
-            nav_content_container(),
+            nav_content_container(&model.search_results),
         ]
     ]
 }
@@ -579,7 +692,7 @@ fn vertical_nav_label(title: &str) -> Node<Msg> {
     ]
 }
 
-fn nav_content_container() -> Node<Msg> {
+fn nav_content_container(search_results: &[VideoGroupResults]) -> Node<Msg> {
     div![
         C!["nav-content-container"],
         s()
@@ -589,18 +702,22 @@ fn nav_content_container() -> Node<Msg> {
             .right("0")
             .top(global::HORIZONTAL_NAV_BAR_SIZE)
             .z_index("0"),
-        search_content(),
+        search_content(search_results),
     ]
 }
 
-fn search_content() -> Node<Msg> {
+fn search_content(search_results: &[VideoGroupResults]) -> Node<Msg> {
     div![
         C!["search-content"],
         s()
             .height(pc(100))
             .overflow_y(CssOverflowY::Auto)
             .width(pc(100)),
-        search_hints_container(),
+        if search_results.is_empty() {
+            vec![search_hints_container()]
+        } else {
+            search_rows(search_results)
+        }
     ]
 }
 
@@ -680,5 +797,105 @@ fn search_hint_container(
                 .text_align(CssTextAlign::Center),
             label,
         ]
+    ]
+}
+
+fn search_rows(search_results: &[VideoGroupResults]) -> Vec<Node<Msg>> {
+    search_results.iter().enumerate().map(search_row).collect()
+}
+
+fn search_row((index, group): (usize, &VideoGroupResults)) -> Node<Msg> {
+    div![
+        C!["search-row", "search-row-poster", "meta-row-container"],
+        s()
+            .margin("4rem 2rem")
+            .overflow(CssOverflow::Visible),
+        IF!(index == 0 => s().margin_top(rem(2))),
+        search_row_header_container(group),
+        search_row_meta_items_container(),
+    ]
+}
+
+fn search_row_header_container(group: &VideoGroupResults) -> Node<Msg> {
+    let see_all_title = "SEE ALL";
+    div![
+        C!["header-container"],
+        s()
+            .align_items(CssAlignItems::Center)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .justify_content(CssJustifyContent::FlexEnd)
+            .margin_bottom(rem(1))
+            .padding("0 1rem"),
+        div![
+            C!["title-container"],
+            s()
+                .color(Color::SecondaryVariant2Light1_90)
+                .flex("1")
+                .font_size(rem(1.8))
+                .max_height(em(2.4)),
+            attrs!{
+                At::Title => &group.label,
+            },
+            &group.label,
+        ],
+        a![
+            C!["see-all-container", "button-container"],
+            s()
+                .align_items(CssAlignItems::Center)
+                .display(CssDisplay::Flex)
+                .flex(CssFlex::None)
+                .flex_direction(CssFlexDirection::Row)
+                .max_width(rem(12))
+                .padding(rem(0.2))
+                .cursor(CssCursor::Pointer),
+            s()
+                .style_other(":hover .label, :hover .icon")
+                .color(Color::SecondaryVariant2Light2_90),
+            attrs!{
+                At::TabIndex => 0,
+                At::Title => see_all_title,
+            },
+            on_click_not_implemented(),
+            div![
+                C!["label"],
+                s()
+                    .color(Color::SecondaryVariant2Light1_90)
+                    .flex("0 1 auto")
+                    .font_size(rem(1.3))
+                    .font_weight("500")
+                    .max_height(em(1.2))
+                    .text_transform(CssTextTransform::Uppercase),
+                see_all_title,
+            ],
+            see_all_icon(),
+        ]
+    ]
+}
+
+fn see_all_icon() -> Node<Msg> {
+    svg![
+        C!["icon"],
+        s()
+            .overflow(CssOverflow::Visible)
+            .fill(Color::SecondaryVariant2Light1_90)
+            .flex(CssFlex::None)
+            .height(rem(1.3))
+            .margin_left(rem(0.5)),
+        attrs!{
+            At::ViewBox => "0 0 565 1024",
+            At::from("icon") => "ic_arrow_thin_right",
+        },
+        path![
+            attrs!{
+                At::D => "M84.932 14.155l465.016 463.511c8.963 8.73 14.578 20.859 14.757 34.301l0 0.033c-0.021 13.598-5.67 25.873-14.743 34.621l-0.015 0.014-464.113 463.209c-9.052 8.82-21.434 14.26-35.087 14.26s-26.035-5.44-35.098-14.27l0.011 0.010c-9.355-8.799-15.292-21.14-15.66-34.87l-0.001-0.066c-0.001-0.103-0.001-0.225-0.001-0.348 0-13.437 5.534-25.582 14.448-34.278l0.010-0.009 430.080-428.273-429.779-427.972c-9.101-8.684-14.76-20.907-14.76-34.451 0-0.171 0.001-0.341 0.003-0.511l-0 0.026c-0-0.043-0-0.094-0-0.145 0-13.595 5.526-25.899 14.455-34.789l0.002-0.002c9.099-8.838 21.532-14.287 35.238-14.287s26.138 5.449 35.25 14.299l-0.012-0.012z",
+            }
+        ]
+    ]
+}
+
+fn search_row_meta_items_container() -> Node<Msg> {
+    div![
+        C!["meta-items-container"],
     ]
 }
