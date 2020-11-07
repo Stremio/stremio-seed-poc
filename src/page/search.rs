@@ -6,7 +6,7 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use serde::Deserialize;
 use localsearch::LocalSearch;
 
-const search_debounce_time: u32 = 400;
+const search_debounce_time: u32 = 0;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
@@ -925,6 +925,7 @@ fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
 
 fn meta_item(video: &Video) -> Node<Msg> {
     a![
+        el_key(&video.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
         s()
             .flex(format!("calc(1 / {});", global::POSTER_SHAPE_RATIO).as_str())
