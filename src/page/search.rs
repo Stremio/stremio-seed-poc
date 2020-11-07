@@ -177,7 +177,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 }
             }
             model.search_results = search_results;
-            log!("SEARCH!", model.search_results.len());
         }
     }
 }
@@ -231,7 +230,7 @@ pub fn view(model: &Model, context: &Context ) -> Node<Msg> {
                 .z_index("0"),
             horizontal_nav_bar(&context.root_base_url, &model.input_search_query),
             vertical_nav_bar(&context.root_base_url),
-            nav_content_container(&model.search_results),
+            nav_content_container(&model.search_results, !model.video_groups.is_empty()),
         ]
     ]
 }
@@ -692,7 +691,7 @@ fn vertical_nav_label(title: &str) -> Node<Msg> {
     ]
 }
 
-fn nav_content_container(search_results: &[VideoGroupResults]) -> Node<Msg> {
+fn nav_content_container(search_results: &[VideoGroupResults], videos_loaded: bool) -> Node<Msg> {
     div![
         C!["nav-content-container"],
         s()
@@ -702,22 +701,36 @@ fn nav_content_container(search_results: &[VideoGroupResults]) -> Node<Msg> {
             .right("0")
             .top(global::HORIZONTAL_NAV_BAR_SIZE)
             .z_index("0"),
-        search_content(search_results),
+        search_content(search_results, videos_loaded),
     ]
 }
 
-fn search_content(search_results: &[VideoGroupResults]) -> Node<Msg> {
+fn search_content(search_results: &[VideoGroupResults], videos_loaded: bool) -> Node<Msg> {
     div![
         C!["search-content"],
         s()
             .height(pc(100))
             .overflow_y(CssOverflowY::Auto)
             .width(pc(100)),
-        if search_results.is_empty() {
+        if !videos_loaded {
+            vec![loading()]
+        } else if search_results.is_empty() {
             vec![search_hints_container()]
         } else {
             search_rows(search_results)
         }
+    ]
+}
+
+fn loading() -> Node<Msg> {
+    div![
+        C!["loading"],
+        s()
+            .color(Color::SecondaryVariant2Light1_90)
+            .font_size(rem(1.8))
+            .padding_left(rem(1))
+            .margin(rem(2)),
+        "Loading..."
     ]
 }
 
