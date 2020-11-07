@@ -850,8 +850,11 @@ fn search_row_header_container(group: &VideoGroupResults) -> Node<Msg> {
                 .padding(rem(0.2))
                 .cursor(CssCursor::Pointer),
             s()
-                .style_other(":hover .label, :hover .icon")
+                .style_other(":hover > .label")
                 .color(Color::SecondaryVariant2Light2_90),
+            s()
+                .style_other(":hover > .icon")
+                .fill(Color::SecondaryVariant2Light2_90),
             attrs!{
                 At::TabIndex => 0,
                 At::Title => see_all_title,
@@ -903,6 +906,7 @@ fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Row)
             .overflow(CssOverflow::Visible),
         group.videos.iter().map(meta_item),
+        (0..10 - group.videos.len()).map(|_| dummy_meta_item()),
     ]
 }
 
@@ -910,10 +914,14 @@ fn meta_item(video: &Video) -> Node<Msg> {
     a![
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
         s()
-            .flex(format!("calc(1 / {})", global::POSTER_SHAPE_RATIO).as_str())
+            .flex(format!("calc(1 / {});", global::POSTER_SHAPE_RATIO).as_str())
             .padding(rem(1))
             .overflow(CssOverflow::Visible)
             .cursor(CssCursor::Pointer),
+        s()
+            .hover()
+            .background_color(Color::BackgroundLight3)
+            .transition("background-color 100ms ease-out"),
         attrs!{
             At::TabIndex => 0,
             At::Title => video.name,
@@ -939,6 +947,15 @@ fn meta_item(video: &Video) -> Node<Msg> {
                 &video.name,
             ]
         ]
+    ]
+}
+
+fn dummy_meta_item() -> Node<Msg> {
+    div![
+        C!["meta-item", "poster-shape-poster"],
+        s()
+            .flex(format!("calc(1 / {});", global::POSTER_SHAPE_RATIO).as_str())
+            .padding(rem(1))
     ]
 }
 
