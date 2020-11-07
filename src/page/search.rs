@@ -812,7 +812,7 @@ fn search_row((index, group): (usize, &VideoGroupResults)) -> Node<Msg> {
             .overflow(CssOverflow::Visible),
         IF!(index == 0 => s().margin_top(rem(2))),
         search_row_header_container(group),
-        search_row_meta_items_container(),
+        search_row_meta_items_container(group),
     ]
 }
 
@@ -894,8 +894,89 @@ fn see_all_icon() -> Node<Msg> {
     ]
 }
 
-fn search_row_meta_items_container() -> Node<Msg> {
+fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
     div![
         C!["meta-items-container"],
+        s()
+            .align_items(CssAlignItems::Stretch)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .overflow(CssOverflow::Visible),
+        group.videos.iter().map(meta_item),
+    ]
+}
+
+fn meta_item(video: &Video) -> Node<Msg> {
+    a![
+        C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
+        s()
+            .flex(format!("calc(1 / {})", global::POSTER_SHAPE_RATIO).as_str())
+            .padding(rem(1))
+            .overflow(CssOverflow::Visible)
+            .cursor(CssCursor::Pointer),
+        attrs!{
+            At::TabIndex => 0,
+            At::Title => video.name,
+        },
+        on_click_not_implemented(),
+        poster_container(&video.poster),
+        div![
+            C!["title-bar-container"],
+            s()
+                .align_items(CssAlignItems::Center)
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .height(rem(2.8))
+                .overflow(CssOverflow::Visible),
+            div![
+                C!["title-label"],
+                s()
+                    .padding_right(rem(0.5))
+                    .color(Color::SurfaceLight5_90)
+                    .flex("1")
+                    .max_height(em(2.4))
+                    .padding_left(rem(0.5)),
+                &video.name,
+            ]
+        ]
+    ]
+}
+
+fn poster_container(poster: &str) -> Node<Msg> {
+    div![
+        C!["poster-container"],
+        s()
+            .padding_top(format!("calc(100% * {})", global::POSTER_SHAPE_RATIO).as_str())
+            .background_color(Color::Background)
+            .position(CssPosition::Relative)
+            .z_index("0"),
+        div![
+            C!["poster-image-layer"],
+            s()
+                .align_items(CssAlignItems::Center)
+                .bottom("0")
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Row)
+                .justify_content(CssJustifyContent::Center)
+                .left("0")
+                .position(CssPosition::Absolute)
+                .right("0")
+                .top("0")
+                .z_index("-3"),
+            img![
+                C!["poster-image"],
+                s()
+                    .flex(CssFlex::None)
+                    .height(pc(100))
+                    .object_fit("cover")
+                    .object_position("center")
+                    .opacity("0.9")
+                    .width(pc(100)),
+                attrs!{
+                    At::Alt => " ",
+                    At::Src => poster,
+                },
+            ]
+        ]
     ]
 }
