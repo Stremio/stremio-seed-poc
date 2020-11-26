@@ -4,6 +4,12 @@
     clippy::wildcard_imports
 )]
 
+// @TODO remove
+#![allow(
+    dead_code,
+    unused_imports,
+)]
+
 mod entity;
 mod page;
 mod styles;
