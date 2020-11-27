@@ -90,6 +90,7 @@ pub fn init() {
         .style(
             "*",
             s()
+                .raw("appearance: none;")
                 .margin("0")
                 .padding("0")
                 .box_sizing(CssBoxSizing::BorderBox)
@@ -109,8 +110,8 @@ pub fn init() {
                 .raw("scrollbar-width: thin;")
                 .raw(format!(
                     "scrollbar-color: {} {};", 
-                    get_color_value(Color::SecondaryLighter80), 
-                    get_color_value(Color::BackgroundLight)
+                    get_color_value(Color::SecondaryVariant2Light1), 
+                    get_color_value(Color::BackgroundDark2)
                 ).as_str())
         )
         .style(

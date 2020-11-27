@@ -226,7 +226,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Column)
             .width(pc(100))
             .height(pc(100))
-            .background_color(Color::Background),
+            .background_color(Color::BackgroundDark2),
         div![
             C!["discover-content"],
             s()
