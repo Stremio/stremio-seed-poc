@@ -220,7 +220,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     let catalog = &context.core_model.catalog;
 
     div![
-        C!["discover-container"],
+        C!["discover- "],
         s()
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Column)
@@ -242,14 +242,14 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                 .grid_template_rows("fit-content(19rem) 1fr")
                 .grid_template_areas(r#""controls-area" "catalog-content-area""#),
             div![
-                C!["controls-container"],
+                C!["selectable-inputs-container"],
                 s()
-                    .grid_area("controls-area")
+                    .align_self(CssAlignSelf::Stretch)
                     .display(CssDisplay::Flex)
+                    .flex(CssFlex::None)
                     .flex_direction(CssFlexDirection::Row)
-                    .margin("2rem 0")
-                    .padding("0 2rem")
-                    .overflow(CssOverflow::Visible),
+                    .overflow(CssOverflow::Visible)
+                    .padding(rem(1.5)),
                 // type selector
                 type_selector::view(
                     &model.type_selector_model,
