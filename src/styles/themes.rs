@@ -24,6 +24,7 @@ pub fn get_color_value(color: Color) -> String {
 pub enum Breakpoint {
     Zero,
     Minimum,
+    XXSmall,
     XSmall,
     Small,
     Medium,
@@ -38,8 +39,9 @@ impl BreakpointTheme for Breakpoint {}
 pub fn default_breakpoint_theme() -> Theme {
     use Breakpoint::*;
     Theme::new("default_breakpoint_theme")
-        .set_breakpoint(Zero, (0, Some(800))) 
-        .set_breakpoint(Minimum, (800, Some(1000)))
+        .set_breakpoint(Zero, (0, Some(640))) 
+        .set_breakpoint(Minimum, (640, Some(800)))
+        .set_breakpoint(XXSmall, (800, Some(1000)))
         .set_breakpoint(XSmall, (1000, Some(1300)))
         .set_breakpoint(Small, (1300, Some(1600)))
         .set_breakpoint(Medium, (1600, Some(1900)))
@@ -48,7 +50,7 @@ pub fn default_breakpoint_theme() -> Theme {
         .set_breakpoint(XLarge, (2500, Some(2800)))
         .set_breakpoint(XXLarge, (2800,Some( 3800)))
         .set_breakpoint(XXXLarge, (3800, None))
-        .breakpoint_scale([800, 1000, 1300, 1600, 1900, 2200, 2500, 2800, 3800]) 
+        .breakpoint_scale([640, 800, 1000, 1300, 1600, 1900, 2200, 2500, 2800, 3800]) 
 }
 
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
@@ -182,6 +184,7 @@ pub enum Color {
     Background,
     BackgroundDark1,
     BackgroundDark2,
+    BackgroundDark3,
     BackgroundLight2,
     BackgroundLight3,
     SecondaryLight5_90,
@@ -327,6 +330,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Background, hsl(243, 24.4, 21))
         .set_color(BackgroundDark1, hsl(243, 24.4, 16))
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))
+        .set_color(BackgroundDark3, hsl(243, 24.4, 6))
         .set_color(BackgroundLight2, hsl(243, 24.4, 31))
         .set_color(BackgroundLight3, hsl(243, 24.4, 36))
         .set_color(SecondaryLight5_90, hsla(226.6, 37.2, 61.9, 0.9))

@@ -217,76 +217,136 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 // ------ ------
 
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
-    let catalog = &context.core_model.catalog;
-
     div![
-        C!["discover- "],
+        C!["discover-container", "main-nav-bars-container"],
         s()
-            .display(CssDisplay::Flex)
-            .flex_direction(CssFlexDirection::Column)
-            .width(pc(100))
             .height(pc(100))
-            .background_color(Color::BackgroundDark2),
+            .width(pc(100))
+            .background_color(Color::BackgroundDark2)
+            .position(CssPosition::Relative)
+            .z_index("0"),
+        horizontal_nav_bar(),
+        vertical_nav_bar(),
         div![
-            C!["discover-content"],
+            C!["nav-content-container"],
             s()
-                .flex("1")
-                .align_self(CssAlignSelf::Stretch)
-                .display(CssDisplay::Grid)
-                .grid_template_columns("1fr 28rem")
-                .grid_template_rows("7rem 1fr")
-                .grid_template_areas(r#""controls-area meta-preview-area" "catalog-content-area meta-preview-area""#),
-            s()
-                .only_and_below(Breakpoint::Minimum)
-                .grid_template_columns("1fr")
-                .grid_template_rows("fit-content(19rem) 1fr")
-                .grid_template_areas(r#""controls-area" "catalog-content-area""#),
+                .position(CssPosition::Absolute)
+                .bottom("0")
+                .left(global::VERTICAL_NAV_BAR_SIZE)
+                .right("0")
+                .top(global::HORIZONTAL_NAV_BAR_SIZE)
+                .z_index("0"),
             div![
-                C!["selectable-inputs-container"],
+                C!["discover-content"],
                 s()
-                    .align_self(CssAlignSelf::Stretch)
                     .display(CssDisplay::Flex)
-                    .flex(CssFlex::None)
                     .flex_direction(CssFlexDirection::Row)
-                    .overflow(CssOverflow::Visible)
-                    .padding(rem(1.5)),
-                // type selector
-                type_selector::view(
-                    &model.type_selector_model,
-                    &type_selector::groups(&catalog.types)
-                )
-                .map_msg(Msg::TypeSelectorMsg),
-                // catalog selector
-                catalog_selector::view(
-                    &model.catalog_selector_model,
-                    &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-                )
-                .map_msg(Msg::CatalogSelectorMsg),
-                // extra prop selector
-                extra_prop_selector::view(
-                    &model.extra_prop_selector_model,
-                    &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
-                )
-                .map_msg(Msg::ExtraPropSelectorMsg),
+                    .height(pc(100))
+                    .width(pc(100)),            
+                div![
+                    C!["catalog-container"],
+                    s()
+                        .align_self(CssAlignSelf::Stretch)
+                        .display(CssDisplay::Flex)
+                        .flex("1")
+                        .flex_direction(CssFlexDirection::Column),
+                    selectable_inputs(model, context),
+                    meta_items(
+                        &context.core_model.catalog.content,
+                        model.selected_meta_preview_id.as_ref()
+                    ),
+                ],
+                div![
+                    C!["meta-preview-container", "compact"],
+                    s()
+                        .align_self(CssAlignSelf::Stretch)
+                        .background_color(Color::BackgroundDark3)
+                        .flex(CssFlex::None)
+                        .width(rem(28))
+                        .display(CssDisplay::Flex)
+                        .flex_direction(CssFlexDirection::Column)
+                        .position(CssPosition::Relative)
+                        .z_index("0"),
+                    s()
+                        .only_and_below(Breakpoint::XXSmall)
+                        .display(CssDisplay::None),
+                ]
             ],
-            div![
-                C!["catalog-content-container"],
-                s()
-                    .grid_area("catalog-content-area")
-                    .margin_right(rem(2)),
-                s()
-                    .only_and_below(Breakpoint::Minimum)
-                    .margin_right("0"),
-                view_content(
-                    &context.core_model.catalog.content,
-                    model.selected_meta_preview_id.as_ref()
-                ),
-            ]
-        ],
+        ]
     ]
 }
 
-fn view_content(
+fn horizontal_nav_bar() -> Node<Msg> {
+    nav![
+        C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
+        s()
+            .left("0")
+            .position(CssPosition::Absolute)
+            .right("0")
+            .top("0")
+            .z_index("0")
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Background)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .height(global::HORIZONTAL_NAV_BAR_SIZE)
+            .overflow(CssOverflow::Visible)
+            .padding_right(rem(1)),
+        // .. @TODO implemented in the Search page
+    ]
+}
+
+fn vertical_nav_bar() -> Node<Msg> {
+    nav![
+        C!["vertical-nav-bar", "vertical-nav-bar-container"],
+        s()
+            .bottom("0")
+            .left("0")
+            .position(CssPosition::Absolute)
+            .top(global::HORIZONTAL_NAV_BAR_SIZE)
+            .z_index("1")
+            .background_color(Color::BackgroundDark1)
+            .overflow_y(CssOverflowY::Auto)
+            .raw("scrollbar-width: none;")
+            .width(global::VERTICAL_NAV_BAR_SIZE),
+        // .. @TODO implemented in the Search page
+    ]
+}
+
+fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
+    let catalog = &context.core_model.catalog;
+
+    div![
+        C!["selectable-inputs-container"],
+        s()
+            .align_self(CssAlignSelf::Stretch)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .flex_direction(CssFlexDirection::Row)
+            .overflow(CssOverflow::Visible)
+            .padding(rem(1.5)),
+        // type selector
+        type_selector::view(
+            &model.type_selector_model,
+            &type_selector::groups(&catalog.types)
+        )
+        .map_msg(Msg::TypeSelectorMsg),
+        // catalog selector
+        catalog_selector::view(
+            &model.catalog_selector_model,
+            &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+        )
+        .map_msg(Msg::CatalogSelectorMsg),
+        // extra prop selector
+        extra_prop_selector::view(
+            &model.extra_prop_selector_model,
+            &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
+        )
+        .map_msg(Msg::ExtraPropSelectorMsg),
+    ]
+}
+
+fn meta_items(
     content: &Loadable<Vec<MetaPreview>, CatalogError>,
     selected_meta_preview_id: Option<&MetaPreviewId>,
 ) -> Node<Msg> {
@@ -304,18 +364,23 @@ fn view_content(
         Loadable::Ready(meta_previews) => div![
             C!["meta-items-container",],
             s()
-                .display(CssDisplay::Grid)
-                .max_height(pc(100))
-                .grid_auto_rows("max-content")
-                .grid_gap(rem(1.5))
                 .align_items(CssAlignItems::Center)
-                .padding("0 2rem")
-                .overflow_y(CssOverflowY::Auto),
+                .align_self(CssAlignSelf::Stretch)
+                .display(CssDisplay::Grid)
+                .flex("1")
+                .grid_auto_rows("max-content")
+                .grid_gap(rem(0.5))
+                .margin_right(rem(1.5))
+                .overflow_y(CssOverflowY::Auto)
+                .padding("0 1.5rem"),
             s()
-                .only_and_above(Breakpoint::XXLarge)
+                .only_and_above(Breakpoint::XLarge)
+                .grid_template_columns("repeat(10, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::Large)
                 .grid_template_columns("repeat(8, 1fr)"),
             s()
-                .only_and_below(Breakpoint::XLarge)
+                .only_and_below(Breakpoint::Normal)
                 .grid_template_columns("repeat(7, 1fr)"),
             s()
                 .only_and_below(Breakpoint::Medium)
@@ -327,8 +392,11 @@ fn view_content(
                 .only_and_below(Breakpoint::XSmall)
                 .grid_template_columns("repeat(4, 1fr)"),
             s()
-                .only_and_below(Breakpoint::Minimum)
+                .only_and_below(Breakpoint::XXSmall)
                 .grid_template_columns("repeat(5, 1fr)"),
+            s()
+                .only_and_below(Breakpoint::Minimum)
+                .grid_template_columns("repeat(4, 1fr)"),
             meta_previews
                 .iter()
                 .map(|meta_preview| meta_item(meta_preview, selected_meta_preview_id)),
