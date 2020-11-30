@@ -343,6 +343,132 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
             &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
         )
         .map_msg(Msg::ExtraPropSelectorMsg),
+        div![
+            C!["spacing"],
+            s()
+                .flex("1"),
+        ],
+        pagination_input(),
+    ]
+}
+
+fn pagination_input() -> Node<Msg> {
+    div![
+        C!["pagination-input", "pagination-input-container"],
+        s()
+            .flex(CssFlex::None)
+            .height(rem(3.5))
+            .margin_left(rem(1.5))
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row),
+        pagination_prev_button(),
+        pagination_label(),
+        pagination_next_button(),
+    ]
+}
+
+fn pagination_label() -> Node<Msg> {
+    let page_number = 1;
+    div![
+        C!["label-container"],
+        s()
+            .align_items(CssAlignItems::Center)
+            .align_self(CssAlignSelf::Stretch)
+            .background_color(Color::BackgroundDark1)
+            .display(CssDisplay::Flex)
+            .flex("1")
+            .justify_content(CssJustifyContent::Center),
+        attrs!{
+            At::Title => page_number,
+        },
+        div![
+            C!["label"],
+            s()
+                .width(rem(3))
+                .color(Color::SecondaryVariant1_90)
+                .flex(CssFlex::None)
+                .font_weight("500")
+                .max_width(rem(3))
+                .min_width(rem(1.2))
+                .text_align(CssTextAlign::Center)
+                .text_overflow("ellipsis")
+                .white_space(CssWhiteSpace::NoWrap),
+            page_number,
+        ]
+    ]
+}
+
+fn pagination_prev_button() -> Node<Msg> {
+    div![
+        C!["prev-button-container", "button-container"],
+        attrs!{
+            At::TabIndex => 0,
+            At::Title => "Previous page",
+        },
+        s()
+            .height(rem(3.5))
+            .width(rem(3.5))
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Background)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .justify_content(CssJustifyContent::Center)
+            .cursor(CssCursor::Pointer),
+        svg![
+            C!["icon"],
+            s()
+                .height(rem(1))
+                .width(rem(1))
+                .display(CssDisplay::Block)
+                .fill(Color::SecondaryVariant1_90)
+                .overflow(CssOverflow::Visible),
+            attrs!{
+                At::ViewBox => "0 0 606 1024",
+                At::from("icon") => "ic_arrow_left",
+            },
+            path![
+                attrs!{
+                    At::D => "M264.132 512l309.609-319.247c19.848-20.685 32.069-48.821 32.069-79.812s-12.221-59.127-32.107-79.852l0.038 0.040c-19.51-20.447-46.972-33.16-77.402-33.16s-57.892 12.713-77.363 33.118l-0.040 0.042-387.012 399.059c-19.713 20.744-31.839 48.862-31.839 79.812s12.126 59.067 31.886 79.861l-0.047-0.050 387.012 399.059c19.51 20.447 46.972 33.16 77.402 33.16s57.892-12.713 77.363-33.118l0.040-0.042c19.848-20.685 32.069-48.821 32.069-79.812s-12.221-59.127-32.107-79.852l0.038 0.040z",
+                }
+            ]
+        ]
+    ]
+}
+
+fn pagination_next_button() -> Node<Msg> {
+    div![
+        C!["next-button-container", "button-container"],
+        attrs!{
+            At::TabIndex => 0,
+            At::Title => "Next page",
+        },
+        s()
+            .height(rem(3.5))
+            .width(rem(3.5))
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Background)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .justify_content(CssJustifyContent::Center)
+            .cursor(CssCursor::Pointer),
+        svg![
+            C!["icon"],
+            s()
+                .height(rem(1))
+                .width(rem(1))
+                .display(CssDisplay::Block)
+                .fill(Color::SecondaryVariant1_90)
+                .overflow(CssOverflow::Visible),
+            attrs!{
+                At::ViewBox => "0 0 606 1024",
+                At::from("icon") => "ic_arrow_left",
+            },
+            path![
+                attrs!{
+                    At::D => "M341.534 512l-309.609-319.247c-19.713-20.744-31.839-48.862-31.839-79.812s12.126-59.067 31.886-79.861l-0.047 0.050c19.51-20.447 46.972-33.16 77.402-33.16s57.892 12.713 77.363 33.118l0.040 0.042 387.012 399.059c19.848 20.685 32.069 48.821 32.069 79.812s-12.221 59.127-32.107 79.852l0.038-0.040-387.012 399.059c-19.51 20.447-46.972 33.16-77.402 33.16s-57.892-12.713-77.363-33.118l-0.040-0.042c-19.713-20.744-31.839-48.862-31.839-79.812s12.126-59.067 31.886-79.861l-0.047 0.050z",
+                }
+            ]
+        ]
     ]
 }
 

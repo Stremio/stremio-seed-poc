@@ -181,6 +181,7 @@ pub enum Color {
     Signal540,
     Signal520,
     // new
+    Accent3_90,
     Background,
     BackgroundDark1,
     BackgroundDark2,
@@ -327,6 +328,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Signal540, rgba(34,180,103,0.4))
         .set_color(Signal520, rgba(34,180,103,0.2))
         // new
+        .set_color(Accent3_90, hsla(147.7, 68, 41.7, 0.9))
         .set_color(Background, hsl(243, 24.4, 21))
         .set_color(BackgroundDark1, hsl(243, 24.4, 16))
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))
