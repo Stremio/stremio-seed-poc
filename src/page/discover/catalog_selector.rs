@@ -43,7 +43,7 @@ pub fn items<Ms: 'static>(
 
     catalog_groups
         .into_iter()
-        .flat_map(|(addon_name, catalog_entries)| {
+        .flat_map(|(_addon_name, catalog_entries)| {
             catalog_entries
                 .map(|catalog_entry| {
                     let res_req = catalog_entry.load.clone(); 

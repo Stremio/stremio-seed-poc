@@ -324,11 +324,6 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Row)
             .overflow(CssOverflow::Visible)
             .padding(rem(1.5)),
-        // type selector
-        // type_selector::view(
-        //     &model.type_selector_model,
-        //     &type_selector::groups(&catalog.types)
-        // )
         type_selector::view(catalog, Msg::SendResourceRequest),
         catalog_selector::view(catalog, Msg::SendResourceRequest),
         // extra prop selector
@@ -337,6 +332,7 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
         //     &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
         // )
         // .map_msg(Msg::ExtraPropSelectorMsg),
+        extra_prop_selector::view(catalog, Msg::SendResourceRequest),
         div![
             C!["spacing"],
             s()
