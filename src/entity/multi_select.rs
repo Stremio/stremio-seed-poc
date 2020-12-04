@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use seed::{prelude::*, *};
 use std::fmt::Debug;
+use std::rc::Rc;
 use wasm_bindgen::JsCast;
 use seed_styles::{pc, em, rem};
 use seed_styles::*;
@@ -8,173 +9,19 @@ use crate::styles::{self, themes::{Color, get_color_value}};
 
 const MENU_CLASS: &str = "popup-menu-container";
 
-#[derive(Clone, Debug)]
-pub struct Group<T> {
-    pub id: GroupId,
-    pub label: Option<String>,
-    pub items: Vec<GroupItem<T>>,
-    pub limit: usize,
-    pub required: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct GroupItem<T> {
-    pub id: GroupItemId,
-    pub label: String,
-    pub value: T,
+pub struct Item<Ms> {
+    pub title: String,
     pub selected: bool,
-}
-
-// ------ ------
-//     Model
-// ------ ------
-
-pub type GroupId = String;
-pub type GroupItemId = String;
-
-pub struct Model {
-    id: &'static str,
-    opened: bool,
-}
-
-// ------ ------
-//     Init
-// ------ ------
-
-pub const fn init(id: &'static str) -> Model {
-    Model { id, opened: false }
-}
-
-// ------ ------
-//    Update
-// ------ ------
-
-pub enum Msg {
-    ToggleMenu,
-    ItemClicked(GroupId, GroupItemId),
-}
-
-// @TODO: remove after Msg::ItemClicked refactor
-#[allow(clippy::collapsible_if)]
-pub fn update<T: 'static + Debug, ParentMsg>(
-    msg: Msg,
-    model: &mut Model,
-    orders: &mut impl Orders<Msg>,
-    mut groups: Vec<Group<T>>,
-    on_change: impl FnOnce(Vec<Group<T>>) -> ParentMsg,
-) -> Option<ParentMsg> {
-    match msg {
-        Msg::ToggleMenu => {
-            model.opened = !model.opened;
-
-            let selector_id = model.id;
-            if model.opened {
-                orders.after_next_render(move |_| {
-                    document()
-                        .query_selector(&format!("#{} .{}", selector_id, MENU_CLASS))
-                        .unwrap()
-                        .expect("menu element")
-                        .dyn_into::<web_sys::HtmlElement>()
-                        .expect("menu element as `HtmlElement`")
-                        .focus()
-                        .expect("focus menu element");
-                });
-            }
-            None
-        }
-        // @TODO: Refactor + comments
-        Msg::ItemClicked(group_id, item_id) => {
-            let first_selected_address =
-                groups.iter().enumerate().find_map(|(group_index, group)| {
-                    if group.id == group_id {
-                        if let Some(item_index) = group.items.iter().position(|item| item.selected)
-                        {
-                            Some((group_index, item_index))
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
-                });
-
-            let selected_count: usize = groups
-                .iter()
-                .map(|group| group.items.iter().filter(|item| item.selected).count())
-                .sum();
-
-            let group = groups.iter_mut().find(|group| {
-                group.id == group_id && group.items.iter().any(|item| item.id == item_id)
-            }).expect("`Group` with given `group_id`, which contains `GroupItem` with given `item_id`");
-
-            let item = group
-                .items
-                .iter_mut()
-                .find(|item| item.id == item_id)
-                .expect("`GroupItem` with given `item_id`");
-
-            let changed = if item.selected {
-                if !group.required || selected_count > 1 {
-                    item.selected = false;
-                    true
-                } else {
-                    false
-                }
-            } else {
-                if selected_count < group.limit {
-                    item.selected = true;
-                    true
-                } else {
-                    if let Some((first_selected_group_index, first_selected_item_index)) =
-                        first_selected_address
-                    {
-                        item.selected = true;
-                        groups
-                            .get_mut(first_selected_group_index)
-                            .unwrap()
-                            .items
-                            .get_mut(first_selected_item_index)
-                            .unwrap()
-                            .selected = false;
-                        true
-                    } else {
-                        false
-                    }
-                }
-            };
-
-            if changed {
-                let groups_with_selected_items = groups
-                    .into_iter()
-                    .filter_map(|mut group| {
-                        group.items = group
-                            .items
-                            .into_iter()
-                            .filter(|item| item.selected)
-                            .collect();
-                        if group.items.is_empty() {
-                            None
-                        } else {
-                            Some(group)
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                Some(on_change(groups_with_selected_items))
-            } else {
-                None
-            }
-        }
-    }
+    pub on_click: Rc<dyn Fn() -> Ms>,
 }
 
 // ------ ------
 //     View
 // ------ ------
 
-pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
+pub fn view<Ms: 'static>(title: &str, items: Vec<Item<Ms>>) -> Node<Ms> {
     let active = true;
-    let title = "Select type";
-    let value = "movie";
+    let selected_item = items.iter().find(|item| item.selected);
     let left_margin = true;
     div![
         C!["select-input", "label-container", "button-container", IF!(active => "active")],
@@ -201,7 +48,7 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 .flex("1")
                 .font_weight("500")
                 .max_height(rem(2.4)),
-            value
+            selected_item.map(|item| &item.title),
         ],
         svg![
             C!["icon"],
@@ -222,11 +69,11 @@ pub fn view<T: Clone>(model: &Model, groups: &[Group<T>]) -> Node<Msg> {
                 }
             ]
         ],
-        IF!(active => menu()),
+        IF!(active => menu(items)),
     ]
 }
 
-fn menu() -> Node<Msg> {
+fn menu<Ms: 'static>(items: Vec<Item<Ms>>) -> Node<Ms> {
     div![
         C!["menu-container", "menu-direction-bottom-right"],
         s()
@@ -250,19 +97,14 @@ fn menu() -> Node<Msg> {
             s()
                 .max_height("calc(3.2rem * 7)")
                 .overflow(CssOverflow::Auto),
-            menu_item(),
-            menu_item(),
-            menu_item(),
-            menu_item(),
+            items.into_iter().map(menu_item),
         ]
     ]
 }
 
-fn menu_item() -> Node<Msg> {
-    let selected = true;
-    let title = "series";
+fn menu_item<Ms: 'static>(item: Item<Ms>) -> Node<Ms> {
     div![
-        C!["option-container", "button-container", IF!(selected => "selected")],
+        C!["option-container", "button-container", IF!(item.selected => "selected")],
         s()
             .align_items(CssAlignItems::Center)
             .background_color(Color::Background)
@@ -275,7 +117,11 @@ fn menu_item() -> Node<Msg> {
             .background_color(Color::BackgroundLight2),
         attrs!{
             At::TabIndex => 0,
-            At::Title => title,
+            At::Title => item.title,
+        },
+        {
+            let on_click = item.on_click;
+            ev(Ev::Click, move |_| on_click())
         },
         div![
             C!["label"],
@@ -283,9 +129,9 @@ fn menu_item() -> Node<Msg> {
                 .color(Color::SurfaceLight5_90)
                 .flex("1")
                 .max_height(em(4.8)),
-            title,
+            item.title,
         ],
-        IF!(selected => {
+        IF!(item.selected => {
             div![
                 C!["icon"],
                 s()
