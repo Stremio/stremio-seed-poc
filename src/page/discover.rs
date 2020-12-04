@@ -329,8 +329,7 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
         //     &model.type_selector_model,
         //     &type_selector::groups(&catalog.types)
         // )
-        // .map_msg(Msg::TypeSelectorMsg),
-        // catalog selector
+        type_selector::view(catalog, Msg::SendResourceRequest),
         catalog_selector::view(catalog, Msg::SendResourceRequest),
         // extra prop selector
         // extra_prop_selector::view(
