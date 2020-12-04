@@ -59,9 +59,6 @@ pub fn init(
     model.get_or_insert_with(move || Model {
         base_url,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
-        type_selector_model: type_selector::init(),
-        catalog_selector_model: catalog_selector::init(),
-        extra_prop_selector_model: extra_prop_selector::init(),
         selected_meta_preview_id: None,
     });
     Some(PageId::Discover)
@@ -88,9 +85,6 @@ pub struct Model {
     base_url: Url,
     _core_msg_sub_handle: SubHandle,
     selected_meta_preview_id: Option<MetaPreviewId>,
-    type_selector_model: type_selector::Model,
-    catalog_selector_model: catalog_selector::Model,
-    extra_prop_selector_model: extra_prop_selector::Model,
 }
 
 // ------ ------
@@ -117,12 +111,13 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
     MetaPreviewClicked(MetaPreview),
-    TypeSelectorMsg(type_selector::Msg),
-    TypeSelectorChanged(Vec<multi_select::Group<TypeEntry>>),
-    CatalogSelectorMsg(catalog_selector::Msg),
-    CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
-    ExtraPropSelectorMsg(extra_prop_selector::Msg),
-    ExtraPropSelectorChanged(Vec<multi_select::Group<ExtraPropOption>>),
+    // TypeSelectorMsg(type_selector::Msg),
+    // TypeSelectorChanged(Vec<multi_select::Item>),
+    // CatalogSelectorMsg(catalog_selector::Msg),
+    // CatalogSelectorChanged(Vec<multi_select::Item>),
+    // ExtraPropSelectorMsg(extra_prop_selector::Msg),
+    // ExtraPropSelectorChanged(Vec<multi_select::Item>),
+    SendResourceRequest(ResourceRequest)
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -153,62 +148,66 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             }
         }
 
+        Msg::SendResourceRequest(res_req) => {
+            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        }
+
         // ------ TypeSelector  ------
-        Msg::TypeSelectorMsg(msg) => {
-            let msg_to_parent = type_selector::update(
-                msg,
-                &mut model.type_selector_model,
-                &mut orders.proxy(Msg::TypeSelectorMsg),
-                type_selector::groups(&catalog.types),
-                Msg::TypeSelectorChanged,
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        }
-        Msg::TypeSelectorChanged(groups_with_selected_items) => {
-            let res_req = type_selector::resource_request(groups_with_selected_items);
-            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        }
+        // Msg::TypeSelectorMsg(msg) => {
+        //     // let msg_to_parent = type_selector::update(
+        //     //     msg,
+        //     //     &mut model.type_selector_model,
+        //     //     &mut orders.proxy(Msg::TypeSelectorMsg),
+        //     //     type_selector::groups(&catalog.types),
+        //     //     Msg::TypeSelectorChanged,
+        //     // );
+        //     // if let Some(msg) = msg_to_parent {
+        //     //     orders.send_msg(msg);
+        //     // }
+        // }
+        // Msg::TypeSelectorChanged(groups_with_selected_items) => {
+        //     // let res_req = type_selector::resource_request(groups_with_selected_items);
+        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        // }
 
-        // ------ CatalogSelector  ------
-        Msg::CatalogSelectorMsg(msg) => {
-            let msg_to_parent = catalog_selector::update(
-                msg,
-                &mut model.catalog_selector_model,
-                &mut orders.proxy(Msg::CatalogSelectorMsg),
-                catalog_selector::groups(&catalog.catalogs, &catalog.selected),
-                Msg::CatalogSelectorChanged,
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        }
-        Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-            let res_req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        }
+        // // ------ CatalogSelector  ------
+        // Msg::CatalogSelectorMsg(msg) => {
+        //     // let msg_to_parent = catalog_selector::update(
+        //     //     msg,
+        //     //     &mut model.catalog_selector_model,
+        //     //     &mut orders.proxy(Msg::CatalogSelectorMsg),
+        //     //     catalog_selector::items(&catalog.catalogs, &catalog.selected),
+        //     //     Msg::CatalogSelectorChanged,
+        //     // );
+        //     // if let Some(msg) = msg_to_parent {
+        //     //     orders.send_msg(msg);
+        //     // }
+        // }
+        // Msg::CatalogSelectorChanged(groups_with_selected_items) => {
+        //     // let res_req = catalog_selector::resource_request(groups_with_selected_items);
+        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        // }
 
-        // ------ ExtraPropSelector  ------
-        Msg::ExtraPropSelectorMsg(msg) => {
-            let msg_to_parent = extra_prop_selector::update(
-                msg,
-                &mut model.extra_prop_selector_model,
-                &mut orders.proxy(Msg::ExtraPropSelectorMsg),
-                extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected),
-                Msg::ExtraPropSelectorChanged,
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        }
-        Msg::ExtraPropSelectorChanged(groups_with_selected_items) => {
-            if let Some(res_req) =
-                extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
-            {
-                orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-            }
-        }
+        // // ------ ExtraPropSelector  ------
+        // Msg::ExtraPropSelectorMsg(msg) => {
+        //     // let msg_to_parent = extra_prop_selector::update(
+        //     //     msg,
+        //     //     &mut model.extra_prop_selector_model,
+        //     //     &mut orders.proxy(Msg::ExtraPropSelectorMsg),
+        //     //     extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected),
+        //     //     Msg::ExtraPropSelectorChanged,
+        //     // );
+        //     // if let Some(msg) = msg_to_parent {
+        //     //     orders.send_msg(msg);
+        //     // }
+        // }
+        // Msg::ExtraPropSelectorChanged(groups_with_selected_items) => {
+        //     // if let Some(res_req) =
+        //     //     extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
+        //     // {
+        //     //     orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        //     // }
+        // }
     }
 }
 
@@ -326,23 +325,19 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
             .overflow(CssOverflow::Visible)
             .padding(rem(1.5)),
         // type selector
-        type_selector::view(
-            &model.type_selector_model,
-            &type_selector::groups(&catalog.types)
-        )
-        .map_msg(Msg::TypeSelectorMsg),
+        // type_selector::view(
+        //     &model.type_selector_model,
+        //     &type_selector::groups(&catalog.types)
+        // )
+        // .map_msg(Msg::TypeSelectorMsg),
         // catalog selector
-        catalog_selector::view(
-            &model.catalog_selector_model,
-            &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-        )
-        .map_msg(Msg::CatalogSelectorMsg),
+        catalog_selector::view(catalog, Msg::SendResourceRequest),
         // extra prop selector
-        extra_prop_selector::view(
-            &model.extra_prop_selector_model,
-            &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
-        )
-        .map_msg(Msg::ExtraPropSelectorMsg),
+        // extra_prop_selector::view(
+        //     &model.extra_prop_selector_model,
+        //     &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
+        // )
+        // .map_msg(Msg::ExtraPropSelectorMsg),
         div![
             C!["spacing"],
             s()

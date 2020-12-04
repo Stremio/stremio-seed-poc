@@ -51,8 +51,6 @@ pub fn init(
     model.get_or_insert_with(move || Model {
         base_url,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
-        catalog_selector_model: catalog_selector::init(),
-        type_selector_model: type_selector::init(),
         search_query: String::new(),
         modal: None,
     });
@@ -79,8 +77,6 @@ pub fn default_resource_request() -> ResourceRequest {
 pub struct Model {
     base_url: Url,
     _core_msg_sub_handle: SubHandle,
-    catalog_selector_model: catalog_selector::Model,
-    type_selector_model: type_selector::Model,
     search_query: String,
     modal: Option<Modal>,
 }
@@ -108,10 +104,10 @@ impl<'a> Urls<'a> {
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
-    CatalogSelectorMsg(catalog_selector::Msg),
-    CatalogSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
-    TypeSelectorMsg(type_selector::Msg),
-    TypeSelectorChanged(Vec<multi_select::Group<CatalogEntry>>),
+    // CatalogSelectorMsg(catalog_selector::Msg),
+    // CatalogSelectorChanged(Vec<multi_select::Item>),
+    // TypeSelectorMsg(type_selector::Msg),
+    // TypeSelectorChanged(Vec<multi_select::Item>),
     SearchQueryChanged(String),
     AddAddonButtonClicked,
     UninstallAddonButtonClicked(DescriptorPreview),
@@ -131,44 +127,45 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             }
         }
         // ------ CatalogSelector  ------
-        Msg::CatalogSelectorMsg(msg) => {
-            let msg_to_parent = catalog_selector::update(
-                msg,
-                &mut model.catalog_selector_model,
-                &mut orders.proxy(Msg::CatalogSelectorMsg),
-                catalog_selector::groups(&catalog.catalogs, &catalog.selected),
-                Msg::CatalogSelectorChanged,
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        }
-        Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-            let res_req = catalog_selector::resource_request(groups_with_selected_items);
-            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        }
+        // Msg::CatalogSelectorMsg(msg) => {
+        //     // let msg_to_parent = catalog_selector::update(
+        //     //     msg,
+        //     //     &mut model.catalog_selector_model,
+        //     //     &mut orders.proxy(Msg::CatalogSelectorMsg),
+        //     //     catalog_selector::groups(&catalog.catalogs, &catalog.selected),
+        //     //     Msg::CatalogSelectorChanged,
+        //     // );
+        //     // if let Some(msg) = msg_to_parent {
+        //     //     orders.send_msg(msg);
+        //     // }
+        // }
+        // Msg::CatalogSelectorChanged(groups_with_selected_items) => {
+        //     // @TODO
+        //     // let res_req = catalog_selector::resource_request(groups_with_selected_items);
+        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        // }
 
-        // ------ TypeSelector  ------
-        Msg::TypeSelectorMsg(msg) => {
-            let msg_to_parent = type_selector::update(
-                msg,
-                &mut model.type_selector_model,
-                &mut orders.proxy(Msg::TypeSelectorMsg),
-                type_selector::groups(
-                    &catalog.catalogs,
-                    &catalog.selected,
-                    &context.core_model.ctx.content.addons,
-                ),
-                Msg::TypeSelectorChanged,
-            );
-            if let Some(msg) = msg_to_parent {
-                orders.send_msg(msg);
-            }
-        }
-        Msg::TypeSelectorChanged(groups_with_selected_items) => {
-            let res_req = type_selector::resource_request(groups_with_selected_items);
-            orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        }
+        // // ------ TypeSelector  ------
+        // Msg::TypeSelectorMsg(msg) => {
+        //     // let msg_to_parent = type_selector::update(
+        //     //     msg,
+        //     //     &mut model.type_selector_model,
+        //     //     &mut orders.proxy(Msg::TypeSelectorMsg),
+        //     //     type_selector::groups(
+        //     //         &catalog.catalogs,
+        //     //         &catalog.selected,
+        //     //         &context.core_model.ctx.content.addons,
+        //     //     ),
+        //     //     Msg::TypeSelectorChanged,
+        //     // );
+        //     // if let Some(msg) = msg_to_parent {
+        //     //     orders.send_msg(msg);
+        //     // }
+        // }
+        // Msg::TypeSelectorChanged(groups_with_selected_items) => {
+        //     // let res_req = type_selector::resource_request(groups_with_selected_items);
+        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        // }
 
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
         Msg::AddAddonButtonClicked => model.modal = Some(Modal::AddAddon),
@@ -213,21 +210,23 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
                     // add addon button
                     view_add_addon_button(),
                     // catalog selector
-                    catalog_selector::view(
-                        &model.catalog_selector_model,
-                        &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-                    )
-                    .map_msg(Msg::CatalogSelectorMsg),
+                    // @TODO
+                    // catalog_selector::view(
+                    //     &model.catalog_selector_model,
+                    //     &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+                    // )
+                    // .map_msg(Msg::CatalogSelectorMsg),
                     // type selector
-                    type_selector::view(
-                        &model.type_selector_model,
-                        &type_selector::groups(
-                            &catalog.catalogs,
-                            &catalog.selected,
-                            &context.core_model.ctx.content.addons
-                        )
-                    )
-                    .map_msg(Msg::TypeSelectorMsg),
+                    // @TODO
+                    // type_selector::view(
+                    //     &model.type_selector_model,
+                    //     &type_selector::groups(
+                    //         &catalog.catalogs,
+                    //         &catalog.selected,
+                    //         &context.core_model.ctx.content.addons
+                    //     )
+                    // )
+                    // .map_msg(Msg::TypeSelectorMsg),
                     // search input
                     view_search_input(&model.search_query),
                 ],
