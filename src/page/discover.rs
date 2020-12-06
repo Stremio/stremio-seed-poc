@@ -24,7 +24,7 @@ type ExtraPropOption = String;
 
 const DEFAULT_CATALOG: &str = "top";
 const DEFAULT_TYPE: &str = "movie";
-const BASE: &str = "https://v3-cinemeta.strem.io/manifest.json";
+const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
 const RESOURCE: &str = "catalog";
 
 fn on_click_not_implemented() -> EventHandler<Msg> {

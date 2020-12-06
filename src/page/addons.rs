@@ -20,7 +20,7 @@ const DEFAULT_CATALOG: &str = "thirdparty";
 const DEFAULT_TYPE: &str = "movie";
 const MY_ITEM_ID: &str = "my";
 const TYPE_ALL: &str = "all";
-const BASE: &str = "https://v3-cinemeta.strem.io/manifest.json";
+const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
 const RESOURCE: &str = "addon_catalog";
 
 // ------ ------
