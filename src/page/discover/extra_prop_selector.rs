@@ -34,9 +34,11 @@ pub fn items<Ms: 'static>(
         None => return Vec::new(),
     };
 
+    log!(extra_props);
+
     extra_props
         .iter()
-        .map(|extra_prop| {
+        .flat_map(|extra_prop| {
             let group_id = extra_prop.name.clone();
 
             if let Some(options) = &extra_prop.options {
@@ -44,7 +46,8 @@ pub fn items<Ms: 'static>(
                     .iter()
                     .map(|option| {
                         let item_id = option.clone();
-                        let res_req = catalog_entry.load.clone();
+                        let selected_req = selected_req.clone();
+                        // let res_req = catalog_entry.load.clone();
 
                         multi_select::Item {
                             title: option.clone(),
@@ -53,13 +56,14 @@ pub fn items<Ms: 'static>(
                                 .extra
                                 .contains(&(group_id.clone(), item_id)),
                             on_click: Rc::new(move || {
-                                send_res_req_msg(res_req.clone())
+                                // send_res_req_msg(res_req.clone())
+                                send_res_req_msg(selected_req.clone())
                             }),
                         }
                     })
                     .collect::<Vec<multi_select::Item<Ms>>>()
             } else {
-                Vec::new()
+                Vec::<multi_select::Item<Ms>>::new()
             }
         })
         .collect()
