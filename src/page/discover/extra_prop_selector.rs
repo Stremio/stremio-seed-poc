@@ -2,16 +2,16 @@ use crate::{entity::multi_select, page::discover::ExtraPropOption};
 use seed::{*, prelude::*};
 use std::fmt::Debug;
 use std::rc::Rc;
-use stremio_core::state_types::CatalogFiltered;
-use stremio_core::types::addons::{ManifestExtraProp, ResourceRequest};
-use stremio_core::types::MetaPreview;
+use stremio_core::models::catalog_with_filters::CatalogWithFilters;
+use stremio_core::types::resource::MetaItemPreview;
+use stremio_core::types::addon::ResourceRequest;
 
 // ------ ------
 //     View
 // ------ ------
 
 pub fn view<Ms: 'static>(
-    catalog: &CatalogFiltered<MetaPreview>,
+    catalog: &CatalogWithFilters<MetaItemPreview>,
     send_res_req_msg: impl Fn(ResourceRequest) -> Ms + 'static + Copy,
 ) -> Node<Ms> {
     let items = items(catalog, send_res_req_msg);
@@ -23,48 +23,34 @@ pub fn view<Ms: 'static>(
 // ------ ------
 
 pub fn items<Ms: 'static>(
-    catalog: &CatalogFiltered<MetaPreview>,
+    catalog: &CatalogWithFilters<MetaItemPreview>,
     send_res_req_msg: impl Fn(ResourceRequest) -> Ms + 'static + Copy,
 ) -> Vec<multi_select::Item<Ms>> {
-    let extra_props = &catalog.selectable_extra;
-    let selected_req = &catalog.selected;
+    // let selected_request = if let Some(selected_request) = catalog.selected {
+    //     selected_request
+    // } else {
+    //     return Vec::new()
+    // };
 
-    let selected_req = match selected_req {
-        Some(selected_req) => selected_req,
-        None => return Vec::new(),
-    };
-
-    log!(extra_props);
-
-    extra_props
+    catalog
+        .selectable
+        .extra
         .iter()
-        .flat_map(|extra_prop| {
-            let group_id = extra_prop.name.clone();
-
-            if let Some(options) = &extra_prop.options {
-                options
-                    .iter()
-                    .map(|option| {
-                        let item_id = option.clone();
-                        let selected_req = selected_req.clone();
-                        // let res_req = catalog_entry.load.clone();
-
-                        multi_select::Item {
-                            title: option.clone(),
-                            selected: selected_req
-                                .path
-                                .extra
-                                .contains(&(group_id.clone(), item_id)),
-                            on_click: Rc::new(move || {
-                                // send_res_req_msg(res_req.clone())
-                                send_res_req_msg(selected_req.clone())
-                            }),
-                        }
-                    })
-                    .collect::<Vec<multi_select::Item<Ms>>>()
-            } else {
-                Vec::<multi_select::Item<Ms>>::new()
-            }
+        .flat_map(|extra| {
+            // let extra_name = extra.name.clone();
+            extra
+                .options
+                .iter()
+                .map(|option| {
+                    let res_req = option.request.clone(); 
+                    multi_select::Item {
+                        title: option.value.unwrap_or_else(|| "None".to_owned()),
+                        selected: option.selected,
+                        on_click: Rc::new(move || {
+                            send_res_req_msg(res_req.clone())
+                        }),
+                    }
+                })
         })
         .collect()
 }

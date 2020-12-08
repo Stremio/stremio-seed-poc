@@ -2,16 +2,16 @@ use crate::entity::multi_select;
 use seed::{*, prelude::*};
 use std::fmt::Debug;
 use std::rc::Rc;
-use stremio_core::state_types::{CatalogFiltered, TypeEntry};
-use stremio_core::types::MetaPreview;
-use stremio_core::types::addons::ResourceRequest;
+use stremio_core::models::catalog_with_filters::CatalogWithFilters;
+use stremio_core::types::resource::MetaItemPreview;
+use stremio_core::types::addon::ResourceRequest;
 
 // ------ ------
 //     View
 // ------ ------
 
 pub fn view<Ms: 'static>(
-    catalog: &CatalogFiltered<MetaPreview>,
+    catalog: &CatalogWithFilters<MetaItemPreview>,
     send_res_req_msg: impl Fn(ResourceRequest) -> Ms + 'static + Copy,
 ) -> Node<Ms> {
     let items = items(catalog, send_res_req_msg);
@@ -19,16 +19,18 @@ pub fn view<Ms: 'static>(
 }
 
 pub fn items<Ms: 'static>(
-    catalog: &CatalogFiltered<MetaPreview>,
+    catalog: &CatalogWithFilters<MetaItemPreview>,
     send_res_req_msg: impl Fn(ResourceRequest) -> Ms + 'static + Copy,
 ) -> Vec<multi_select::Item<Ms>> {
-    catalog.types
+    catalog
+        .selectable
+        .types
         .iter()
-        .map(|type_entry| {
-            let res_req = type_entry.load.clone();
+        .map(|type_| {
+            let res_req = type_.request.clone();
             multi_select::Item {
-                title: type_entry.type_name.clone(),
-                selected: type_entry.is_selected,
+                title: type_.r#type.clone(),
+                selected: type_.selected,
                 on_click: Rc::new(move || {
                     send_res_req_msg(res_req.clone())
                 }),

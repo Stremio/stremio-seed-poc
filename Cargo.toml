@@ -16,7 +16,7 @@ serde = { version = "1.0.102", features = ["derive"] }
 wasm-bindgen = { version = "0.2.69", features = ["serde-serialize"]  }
 futures = { version = "0.3", features = [ "compat" ] }
 serde_json = "1.0.41"
-wasm-bindgen-futures = "0.3"
+wasm-bindgen-futures = "0.4.19"
 js-sys = "0.3.46"
 enclose = "1.1.8"
 itertools = "0.8.1"
@@ -36,8 +36,9 @@ stremio-core = { path = "../stremio-core" }
 # stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
 stremio-derive = { path = "../stremio-core/stremio-derive" }
 
-# env-web = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
-# env-web = { path = "../stremio-core/env-web" }
+# stremio-core-web = { path = "d:/repos/stremio-core-web" }
+chrono = "0.4.19"
+http = "0.2.1"
 
 # seed_hooks = { git = "https://github.com/arn-the-long-beard/seed_hooks.git", branch = "hot_fix/update_with_new_hooks" }
 # seed_hooks = { path = "../seed_hooks" }
