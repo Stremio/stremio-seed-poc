@@ -4,8 +4,8 @@ use itertools::Itertools;
 use seed::prelude::*;
 use std::fmt::Debug;
 use std::iter;
-use stremio_core::state_types::CatalogEntry;
-use stremio_core::types::addons::{ResourceRef, ResourceRequest};
+// use stremio_core::state_types::CatalogEntry;
+// use stremio_core::types::addons::{ResourceRef, ResourceRequest};
 
 // ------ ------
 //     View

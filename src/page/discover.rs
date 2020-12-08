@@ -2,14 +2,11 @@ use crate::{entity::multi_select, Context, PageId, Actions, Urls as RootUrls};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use stremio_core::state_types::{
-    Action, ActionLoad, CatalogEntry, CatalogError, Internal, Loadable, Msg as CoreMsg, TypeEntry,
-};
-use stremio_core::types::MetaPreview;
-use stremio_core::types::{
-    addons::{ResourceRef, ResourceRequest, ResourceResponse},
-    PosterShape,
-};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
+use stremio_core::models::common::{Loadable, ResourceError};
+use stremio_core::models::catalog_with_filters::Selected as CatalogWithFiltersSelected;
+use stremio_core::types::resource::{MetaItemPreview, PosterShape};
+use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
 use seed_styles::{px, pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -18,14 +15,14 @@ mod catalog_selector;
 mod extra_prop_selector;
 mod type_selector;
 
-type MetaPreviewId = String;
+type MetaItemPreviewId = String;
 // @TODO add into stremio-core?
 type ExtraPropOption = String;
 
-const DEFAULT_CATALOG: &str = "top";
+const DEFAULT_RESOURCE: &str = "catalog";
 const DEFAULT_TYPE: &str = "movie";
+const DEFAULT_ID: &str = "top";
 const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
-const RESOURCE: &str = "catalog";
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
@@ -43,14 +40,12 @@ pub fn init(
     let base_url = url.to_hash_base_url();
 
     let resource_request = match url.remaining_hash_path_parts().as_slice() {
-        [base, path] => path
-            .parse()
-            .map_err(|error| error!(error))
-            .map(|path| ResourceRequest {
-                base: base.to_string(),
-                path,
-            })
-            .ok(),
+        [base, path] => {
+            (|| Some(ResourceRequest::new(
+                base.parse().map_err(|error| error!(error)).ok()?,
+                serde_json::from_str(path).map_err(|error| error!(error)).ok()?
+            )))()
+        }
         _ => None,
     };
 
@@ -65,15 +60,18 @@ pub fn init(
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
+    let selected_catalog = CatalogWithFiltersSelected {
+        request: resource_request.unwrap_or_else(default_resource_request)
+    };
     orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
+        ActionLoad::CatalogWithFilters(selected_catalog),
     )))));
 }
 
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest::new(
-        BASE,
-        ResourceRef::without_extra(RESOURCE, DEFAULT_TYPE, DEFAULT_CATALOG),
+        BASE.parse().expect("valid BASE url"),
+        ResourcePath::without_extra(DEFAULT_RESOURCE, DEFAULT_TYPE, DEFAULT_ID),
     )
 }
 
@@ -84,7 +82,7 @@ pub fn default_resource_request() -> ResourceRequest {
 pub struct Model {
     base_url: Url,
     _core_msg_sub_handle: SubHandle,
-    selected_meta_preview_id: Option<MetaPreviewId>,
+    selected_meta_preview_id: Option<MetaItemPreviewId>,
 }
 
 // ------ ------
@@ -98,8 +96,8 @@ impl<'a> Urls<'a> {
     }
     pub fn res_req(self, res_req: &ResourceRequest) -> Url {
         self.base_url()
-            .add_hash_path_part(&res_req.base)
-            .add_hash_path_part(res_req.path.to_string())
+            .add_hash_path_part(res_req.base.to_string())
+            .add_hash_path_part(serde_json::to_string(&res_req.path).unwrap())
     }
 }
 
@@ -110,7 +108,7 @@ impl<'a> Urls<'a> {
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
-    MetaPreviewClicked(MetaPreview),
+    MetaItemPreviewClicked(MetaItemPreview),
     // TypeSelectorMsg(type_selector::Msg),
     // TypeSelectorChanged(Vec<multi_select::Item>),
     // CatalogSelectorMsg(catalog_selector::Msg),
@@ -125,27 +123,27 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 
     match msg {
         Msg::CoreMsg(core_msg) => {
-            if let CoreMsg::Internal(Internal::AddonResponse(_, result)) = core_msg.as_ref() {
+            if let CoreMsg::Internal(Internal::ResourceRequestResult(_, result)) = core_msg.as_ref() {
                 if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
                     model.selected_meta_preview_id = metas.first().map(|meta| meta.id.clone());
                 }
             }
         }
-        Msg::MetaPreviewClicked(meta_preview) => {
-            if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
-                let id = &meta_preview.id;
-                let type_name = &meta_preview.type_name;
+        Msg::MetaItemPreviewClicked(meta_preview) => {
+            // if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
+            //     let id = &meta_preview.id;
+            //     let type_name = &meta_preview.type_name;
 
-                let detail_urls = RootUrls::new(&context.root_base_url).detail_urls();
+            //     let detail_urls = RootUrls::new(&context.root_base_url).detail_urls();
 
-                orders.request_url(if meta_preview.type_name == "movie" {
-                    detail_urls.with_video_id(type_name, id, id)
-                } else {
-                    detail_urls.without_video_id(type_name, id)
-                });
-            } else {
-                model.selected_meta_preview_id = Some(meta_preview.id);
-            }
+            //     orders.request_url(if meta_preview.type_name == "movie" {
+            //         detail_urls.with_video_id(type_name, id, id)
+            //     } else {
+            //         detail_urls.without_video_id(type_name, id)
+            //     });
+            // } else {
+            //     model.selected_meta_preview_id = Some(meta_preview.id);
+            // }
         }
 
         Msg::SendResourceRequest(res_req) => {
@@ -250,10 +248,12 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                         .flex("1")
                         .flex_direction(CssFlexDirection::Column),
                     selectable_inputs(model, context),
-                    meta_items(
-                        &context.core_model.catalog.content,
-                        model.selected_meta_preview_id.as_ref()
-                    ),
+                    context.core_model.catalog.catalog.map(|resource_loadable| {
+                        meta_items(
+                            &resource_loadable.content,
+                            model.selected_meta_preview_id.as_ref()
+                        )
+                    }),
                 ],
                 div![
                     C!["meta-preview-container", "compact"],
@@ -463,8 +463,8 @@ fn pagination_next_button() -> Node<Msg> {
 }
 
 fn meta_items(
-    content: &Loadable<Vec<MetaPreview>, CatalogError>,
-    selected_meta_preview_id: Option<&MetaPreviewId>,
+    content: &Loadable<Vec<MetaItemPreview>, ResourceError>,
+    selected_meta_preview_id: Option<&MetaItemPreviewId>,
 ) -> Node<Msg> {
     let message_container_style = s()
         .padding("0 2rem")
@@ -472,8 +472,8 @@ fn meta_items(
         .color(Color::SurfaceLighter);
 
     match content {
-        Loadable::Err(catalog_error) => {
-            div![C!["message-container",], message_container_style, format!("{:#?}", catalog_error)]
+        Loadable::Err(resource_error) => {
+            div![C!["message-container",], message_container_style, format!("{}", resource_error)]
         }
         Loadable::Loading => div![C!["message-container",], message_container_style, "Loading"],
         Loadable::Ready(meta_previews) if meta_previews.is_empty() => empty![],
@@ -520,7 +520,7 @@ fn meta_items(
     }
 }
 
-fn meta_item(meta: &MetaPreview, selected_meta_preview_id: Option<&MetaPreviewId>) -> Node<Msg> {
+fn meta_item(meta: &MetaItemPreview, selected_meta_preview_id: Option<&MetaItemPreviewId>) -> Node<Msg> {
     a![
         el_key(&meta.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],

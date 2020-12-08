@@ -3,8 +3,8 @@ use crate::entity::multi_select;
 use seed::prelude::*;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
-use stremio_core::state_types::CatalogEntry;
-use stremio_core::types::addons::{Descriptor, ResourceRef, ResourceRequest};
+// use stremio_core::state_types::CatalogEntry;
+// use stremio_core::types::addons::{Descriptor, ResourceRef, ResourceRequest};
 
 // ------ ------
 //     View
