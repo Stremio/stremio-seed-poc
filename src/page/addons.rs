@@ -1,13 +1,13 @@
-use crate::{entity::multi_select, Context, PageId};
+use crate::{entity::multi_select, Context, PageId, Actions, Urls as RootUrls};
 use enclose::enc;
 use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use stremio_core::state_types::{
-    Action, ActionLoad, CatalogEntry, CatalogError, Loadable, Msg as CoreMsg,
-};
-use stremio_core::types::addons::{Descriptor, DescriptorPreview, ManifestPreview};
-use stremio_core::types::addons::{ResourceRef, ResourceRequest};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
+use stremio_core::models::catalog_with_filters::Selected as CatalogWithFiltersSelected;
+use stremio_core::models::common::{Loadable, ResourceError};
+use stremio_core::types::addon::{Descriptor, DescriptorPreview, ManifestPreview};
+use stremio_core::types::addon::{ResourceRequest, ResourcePath};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use crate::styles::{self, themes::Color};
@@ -16,12 +16,12 @@ mod catalog_selector;
 mod modal;
 mod type_selector;
 
-const DEFAULT_CATALOG: &str = "thirdparty";
+const DEFAULT_RESOURCE: &str = "addon_catalog";
 const DEFAULT_TYPE: &str = "movie";
+const DEFAULT_ID: &str = "thirdparty";
 const MY_ITEM_ID: &str = "my";
 const TYPE_ALL: &str = "all";
 const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
-const RESOURCE: &str = "addon_catalog";
 
 // ------ ------
 //     Init
@@ -35,14 +35,12 @@ pub fn init(
     let base_url = url.to_hash_base_url();
 
     let resource_request = match url.remaining_hash_path_parts().as_slice() {
-        [base, path] => path
-            .parse()
-            .map_err(|error| error!(error))
-            .map(|path| ResourceRequest {
-                base: (*base).to_owned(),
-                path,
-            })
-            .ok(),
+        [base, path] => {
+            (|| Some(ResourceRequest::new(
+                base.parse().map_err(|error| error!(error)).ok()?,
+                serde_json::from_str(path).map_err(|error| error!(error)).ok()?
+            )))()
+        }
         _ => None,
     };
 
@@ -58,15 +56,18 @@ pub fn init(
 }
 
 fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    orders.notify(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogFiltered(resource_request.unwrap_or_else(default_resource_request)),
-    ))));
+    let selected_catalog = CatalogWithFiltersSelected {
+        request: resource_request.unwrap_or_else(default_resource_request)
+    };
+    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::CatalogWithFilters(selected_catalog),
+    )))));
 }
 
 pub fn default_resource_request() -> ResourceRequest {
     ResourceRequest::new(
-        BASE,
-        ResourceRef::without_extra(RESOURCE, DEFAULT_TYPE, DEFAULT_CATALOG),
+        BASE.parse().expect("valid BASE url"),
+        ResourcePath::without_extra(DEFAULT_RESOURCE, DEFAULT_TYPE, DEFAULT_ID),
     )
 }
 
@@ -92,8 +93,8 @@ impl<'a> Urls<'a> {
     }
     pub fn res_req(self, res_req: &ResourceRequest) -> Url {
         self.base_url()
-            .add_hash_path_part(&res_req.base)
-            .add_hash_path_part(res_req.path.to_string())
+            .add_hash_path_part(res_req.base.to_string())
+            .add_hash_path_part(serde_json::to_string(&res_req.path).unwrap())
     }
 }
 
@@ -121,7 +122,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 
     match msg {
         Msg::CoreMsg(core_msg) => {
-            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogFiltered(_))) = core_msg.as_ref()
+            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogWithFilters(_))) = core_msg.as_ref()
             {
                 model.search_query = String::new();
             }
@@ -237,12 +238,12 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
                         .align_self(CssAlignSelf::Stretch)
                         .padding("0 2rem")
                         .overflow_y(CssOverflowY::Auto),
-                    view_content(
-                        &context.core_model.addon_catalog.content,
-                        &model.search_query,
-                        &context.core_model.ctx.content.addons,
-                        &catalog.selected
-                    ),
+                    // view_content(
+                    //     &context.core_model.addon_catalog.content,
+                    //     &model.search_query,
+                    //     &context.core_model.ctx.content.addons,
+                    //     &catalog.selected
+                    // ),
                 ]
             ],
         ],
@@ -373,65 +374,65 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
     ]
 }
 
-fn view_content(
-    content: &Loadable<Vec<DescriptorPreview>, CatalogError>,
-    search_query: &str,
-    installed_addons: &[Descriptor],
-    selected_req: &Option<ResourceRequest>,
-) -> Vec<Node<Msg>> {
-    if let Some(selected_req) = selected_req {
-        if selected_req.path.id == MY_ITEM_ID {
-            let addons = installed_addons
-                .iter()
-                .filter_map(|addon| {
-                    let include_addon_in_results = selected_req.path.type_name == TYPE_ALL
-                        || addon.manifest.types.contains(&selected_req.path.type_name);
+// fn view_content(
+//     content: &Loadable<Vec<DescriptorPreview>, CatalogError>,
+//     search_query: &str,
+//     installed_addons: &[Descriptor],
+//     selected_req: &Option<ResourceRequest>,
+// ) -> Vec<Node<Msg>> {
+//     if let Some(selected_req) = selected_req {
+//         if selected_req.path.id == MY_ITEM_ID {
+//             let addons = installed_addons
+//                 .iter()
+//                 .filter_map(|addon| {
+//                     let include_addon_in_results = selected_req.path.type_name == TYPE_ALL
+//                         || addon.manifest.types.contains(&selected_req.path.type_name);
 
-                    if include_addon_in_results {
-                        // @TODO refactor
-                        let addon = addon.clone();
-                        Some(DescriptorPreview {
-                            manifest: ManifestPreview {
-                                id: addon.manifest.id,
-                                types: addon.manifest.types,
-                                name: addon.manifest.name,
-                                description: addon.manifest.description,
-                                background: addon.manifest.background,
-                                logo: addon.manifest.logo,
-                                version: addon.manifest.version,
-                            },
-                            transport_url: addon.transport_url,
-                        })
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-            return view_addons(&addons, search_query, installed_addons);
-        }
-    }
+//                     if include_addon_in_results {
+//                         // @TODO refactor
+//                         let addon = addon.clone();
+//                         Some(DescriptorPreview {
+//                             manifest: ManifestPreview {
+//                                 id: addon.manifest.id,
+//                                 types: addon.manifest.types,
+//                                 name: addon.manifest.name,
+//                                 description: addon.manifest.description,
+//                                 background: addon.manifest.background,
+//                                 logo: addon.manifest.logo,
+//                                 version: addon.manifest.version,
+//                             },
+//                             transport_url: addon.transport_url,
+//                         })
+//                     } else {
+//                         None
+//                     }
+//                 })
+//                 .collect::<Vec<_>>();
+//             return view_addons(&addons, search_query, installed_addons);
+//         }
+//     }
 
-    let style_message_container =
-            s()
-                .padding("0 2rem")
-                .font_size(rem(2))
-                .color(Color::SurfaceLighter);
+//     let style_message_container =
+//             s()
+//                 .padding("0 2rem")
+//                 .font_size(rem(2))
+//                 .color(Color::SurfaceLighter);
 
-    match content {
-        Loadable::Err(catalog_error) => vec![div![
-            C!["message-container",],
-            style_message_container,
-            format!("{:#?}", catalog_error)
-        ]],
-        Loadable::Loading => vec![div![
-            C!["message-container",], 
-            style_message_container,
-            "Loading",
-        ]],
-        Loadable::Ready(addons) if addons.is_empty() => Vec::new(),
-        Loadable::Ready(addons) => view_addons(addons, search_query, installed_addons),
-    }
-}
+//     match content {
+//         Loadable::Err(catalog_error) => vec![div![
+//             C!["message-container",],
+//             style_message_container,
+//             format!("{:#?}", catalog_error)
+//         ]],
+//         Loadable::Loading => vec![div![
+//             C!["message-container",], 
+//             style_message_container,
+//             "Loading",
+//         ]],
+//         Loadable::Ready(addons) if addons.is_empty() => Vec::new(),
+//         Loadable::Ready(addons) => view_addons(addons, search_query, installed_addons),
+//     }
+// }
 
 fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> bool {
     if search_query.is_empty() {

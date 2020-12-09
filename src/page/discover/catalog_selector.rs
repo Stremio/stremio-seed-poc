@@ -38,7 +38,7 @@ pub fn items<Ms: 'static>(
     catalog
         .selectable
         .catalogs
-        .into_iter()
+        .iter()
         .map(|catalog| {
             let res_req = catalog.request.clone(); 
             multi_select::Item {

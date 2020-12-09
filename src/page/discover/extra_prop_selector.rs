@@ -44,7 +44,7 @@ pub fn items<Ms: 'static>(
                 .map(|option| {
                     let res_req = option.request.clone(); 
                     multi_select::Item {
-                        title: option.value.unwrap_or_else(|| "None".to_owned()),
+                        title: option.value.clone().unwrap_or_else(|| "None".to_owned()),
                         selected: option.selected,
                         on_click: Rc::new(move || {
                             send_res_req_msg(res_req.clone())
