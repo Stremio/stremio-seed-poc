@@ -6,6 +6,7 @@ use wasm_bindgen::JsCast;
 use seed_styles::{pc, em, rem};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, get_color_value}};
+use seed_hooks::{*, topo::nested as view, state_access::CloneState};
 
 const MENU_CLASS: &str = "popup-menu-container";
 
@@ -19,10 +20,14 @@ pub struct Item<Ms> {
 //     View
 // ------ ------
 
-pub fn view<Ms: 'static>(title: &str, items: Vec<Item<Ms>>) -> Node<Ms> {
-    let active = true;
+#[view]
+pub fn view<Ms: 'static>(title: &str, items: Vec<Item<Ms>>, left_margin: bool) -> Node<Ms> {
+    if items.is_empty() {
+        return empty![]
+    }
+    let state_active = use_state(|| false);
+    let active = state_active.get();
     let selected_item = items.iter().find(|item| item.selected);
-    let left_margin = true;
     div![
         C!["select-input", "label-container", "button-container", IF!(active => "active")],
         s()
@@ -41,6 +46,8 @@ pub fn view<Ms: 'static>(title: &str, items: Vec<Item<Ms>>) -> Node<Ms> {
             At::TabIndex => 0,
             At::Title => title,
         },
+        ev(Ev::Click, move |_| state_active.update(|active| *active = !*active)),
+        ev(Ev::Blur, move |_| state_active.set(false)),
         div![
             C!["label", IF!(active => "active")],
             s()
@@ -121,7 +128,7 @@ fn menu_item<Ms: 'static>(item: Item<Ms>) -> Node<Ms> {
         },
         {
             let on_click = item.on_click;
-            ev(Ev::Click, move |_| on_click())
+            ev(Ev::MouseDown, move |_| on_click())
         },
         div![
             C!["label"],

@@ -27,7 +27,7 @@ use stremio_core::runtime::{Update, msg::Msg as CoreMsg, Effect};
 use stremio_core::types::addon::DescriptorPreview;
 use stremio_core::types::resource::MetaItemPreview;
 use stremio_derive::Model;
-use seed_hooks::*;
+use seed_hooks::{*, topo::nested as view};
 
 // ---- url parts ----
 
@@ -250,7 +250,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-#[topo::nested]
+#[view]
 fn view(model: &Model) -> Node<Msg> {
     div![
         C!["router", "routes-container"],
