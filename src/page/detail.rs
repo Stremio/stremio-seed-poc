@@ -1,7 +1,7 @@
 use crate::{PageId, Actions};
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use stremio_core::state_types::{Action, ActionLoad, Msg as CoreMsg};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionLoad};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use crate::styles::{self, themes::Color};
@@ -21,13 +21,13 @@ pub fn init(
 
     // @TODO refactor and integrate
     // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
-    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::Detail {
-            type_name,
-            id,
-            video_id,
-        },
-    )))));
+    // orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+    //     ActionLoad::Detail {
+    //         type_name,
+    //         id,
+    //         video_id,
+    //     },
+    // )))));
 
     model.get_or_insert_with(|| Model {});
     Some(PageId::Detail)

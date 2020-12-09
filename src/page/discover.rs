@@ -248,7 +248,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                         .flex("1")
                         .flex_direction(CssFlexDirection::Column),
                     selectable_inputs(model, context),
-                    context.core_model.catalog.catalog.map(|resource_loadable| {
+                    context.core_model.catalog.catalog.as_ref().map(|resource_loadable| {
                         meta_items(
                             &resource_loadable.content,
                             model.selected_meta_preview_id.as_ref()

@@ -52,14 +52,14 @@ pub enum Actions {
 // ------ ------
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    // styles::global::init();
+    styles::global::init();
 
     let root_base_url = url.to_hash_base_url();
-    // orders
-    //     .subscribe(Msg::UrlChanged)
-    //     .subscribe(|Actions::UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
-    //     .subscribe(Msg::CoreMsg)
-    //     .notify(subs::UrlChanged(url));
+    orders
+        .subscribe(Msg::UrlChanged)
+        .subscribe(|Actions::UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
+        .subscribe(Msg::CoreMsg)
+        .notify(subs::UrlChanged(url));
 
     Model {
         context: Context {
@@ -68,10 +68,10 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         },
         page_id: None,
         // ---- page models ----
-        // detail_model: None,
-        // discover_model: None,
-        // addons_model: None,
-        // search_model: None,
+        detail_model: None,
+        discover_model: None,
+        addons_model: None,
+        search_model: None,
     }
 }
 
@@ -84,10 +84,10 @@ pub struct Model {
     context: Context,
     page_id: Option<PageId>,
     // ---- page models ----
-    // detail_model: Option<page::detail::Model>,
-    // discover_model: Option<page::discover::Model>,
-    // addons_model: Option<page::addons::Model>,
-    // search_model: Option<page::search::Model>,
+    detail_model: Option<page::detail::Model>,
+    discover_model: Option<page::discover::Model>,
+    addons_model: Option<page::addons::Model>,
+    search_model: Option<page::search::Model>,
 }
 
 // ------ Context ------
@@ -151,45 +151,45 @@ impl<'a> Urls<'a> {
 
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 enum Msg {
-    // UrlChanged(subs::UrlChanged),
+    UrlChanged(subs::UrlChanged),
     CoreMsg(Rc<CoreMsg>),
     HandleEffectMsg(Rc<CoreMsg>),
-    // DiscoverMsg(page::discover::Msg),
-    // DetailMsg(page::detail::Msg),
-    // AddonsMsg(page::addons::Msg),
-    // SearchMsg(page::search::Msg),
+    DiscoverMsg(page::discover::Msg),
+    DetailMsg(page::detail::Msg),
+    AddonsMsg(page::addons::Msg),
+    SearchMsg(page::search::Msg),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-    //     Msg::UrlChanged(subs::UrlChanged(mut url)) => {
-    //         let page_id = match url.next_hash_path_part() {
-    //             None | Some(BOARD) => Some(PageId::Board),
-    //             Some(DISCOVER) => page::discover::init(
-    //                 url,
-    //                 &mut model.discover_model,
-    //                 &mut orders.proxy(Msg::DiscoverMsg),
-    //             ),
-    //             Some(DETAIL) => page::detail::init(
-    //                 url,
-    //                 &mut model.detail_model,
-    //                 &mut orders.proxy(Msg::DetailMsg),
-    //             ),
-    //             Some(PLAYER) => Some(PageId::Player),
-    //             Some(ADDONS) => page::addons::init(
-    //                 url,
-    //                 &mut model.addons_model,
-    //                 &mut orders.proxy(Msg::AddonsMsg),
-    //             ),
-    //             Some(SEARCH) => page::search::init(
-    //                 url,
-    //                 &mut model.search_model,
-    //                 &mut orders.proxy(Msg::SearchMsg),
-    //             ),
-    //             _ => None,
-    //         };
-    //         model.page_id = page_id.or(Some(PageId::NotFound));
-    //     }
+        Msg::UrlChanged(subs::UrlChanged(mut url)) => {
+            let page_id = match url.next_hash_path_part() {
+                None | Some(BOARD) => Some(PageId::Board),
+                Some(DISCOVER) => page::discover::init(
+                    url,
+                    &mut model.discover_model,
+                    &mut orders.proxy(Msg::DiscoverMsg),
+                ),
+                Some(DETAIL) => page::detail::init(
+                    url,
+                    &mut model.detail_model,
+                    &mut orders.proxy(Msg::DetailMsg),
+                ),
+                Some(PLAYER) => Some(PageId::Player),
+                Some(ADDONS) => page::addons::init(
+                    url,
+                    &mut model.addons_model,
+                    &mut orders.proxy(Msg::AddonsMsg),
+                ),
+                Some(SEARCH) => page::search::init(
+                    url,
+                    &mut model.search_model,
+                    &mut orders.proxy(Msg::SearchMsg),
+                ),
+                _ => None,
+            };
+            model.page_id = page_id.or(Some(PageId::NotFound));
+        }
         Msg::CoreMsg(core_msg) => {
             let effects = model.context.core_model.update(&core_msg);
 
@@ -204,7 +204,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     }
                     Effect::Future(cmd) => {
                         orders.perform_cmd(async move {
-                            Msg::HandleEffectMsg(Rc::new(cmd.await));
+                            Msg::HandleEffectMsg(Rc::new(cmd.await))
                         });
                     }
                 }
@@ -213,36 +213,36 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::HandleEffectMsg(core_msg) => {
             orders.notify(core_msg);
         }
-    //     Msg::DiscoverMsg(page_msg) => {
-    //         if let Some(page_model) = &mut model.discover_model {
-    //             page::discover::update(
-    //                 page_msg,
-    //                 page_model,
-    //                 &mut model.context,
-    //                 &mut orders.proxy(Msg::DiscoverMsg),
-    //             );
-    //         }
-    //     }
-    //     Msg::DetailMsg(page_msg) => {
-    //         if let Some(page_model) = &mut model.detail_model {
-    //             page::detail::update(page_msg, page_model, &mut orders.proxy(Msg::DetailMsg));
-    //         }
-    //     }
-    //     Msg::AddonsMsg(page_msg) => {
-    //         if let Some(page_model) = &mut model.addons_model {
-    //             page::addons::update(
-    //                 page_msg,
-    //                 page_model,
-    //                 &mut model.context,
-    //                 &mut orders.proxy(Msg::AddonsMsg),
-    //             );
-    //         }
-    //     }
-    //     Msg::SearchMsg(page_msg) => {
-    //         if let Some(page_model) = &mut model.search_model {
-    //             page::search::update(page_msg, page_model, &mut orders.proxy(Msg::SearchMsg));
-    //         }
-    //     }
+        Msg::DiscoverMsg(page_msg) => {
+            if let Some(page_model) = &mut model.discover_model {
+                page::discover::update(
+                    page_msg,
+                    page_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::DiscoverMsg),
+                );
+            }
+        }
+        Msg::DetailMsg(page_msg) => {
+            if let Some(page_model) = &mut model.detail_model {
+                page::detail::update(page_msg, page_model, &mut orders.proxy(Msg::DetailMsg));
+            }
+        }
+        Msg::AddonsMsg(page_msg) => {
+            if let Some(page_model) = &mut model.addons_model {
+                page::addons::update(
+                    page_msg,
+                    page_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::AddonsMsg),
+                );
+            }
+        }
+        Msg::SearchMsg(page_msg) => {
+            if let Some(page_model) = &mut model.search_model {
+                page::search::update(page_msg, page_model, &mut orders.proxy(Msg::SearchMsg));
+            }
+        }
     }
 }
 
@@ -252,58 +252,57 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
 #[topo::nested]
 fn view(model: &Model) -> Node<Msg> {
-    div![]
-    // div![
-    //     C!["router", "routes-container"],
-    //     s()
-    //         .width(pc(100))
-    //         .height(pc(100))
-    //         .position(CssPosition::Relative)
-    //         .z_index("0"),
-    //     div![
-    //         C!["route-container",],
-    //         s()
-    //             .position(CssPosition::Absolute)
-    //             .top("0")
-    //             .right("0")
-    //             .bottom("0")
-    //             .left("0")
-    //             .z_index("0"),
-    //         model.page_id.map(|page_id| {
-    //             match page_id {
-    //                 PageId::Board => page::board::view(&model.context.root_base_url).into_nodes(),
-    //                 PageId::Detail => page::detail::view().into_nodes(),
-    //                 PageId::Discover => {
-    //                     if let Some(page_model) = &model.discover_model {
-    //                         page::discover::view(page_model, &model.context)
-    //                             .map_msg(Msg::DiscoverMsg)
-    //                             .into_nodes()
-    //                     } else {
-    //                         vec![]
-    //                     }
-    //                 }
-    //                 PageId::Player => page::player::view().into_nodes(),
-    //                 PageId::Addons => {
-    //                     if let Some(page_model) = &model.addons_model {
-    //                         page::addons::view(page_model, &model.context).map_msg(Msg::AddonsMsg)
-    //                     } else {
-    //                         vec![]
-    //                     }
-    //                 }
-    //                 PageId::Search => {
-    //                     if let Some(page_model) = &model.search_model {
-    //                         page::search::view(page_model, &model.context)
-    //                             .map_msg(Msg::SearchMsg)
-    //                             .into_nodes()
-    //                     } else {
-    //                         vec![]
-    //                     }
-    //                 },
-    //                 PageId::NotFound => page::not_found::view().into_nodes(),
-    //             }
-    //         })
-    //     ]
-    // ]
+    div![
+        C!["router", "routes-container"],
+        s()
+            .width(pc(100))
+            .height(pc(100))
+            .position(CssPosition::Relative)
+            .z_index("0"),
+        div![
+            C!["route-container",],
+            s()
+                .position(CssPosition::Absolute)
+                .top("0")
+                .right("0")
+                .bottom("0")
+                .left("0")
+                .z_index("0"),
+            model.page_id.map(|page_id| {
+                match page_id {
+                    PageId::Board => page::board::view(&model.context.root_base_url).into_nodes(),
+                    PageId::Detail => page::detail::view().into_nodes(),
+                    PageId::Discover => {
+                        if let Some(page_model) = &model.discover_model {
+                            page::discover::view(page_model, &model.context)
+                                .map_msg(Msg::DiscoverMsg)
+                                .into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    }
+                    PageId::Player => page::player::view().into_nodes(),
+                    PageId::Addons => {
+                        if let Some(page_model) = &model.addons_model {
+                            page::addons::view(page_model, &model.context).map_msg(Msg::AddonsMsg)
+                        } else {
+                            vec![]
+                        }
+                    }
+                    PageId::Search => {
+                        if let Some(page_model) = &model.search_model {
+                            page::search::view(page_model, &model.context)
+                                .map_msg(Msg::SearchMsg)
+                                .into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    },
+                    PageId::NotFound => page::not_found::view().into_nodes(),
+                }
+            })
+        ]
+    ]
 }
 
 // ------ ------
