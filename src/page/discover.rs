@@ -4,9 +4,10 @@ use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
 use stremio_core::models::common::{Loadable, ResourceError};
-use stremio_core::models::catalog_with_filters::Selected as CatalogWithFiltersSelected;
+use stremio_core::models::catalog_with_filters::{Selected as CatalogWithFiltersSelected, CatalogWithFilters};
 use stremio_core::types::resource::{MetaItemPreview, PosterShape};
 use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
+use stremio_core::constants::{CATALOG_PAGE_SIZE, SKIP_EXTRA_NAME};
 use seed_styles::{px, pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -319,7 +320,6 @@ fn vertical_nav_bar() -> Node<Msg> {
 #[view]
 fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
     let catalog = &context.core_model.catalog;
-
     div![
         C!["selectable-inputs-container"],
         s()
@@ -337,12 +337,12 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
             s()
                 .flex("1"),
         ],
-        pagination_input(),
+        pagination_input(catalog),
     ]
 }
 
 #[view]
-fn pagination_input() -> Node<Msg> {
+fn pagination_input(catalog: &CatalogWithFilters<MetaItemPreview>) -> Node<Msg> {
     div![
         C!["pagination-input", "pagination-input-container"],
         s()
@@ -351,15 +351,17 @@ fn pagination_input() -> Node<Msg> {
             .margin_left(rem(1.5))
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row),
-        pagination_prev_button(),
-        pagination_label(),
-        pagination_next_button(),
+        pagination_prev_button(catalog.selectable.prev_page.as_ref().map(|page| &page.request)),
+        pagination_label(catalog.selected.as_ref()),
+        pagination_next_button(catalog.selectable.next_page.as_ref().map(|page| &page.request)),
     ]
 }
 
 #[view]
-fn pagination_label() -> Node<Msg> {
-    let page_number = 1;
+fn pagination_label(catalog_selected: Option<&CatalogWithFiltersSelected>) -> Node<Msg> {
+    let page_number = catalog_selected.and_then(|selected| {
+        Some(selected.request.path.get_extra_first_value(SKIP_EXTRA_NAME)?.parse::<usize>().ok()? / CATALOG_PAGE_SIZE)
+    }).unwrap_or_default() + 1;
     div![
         C!["label-container"],
         s()
@@ -390,7 +392,8 @@ fn pagination_label() -> Node<Msg> {
 }
 
 #[view]
-fn pagination_prev_button() -> Node<Msg> {
+fn pagination_prev_button(previous_page_request: Option<&ResourceRequest>) -> Node<Msg> {
+    let disabled = previous_page_request.is_none();
     div![
         C!["prev-button-container", "button-container"],
         attrs!{
@@ -406,6 +409,10 @@ fn pagination_prev_button() -> Node<Msg> {
             .flex(CssFlex::None)
             .justify_content(CssJustifyContent::Center)
             .cursor(CssCursor::Pointer),
+        IF!(disabled => s().pointer_events("none")),
+        previous_page_request.cloned().map(|request| {
+            ev(Ev::Click, move |_| Msg::SendResourceRequest(request.clone()))
+        }),
         svg![
             C!["icon"],
             s()
@@ -414,6 +421,7 @@ fn pagination_prev_button() -> Node<Msg> {
                 .display(CssDisplay::Block)
                 .fill(Color::SecondaryVariant1_90)
                 .overflow(CssOverflow::Visible),
+            IF!(disabled => s().fill(Color::SurfaceDark5_90)),
             attrs!{
                 At::ViewBox => "0 0 606 1024",
                 At::from("icon") => "ic_arrow_left",
@@ -428,7 +436,8 @@ fn pagination_prev_button() -> Node<Msg> {
 }
 
 #[view]
-fn pagination_next_button() -> Node<Msg> {
+fn pagination_next_button(next_page_request: Option<&ResourceRequest>) -> Node<Msg> {
+    let disabled = next_page_request.is_none();
     div![
         C!["next-button-container", "button-container"],
         attrs!{
@@ -444,6 +453,10 @@ fn pagination_next_button() -> Node<Msg> {
             .flex(CssFlex::None)
             .justify_content(CssJustifyContent::Center)
             .cursor(CssCursor::Pointer),
+        IF!(disabled => s().pointer_events("none")),
+        next_page_request.cloned().map(|request| {
+            ev(Ev::Click, move |_| Msg::SendResourceRequest(request.clone()))
+        }),
         svg![
             C!["icon"],
             s()
@@ -452,6 +465,7 @@ fn pagination_next_button() -> Node<Msg> {
                 .display(CssDisplay::Block)
                 .fill(Color::SecondaryVariant1_90)
                 .overflow(CssOverflow::Visible),
+            IF!(disabled => s().fill(Color::SurfaceDark5_90)),
             attrs!{
                 At::ViewBox => "0 0 606 1024",
                 At::from("icon") => "ic_arrow_left",
