@@ -10,6 +10,7 @@ use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath
 use seed_styles::{px, pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
+use seed_hooks::{*, topo::nested as view};
 
 mod catalog_selector;
 mod extra_prop_selector;
@@ -213,6 +214,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 //     View
 // ------ ------
 
+#[view]
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     div![
         C!["discover-container", "main-nav-bars-container"],
@@ -275,6 +277,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn horizontal_nav_bar() -> Node<Msg> {
     nav![
         C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
@@ -295,6 +298,7 @@ fn horizontal_nav_bar() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn vertical_nav_bar() -> Node<Msg> {
     nav![
         C!["vertical-nav-bar", "vertical-nav-bar-container"],
@@ -312,6 +316,7 @@ fn vertical_nav_bar() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
     let catalog = &context.core_model.catalog;
 
@@ -326,12 +331,6 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
             .padding(rem(1.5)),
         type_selector::view(catalog, Msg::SendResourceRequest),
         catalog_selector::view(catalog, Msg::SendResourceRequest),
-        // extra prop selector
-        // extra_prop_selector::view(
-        //     &model.extra_prop_selector_model,
-        //     &extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected)
-        // )
-        // .map_msg(Msg::ExtraPropSelectorMsg),
         extra_prop_selector::view(catalog, Msg::SendResourceRequest),
         div![
             C!["spacing"],
@@ -342,6 +341,7 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn pagination_input() -> Node<Msg> {
     div![
         C!["pagination-input", "pagination-input-container"],
@@ -357,6 +357,7 @@ fn pagination_input() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn pagination_label() -> Node<Msg> {
     let page_number = 1;
     div![
@@ -388,6 +389,7 @@ fn pagination_label() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn pagination_prev_button() -> Node<Msg> {
     div![
         C!["prev-button-container", "button-container"],
@@ -425,6 +427,7 @@ fn pagination_prev_button() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn pagination_next_button() -> Node<Msg> {
     div![
         C!["next-button-container", "button-container"],
@@ -462,6 +465,7 @@ fn pagination_next_button() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn meta_items(
     content: &Loadable<Vec<MetaItemPreview>, ResourceError>,
     selected_meta_preview_id: Option<&MetaItemPreviewId>,
@@ -520,10 +524,12 @@ fn meta_items(
     }
 }
 
+#[view]
 fn meta_item(meta: &MetaItemPreview, selected_meta_preview_id: Option<&MetaItemPreviewId>) -> Node<Msg> {
+    let square = matches!(meta.poster_shape, PosterShape::Square);
     a![
         el_key(&meta.id),
-        C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
+        C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container", IF!(square => "poster-shape-square")],
         s()
             .flex(format!("calc(1 / {});", global::POSTER_SHAPE_RATIO).as_str())
             .padding(rem(1))
@@ -538,7 +544,7 @@ fn meta_item(meta: &MetaItemPreview, selected_meta_preview_id: Option<&MetaItemP
             At::Title => meta.name,
         },
         on_click_not_implemented(),
-        poster_container(&meta.poster),
+        poster_container(&meta.poster, square),
         div![
             C!["title-bar-container"],
             s()
@@ -561,11 +567,17 @@ fn meta_item(meta: &MetaItemPreview, selected_meta_preview_id: Option<&MetaItemP
     ]
 }
 
-fn poster_container(poster: &Option<String>) -> Node<Msg> {
+#[view]
+fn poster_container(poster: &Option<String>, square: bool) -> Node<Msg> {
+    let padding_top = if square { 
+        pc(100).to_string() 
+    } else { 
+        format!("calc(100% * {})", global::POSTER_SHAPE_RATIO)
+    };
     div![
         C!["poster-container"],
         s()
-            .padding_top(format!("calc(100% * {})", global::POSTER_SHAPE_RATIO).as_str())
+            .padding_top(padding_top.as_str())
             .background_color(Color::Background)
             .position(CssPosition::Relative)
             .z_index("0"),

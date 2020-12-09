@@ -7,18 +7,20 @@ use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::common::Loadable;
 use stremio_core::types::resource::MetaItemPreview;
 use stremio_core::types::addon::ResourceRequest;
+use seed_hooks::{*, topo::nested as view};
 
 
 // ------ ------
 //     View
 // ------ ------
 
+#[view]
 pub fn view<Ms: 'static>(
     catalog: &CatalogWithFilters<MetaItemPreview>,
     send_res_req_msg: impl Fn(ResourceRequest) -> Ms + 'static + Copy,
 ) -> Node<Ms> {
     let items = items(catalog, send_res_req_msg);
-    multi_select::view("Select catalog", items)
+    multi_select::view("Select catalog", items, true)
 }
 
 // ------ ------
