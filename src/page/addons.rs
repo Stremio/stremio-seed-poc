@@ -5,23 +5,34 @@ use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
 use stremio_core::models::catalog_with_filters::Selected as CatalogWithFiltersSelected;
+use stremio_core::models::installed_addons_with_filters::{InstalledAddonsRequest, Selected as InstalledAddonsWithFiltersSelected};
 use stremio_core::models::common::{Loadable, ResourceError};
 use stremio_core::types::addon::{Descriptor, DescriptorPreview, ManifestPreview};
 use stremio_core::types::addon::{ResourceRequest, ResourcePath};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
-use crate::styles::{self, themes::Color};
+use crate::styles::{self, themes::{Color, Breakpoint}, global};
+use seed_hooks::{*, topo::nested as view};
 
 mod catalog_selector;
 mod modal;
 mod type_selector;
 
 const DEFAULT_RESOURCE: &str = "addon_catalog";
-const DEFAULT_TYPE: &str = "movie";
-const DEFAULT_ID: &str = "thirdparty";
-const MY_ITEM_ID: &str = "my";
-const TYPE_ALL: &str = "all";
+const DEFAULT_TYPE: &str = "official";
+const DEFAULT_ID: &str = "all";
 const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
+
+pub enum AddonRequest {
+    Remote(ResourceRequest),
+    Installed(InstalledAddonsRequest)
+}
+
+impl Default for AddonRequest {
+    fn default() -> Self {
+        Self::Installed(InstalledAddonsRequest { r#type: None })
+    }
+}
 
 // ------ ------
 //     Init
@@ -30,21 +41,27 @@ const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
 pub fn init(
     mut url: Url,
     model: &mut Option<Model>,
+    context: &mut Context,
     orders: &mut impl Orders<Msg>,
 ) -> Option<PageId> {
     let base_url = url.to_hash_base_url();
 
-    let resource_request = match url.remaining_hash_path_parts().as_slice() {
+    let addon_request = match url.remaining_hash_path_parts().as_slice() {
         [base, path] => {
-            (|| Some(ResourceRequest::new(
+            (|| Some(AddonRequest::Remote(ResourceRequest::new(
                 base.parse().map_err(|error| error!(error)).ok()?,
                 serde_json::from_str(path).map_err(|error| error!(error)).ok()?
-            )))()
+            ))))()
+        },
+        [type_] => {
+            Some(AddonRequest::Installed(InstalledAddonsRequest {
+                r#type: Some(type_.to_string())
+            }))
         }
         _ => None,
     };
 
-    load_catalog(resource_request, orders);
+    load_catalog(addon_request.unwrap_or_default(), context, orders);
 
     model.get_or_insert_with(move || Model {
         base_url,
@@ -55,13 +72,39 @@ pub fn init(
     Some(PageId::Addons)
 }
 
-fn load_catalog(resource_request: Option<ResourceRequest>, orders: &mut impl Orders<Msg>) {
-    let selected_catalog = CatalogWithFiltersSelected {
-        request: resource_request.unwrap_or_else(default_resource_request)
-    };
-    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::CatalogWithFilters(selected_catalog),
-    )))));
+fn load_catalog(addon_request: AddonRequest, context: &mut Context, orders: &mut impl Orders<Msg>) {
+    match addon_request {
+        AddonRequest::Remote(res_req) => {
+            let installed_addons = &mut context.core_model.installed_addons;
+            installed_addons.selected = None;
+
+            let selected_catalog = CatalogWithFiltersSelected {
+                request: res_req
+            };
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+                ActionLoad::CatalogWithFilters(selected_catalog)
+            )))));
+        }
+        AddonRequest::Installed(installed_addons_request) => {
+            let addon_catalog = &mut context.core_model.addon_catalog;
+            addon_catalog.selected = None;
+            if addon_catalog.selectable.catalogs.is_empty() {
+                let default_catalog = CatalogWithFiltersSelected {
+                    request: default_resource_request()
+                };
+                orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+                    ActionLoad::CatalogWithFilters(default_catalog)
+                )))));
+            }
+
+            let selected_catalog = InstalledAddonsWithFiltersSelected {
+                request: installed_addons_request
+            };
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+                ActionLoad::InstalledAddonsWithFilters(selected_catalog)
+            )))));
+        }
+    }   
 }
 
 pub fn default_resource_request() -> ResourceRequest {
@@ -91,10 +134,23 @@ impl<'a> Urls<'a> {
     pub fn root(self) -> Url {
         self.base_url()
     }
-    pub fn res_req(self, res_req: &ResourceRequest) -> Url {
-        self.base_url()
-            .add_hash_path_part(res_req.base.to_string())
-            .add_hash_path_part(serde_json::to_string(&res_req.path).unwrap())
+    pub fn addon_request(self, addon_request: &AddonRequest) -> Url {
+        match addon_request{
+            AddonRequest::Remote(res_req) => {
+                self.base_url()
+                    .add_hash_path_part(res_req.base.to_string())
+                    .add_hash_path_part(serde_json::to_string(&res_req.path).unwrap())
+            }
+            AddonRequest::Installed(installed_addons_request) => {
+                if let Some(type_) = &installed_addons_request.r#type {
+                    self.base_url()
+                        .add_hash_path_part(type_)
+                } else {
+                    self.base_url()
+                }
+            }
+        }
+        
     }
 }
 
@@ -115,6 +171,7 @@ pub enum Msg {
     InstallAddonButtonClicked(DescriptorPreview),
     ShareAddonButtonClicked(DescriptorPreview),
     CloseModal,
+    SendAddonRequest(AddonRequest),
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -174,6 +231,9 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::InstallAddonButtonClicked(_addon) => model.modal = Some(Modal::InstallAddon),
         Msg::ShareAddonButtonClicked(_addon) => model.modal = Some(Modal::ShareAddon),
         Msg::CloseModal => model.modal = None,
+        Msg::SendAddonRequest(res_req) => {
+            orders.request_url(Urls::new(&model.base_url).addon_request(&res_req));
+        }
     }
 }
 
@@ -181,70 +241,123 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 //     View
 // ------ ------
 
-pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
-    let catalog = &context.core_model.addon_catalog;
+// pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
+//     let catalog = &context.core_model.addon_catalog;
 
-    vec![
+//     vec![
+//         div![
+//             C!["addons-container"],
+//             s()
+//                 .display(CssDisplay::Flex)
+//                 .flex_direction(CssFlexDirection::Column)
+//                 .width(pc(100))
+//                 .height(pc(100))
+//                 .background_color(Color::Background),
+//             div![
+//                 C!["addons-content"],
+//                 s()
+//                     .flex("1")
+//                     .display(CssDisplay::Flex)
+//                     .align_self(CssAlignSelf::Stretch)
+//                     .flex_direction(CssFlexDirection::Column),
+//                 div![
+//                     C!["top-bar-container"],
+//                     s()
+//                         .flex(CssFlex::None)
+//                         .display(CssDisplay::Flex)
+//                         .flex_direction(CssFlexDirection::Row)
+//                         .margin(rem(2))
+//                         .overflow(CssOverflow::Visible),
+//                     // add addon button
+//                     view_add_addon_button(),
+//                     // catalog selector
+//                     // @TODO
+//                     // catalog_selector::view(
+//                     //     &model.catalog_selector_model,
+//                     //     &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
+//                     // )
+//                     // .map_msg(Msg::CatalogSelectorMsg),
+//                     // type selector
+//                     // @TODO
+//                     // type_selector::view(
+//                     //     &model.type_selector_model,
+//                     //     &type_selector::groups(
+//                     //         &catalog.catalogs,
+//                     //         &catalog.selected,
+//                     //         &context.core_model.ctx.content.addons
+//                     //     )
+//                     // )
+//                     // .map_msg(Msg::TypeSelectorMsg),
+//                     // search input
+//                     view_search_input(&model.search_query),
+//                 ],
+//                 div![
+//                     C!["addons-list-container"],
+//                     s()
+//                         .flex("1")
+//                         .align_self(CssAlignSelf::Stretch)
+//                         .padding("0 2rem")
+//                         .overflow_y(CssOverflowY::Auto),
+//                     // view_content(
+//                     //     &context.core_model.addon_catalog.content,
+//                     //     &model.search_query,
+//                     //     &context.core_model.ctx.content.addons,
+//                     //     &catalog.selected
+//                     // ),
+//                 ]
+//             ],
+//         ],
+//         if let Some(modal) = &model.modal {
+//             modal::view(modal, || Msg::CloseModal)
+//         } else {
+//             empty![]
+//         },
+//     ]
+// }
+
+#[view]
+pub fn view(model: &Model, context: &Context) -> Node<Msg> {
+    div![
+        C!["addons-container", "main-nav-bars-container"],
+        s()
+            .height(pc(100))
+            .width(pc(100))
+            .background_color(Color::BackgroundDark2)
+            .position(CssPosition::Relative)
+            .z_index("0"),
+        horizontal_nav_bar(),
+        vertical_nav_bar(),
         div![
-            C!["addons-container"],
+            C!["nav-content-container"],
             s()
-                .display(CssDisplay::Flex)
-                .flex_direction(CssFlexDirection::Column)
-                .width(pc(100))
-                .height(pc(100))
-                .background_color(Color::Background),
+                .position(CssPosition::Absolute)
+                .bottom("0")
+                .left(global::VERTICAL_NAV_BAR_SIZE)
+                .right("0")
+                .top(global::HORIZONTAL_NAV_BAR_SIZE)
+                .z_index("0"),
             div![
                 C!["addons-content"],
                 s()
-                    .flex("1")
                     .display(CssDisplay::Flex)
-                    .align_self(CssAlignSelf::Stretch)
-                    .flex_direction(CssFlexDirection::Column),
+                    .flex_direction(CssFlexDirection::Row)
+                    .height(pc(100))
+                    .width(pc(100)),            
                 div![
-                    C!["top-bar-container"],
+                    C!["catalog-container"],
                     s()
-                        .flex(CssFlex::None)
-                        .display(CssDisplay::Flex)
-                        .flex_direction(CssFlexDirection::Row)
-                        .margin(rem(2))
-                        .overflow(CssOverflow::Visible),
-                    // add addon button
-                    view_add_addon_button(),
-                    // catalog selector
-                    // @TODO
-                    // catalog_selector::view(
-                    //     &model.catalog_selector_model,
-                    //     &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-                    // )
-                    // .map_msg(Msg::CatalogSelectorMsg),
-                    // type selector
-                    // @TODO
-                    // type_selector::view(
-                    //     &model.type_selector_model,
-                    //     &type_selector::groups(
-                    //         &catalog.catalogs,
-                    //         &catalog.selected,
-                    //         &context.core_model.ctx.content.addons
-                    //     )
-                    // )
-                    // .map_msg(Msg::TypeSelectorMsg),
-                    // search input
-                    view_search_input(&model.search_query),
-                ],
-                div![
-                    C!["addons-list-container"],
-                    s()
-                        .flex("1")
                         .align_self(CssAlignSelf::Stretch)
-                        .padding("0 2rem")
-                        .overflow_y(CssOverflowY::Auto),
-                    // view_content(
-                    //     &context.core_model.addon_catalog.content,
-                    //     &model.search_query,
-                    //     &context.core_model.ctx.content.addons,
-                    //     &catalog.selected
-                    // ),
-                ]
+                        .display(CssDisplay::Flex)
+                        .flex("1")
+                        .flex_direction(CssFlexDirection::Column),
+                    selectable_inputs(model, context),
+                    // context.core_model.catalog.addon_catalog.as_ref().map(|resource_loadable| {
+                    //     meta_items(
+                    //         &resource_loadable.content,
+                    //         model.selected_meta_preview_id.as_ref()
+                    //     )
+                    // }),
+                ],
             ],
         ],
         if let Some(modal) = &model.modal {
@@ -255,23 +368,88 @@ pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
     ]
 }
 
-fn view_add_addon_button() -> Node<Msg> {
+#[view]
+fn horizontal_nav_bar() -> Node<Msg> {
+    nav![
+        C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
+        s()
+            .left("0")
+            .position(CssPosition::Absolute)
+            .right("0")
+            .top("0")
+            .z_index("0")
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Background)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .height(global::HORIZONTAL_NAV_BAR_SIZE)
+            .overflow(CssOverflow::Visible)
+            .padding_right(rem(1)),
+        // .. @TODO implemented in the Search page
+    ]
+}
+
+#[view]
+fn vertical_nav_bar() -> Node<Msg> {
+    nav![
+        C!["vertical-nav-bar", "vertical-nav-bar-container"],
+        s()
+            .bottom("0")
+            .left("0")
+            .position(CssPosition::Absolute)
+            .top(global::HORIZONTAL_NAV_BAR_SIZE)
+            .z_index("1")
+            .background_color(Color::BackgroundDark1)
+            .overflow_y(CssOverflowY::Auto)
+            .raw("scrollbar-width: none;")
+            .width(global::VERTICAL_NAV_BAR_SIZE),
+        // .. @TODO implemented in the Search page
+    ]
+}
+
+#[view]
+fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
+    let catalog = &context.core_model.addon_catalog;
+    let installed_addons = &context.core_model.installed_addons;
+    div![
+        C!["selectable-inputs-container"],
+        s()
+            .align_self(CssAlignSelf::Stretch)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .flex_direction(CssFlexDirection::Row)
+            .overflow(CssOverflow::Visible)
+            .padding(rem(1.5)),
+        add_addon_button(),
+        catalog_selector::view(catalog, installed_addons, Msg::SendAddonRequest),
+        type_selector::view(catalog, installed_addons, Msg::SendAddonRequest),
+        div![
+            C!["spacing"],
+            s()
+                .flex("1"),
+        ],
+        search_input(&model.search_query),
+    ]
+}
+
+
+fn add_addon_button() -> Node<Msg> {
     div![
         C!["add-button-container", "button-container",],
         styles::button_container(),
         s()
-            .flex(CssFlex::None)
-            .display(CssDisplay::Flex)
-            .flex_direction(CssFlexDirection::Row)
             .align_items(CssAlignItems::Center)
-            .height(rem(3))
-            .max_width(rem(15))
-            .margin_right(rem(1))
+            .background_color(Color::Signal5)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .flex_direction(CssFlexDirection::Row)
+            .height(rem(3.5))
+            .justify_content(CssJustifyContent::Center)
             .padding("0 1rem")
-            .background_color(Color::Signal5),
+            .width(rem(10)),
         s()
             .hover()
-            .filter("brightness(1.2"),
+            .background_color(Color::Accent3Light2),
         attrs! {
             At::TabIndex => 0,
             At::Title => "Add addon",
@@ -280,11 +458,12 @@ fn view_add_addon_button() -> Node<Msg> {
         svg![
             C!["icon",],
             s()
+                .fill(Color::SurfaceLighter)
                 .flex(CssFlex::None)
-                .width(rem(1.5))
-                .height(rem(1.5))
+                .height(rem(1.2))
+                .width(rem(1.2))
                 .margin_right(rem(1))
-                .fill(Color::SurfaceLighter),
+                .overflow(CssOverflow::Visible),
             attrs! {
                 At::ViewBox => "0 0 1024 1024",
                 "icon" => "ic_plus",
@@ -296,66 +475,49 @@ fn view_add_addon_button() -> Node<Msg> {
         div![
             C!["add-button-label"], 
             s()
+                .color(Color::SurfaceLighter)
+                .flex_basis(CssFlexBasis::Auto)
                 .flex_grow("0")
                 .flex_shrink("1")
-                .flex_basis(CssFlexBasis::Auto)
-                .max_height(rem(2.4))
                 .font_size(rem(1.1))
-                .color(Color::SurfaceLighter),
+                .max_height(rem(2.4)),
             "Add addon",
         ]
     ]
 }
 
-fn view_search_input(search_query: &str) -> Node<Msg> {
+fn search_input(search_query: &str) -> Node<Msg> {
     div![
-        C!["search-bar-container",],
+        C!["search-bar", "search-bar-container"],
         s()
+            .flex_basis("18rem")
             .flex_grow("0")
             .flex_shrink("1")
-            .flex_basis("15rem")
-            .display(CssDisplay::Flex)
-            .flex_direction(CssFlexDirection::Row)
             .align_items(CssAlignItems::Center)
-            .height(rem(3))
-            .margin_right(rem(1))
-            .padding("0 1rem")
-            .background_color(Color::BackgroundLighter)
-            .cursor(CssCursor::Text),
+            .background_color(Color::Background)
+            .display(CssDisplay::Flex)
+            .border_radius(rem(3.5))
+            .cursor(CssCursor::Text)
+            .flex_direction(CssFlexDirection::Row)
+            .height(rem(3.5))
+            .margin_left(rem(1.5))
+            .padding("0 1rem"),
         s()
             .hover()
-            .filter("brightness(1.2)"),
-        s()
-            .focus_within()
-            .filter("brightness(1.2)"),
-        svg![
-            C!["icon",],
-            s()
-                .display(CssDisplay::Block)
-                .width(rem(1.2))
-                .height(rem(1.2))
-                .margin_right(rem(1))
-                .fill(Color::SurfaceLighter),
-            attrs! {
-                At::ViewBox => "0 0 1025 1024",
-                "icon" => "ic_search",
-            },
-            path![attrs! {
-                At::D => "M1001.713 879.736c-48.791-50.899-162.334-163.84-214.438-216.546 43.772-66.969 69.909-148.918 70.174-236.956l0-0.070c-1.877-235.432-193.166-425.561-428.862-425.561-236.861 0-428.875 192.014-428.875 428.875 0 236.539 191.492 428.353 427.909 428.874l0.050 0c1.551 0.021 3.382 0.033 5.216 0.033 85.536 0 165.055-25.764 231.219-69.956l-1.518 0.954 201.487 204.499c16.379 18.259 39.94 29.789 66.201 30.117l0.058 0.001c2.034 0.171 4.401 0.269 6.791 0.269 35.32 0 65.657-21.333 78.83-51.816l0.214-0.556c5.589-10.528 8.87-23.018 8.87-36.275 0-21.857-8.921-41.631-23.32-55.878l-0.007-0.007zM429.478 730.654c-0.004 0-0.008 0-0.012 0-166.335 0-301.176-134.841-301.176-301.176 0-0.953 0.004-1.905 0.013-2.856l-0.001 0.146c0.599-165.882 135.211-300.124 301.176-300.124 166.336 0 301.178 134.842 301.178 301.178 0 0.371-0.001 0.741-0.002 1.111l0-0.057c0 0.179 0.001 0.391 0.001 0.603 0 166.335-134.841 301.176-301.176 301.176-0.106 0-0.212-0-0.318-0l0.016 0z"
-            }]
-        ],
+            .background_color(Color::BackgroundLight1),
         input![
             C!["search-input", "text-input"],
             styles::text_input(),
             s()
+                .color(Color::SurfaceLight5)
                 .flex("1")
-                .align_self(CssAlignSelf::Stretch)
-                .color(Color::SurfaceLighter),
+                .font_size(rem(1.1))
+                .margin_right(rem(1)),
             s()
                 .placeholder()
+                .color(Color::SecondaryVariant1Light1_90)
                 .max_height(rem(1.2))
-                .opacity("1")
-                .color(Color::SurfaceLight),
+                .opacity("1"),
             attrs! {
                 At::Size => 1,
                 // @TODO typed names once Seed has all official types attrs
@@ -366,11 +528,27 @@ fn view_search_input(search_query: &str) -> Node<Msg> {
                 At::SpellCheck => "false",
                 At::Type => "text",
                 At::TabIndex => 0,
-                At::Placeholder => "Search addons...",
+                At::Placeholder => "Search addons",
                 At::Value => search_query,
             },
             input_ev(Ev::Input, Msg::SearchQueryChanged),
-        ]
+        ],
+        svg![
+            C!["icon",],
+            s()
+                .fill(Color::SecondaryVariant1_90)
+                .flex(CssFlex::None)
+                .height(rem(1.5))
+                .width(rem(1.5))
+                .overflow(CssOverflow::Visible),
+            attrs! {
+                At::ViewBox => "0 0 1025 1024",
+                "icon" => "ic_search",
+            },
+            path![attrs! {
+                At::D => "M1001.713 879.736c-48.791-50.899-162.334-163.84-214.438-216.546 43.772-66.969 69.909-148.918 70.174-236.956l0-0.070c-1.877-235.432-193.166-425.561-428.862-425.561-236.861 0-428.875 192.014-428.875 428.875 0 236.539 191.492 428.353 427.909 428.874l0.050 0c1.551 0.021 3.382 0.033 5.216 0.033 85.536 0 165.055-25.764 231.219-69.956l-1.518 0.954 201.487 204.499c16.379 18.259 39.94 29.789 66.201 30.117l0.058 0.001c2.034 0.171 4.401 0.269 6.791 0.269 35.32 0 65.657-21.333 78.83-51.816l0.214-0.556c5.589-10.528 8.87-23.018 8.87-36.275 0-21.857-8.921-41.631-23.32-55.878l-0.007-0.007zM429.478 730.654c-0.004 0-0.008 0-0.012 0-166.335 0-301.176-134.841-301.176-301.176 0-0.953 0.004-1.905 0.013-2.856l-0.001 0.146c0.599-165.882 135.211-300.124 301.176-300.124 166.336 0 301.178 134.842 301.178 301.178 0 0.371-0.001 0.741-0.002 1.111l0-0.057c0 0.179 0.001 0.391 0.001 0.603 0 166.335-134.841 301.176-301.176 301.176-0.106 0-0.212-0-0.318-0l0.016 0z"
+            }]
+        ],
     ]
 }
 
