@@ -23,6 +23,7 @@ use seed_styles::*;
 use std::rc::Rc;
 use stremio_core::models::ctx::Ctx;
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
+use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
 use stremio_core::runtime::{Update, msg::Msg as CoreMsg, Effect};
 use stremio_core::types::addon::DescriptorPreview;
 use stremio_core::types::resource::MetaItemPreview;
@@ -117,6 +118,7 @@ struct CoreModel {
     ctx: Ctx<WebEnv>,
     catalog: CatalogWithFilters<MetaItemPreview>,
     addon_catalog: CatalogWithFilters<DescriptorPreview>,
+    installed_addons: InstalledAddonsWithFilters,
 }
 
 // ------ ------
@@ -179,6 +181,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 Some(ADDONS) => page::addons::init(
                     url,
                     &mut model.addons_model,
+                    &mut model.context,
                     &mut orders.proxy(Msg::AddonsMsg),
                 ),
                 Some(SEARCH) => page::search::init(
@@ -284,7 +287,9 @@ fn view(model: &Model) -> Node<Msg> {
                     PageId::Player => page::player::view().into_nodes(),
                     PageId::Addons => {
                         if let Some(page_model) = &model.addons_model {
-                            page::addons::view(page_model, &model.context).map_msg(Msg::AddonsMsg)
+                            page::addons::view(page_model, &model.context)
+                                .map_msg(Msg::AddonsMsg)
+                                .into_nodes()
                         } else {
                             vec![]
                         }
