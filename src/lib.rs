@@ -34,7 +34,7 @@ use seed_hooks::{*, topo::nested as view};
 
 const BOARD: &str = "board";
 const DISCOVER: &str = "discover";
-const DETAIL: &str = "detail";
+const DETAIL: &str = "metadetails";
 const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
 const SEARCH: &str = "search";
