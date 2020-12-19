@@ -167,6 +167,7 @@ pub enum Color {
     Background,
     BackgroundDark1,
     BackgroundDark2,
+    BackgroundDark2_70,
     BackgroundDark3,
     BackgroundLight1,
     BackgroundLight2,
@@ -323,6 +324,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Background, hsl(243, 24.4, 21))
         .set_color(BackgroundDark1, hsl(243, 24.4, 16))
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))
+        .set_color(BackgroundDark2_70, hsla(243, 24.4, 11, 0.7))
         .set_color(BackgroundDark3, hsl(243, 24.4, 6))
         .set_color(BackgroundLight1, hsl(243, 24.4, 26))
         .set_color(BackgroundLight2, hsl(243, 24.4, 31))

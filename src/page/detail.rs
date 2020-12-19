@@ -102,14 +102,19 @@ pub fn view<Ms: 'static>(context: &Context) -> Node<Ms> {
         div![
             C!["metadetails-content"],
             s()
-                .position(CssPosition::Relative)
-                .z_index("0")
-                .flex("1")
                 .align_self(CssAlignSelf::Stretch)
                 .display(CssDisplay::Flex)
-                .flex_direction(CssFlexDirection::Row),
-            view_background_image_layer(),
-            view_meta_preview_container(),
+                .flex("1")
+                .flex_direction(CssFlexDirection::Row)
+                .position(CssPosition::Relative)
+                .z_index("0"),
+            background_image_layer(meta_items),
+            meta_preview(meta_items),
+            div![
+                C!["spacing"],
+                s()
+                    .flex("1"),
+            ],
             // @TODO switch by `type_name` (?)
             if true {
                 view_streams_list_container(&list_style)
@@ -197,85 +202,97 @@ fn nav_bar_title<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Opti
     None
 }
 
-
-
-
-
-// ------ view background image ------
-
-fn view_background_image_layer<Ms: 'static>() -> Node<Ms> {
+#[view]
+fn background_image_layer<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Ms> {
     div![
         C!["background-image-layer"],
         s()
+            .bottom("0")
             .position(CssPosition::Absolute)
             .top("0")
             .right("0")
-            .bottom("0")
             .left("0")
             .z_index("-1"),
-        img![
-            C!["background-image"],
-            s()
-                .display(CssDisplay::Block)
-                .width(pc(100))
-                .height(pc(100))
-                .raw("object-fit: cover;")
-                .raw("object-position: top left;")
-                .filter("brightness(50%)"),
-            attrs! {
-                At::Src => "https://images.metahub.space/background/medium/tt0320691/img",
-                At::Alt => " ",
+        meta_items.first().and_then(|meta_item| {
+            if let Loadable::Ready(meta_item) = &meta_item.content {
+                meta_item.background.as_ref().map(|background| {
+                    img![
+                        C!["background-image"],
+                        s()
+                            .display(CssDisplay::Block)
+                            .height(pc(100))
+                            .raw("object-fit: cover;")
+                            .raw("object-position: top left;")
+                            .opacity("0.9")
+                            .width(pc(100)),
+                        attrs! {
+                            At::Src => background,
+                            At::Alt => " ",
+                        }
+                    ]
+                })
+            } else {
+                None
             }
+        }),
+        div![
+            C!["background-overlay"],
+            s()
+                .background_color(Color::BackgroundDark2_70)
+                .bottom("0")
+                .position(CssPosition::Absolute)
+                .top("0")
+                .right("0")
+                .left("0")
+                .z_index("1"),
         ]
     ]
 }
 
-// ------ view meta preview ------
-
-fn view_meta_preview_container<Ms: 'static>() -> Node<Ms> {
-    div![
-        C!["meta-preview", "meta-preview-container",],
-        s()
-            .position(CssPosition::Relative)
-            .z_index("0")
-            .display(CssDisplay::Flex)
-            .flex_direction(CssFlexDirection::Column),
-        s()
-            .flex("1")
-            .align_self(CssAlignSelf::Stretch),
-        view_meta_info_container(),
-        view_action_buttons_container(),
-    ]
+#[view]
+fn meta_preview<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Ms>> {
+    if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
+        return Some(div![
+            C!["meta-preview", "meta-preview-container",],
+            s()
+                .align_self(CssAlignSelf::Stretch)
+                .flex("0 1 40rem")
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Column)
+                .position(CssPosition::Relative)
+                .z_index("0"),
+            meta_info(meta_item),
+            view_action_buttons_container(),
+        ])
+    }
+    None
 }
 
-fn view_meta_info_container<Ms: 'static>() -> Node<Ms> {
+#[view]
+fn meta_info<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
     div![
-        C![
-            "meta-info-container",
-        ],
+        C!["meta-info-container"],
         s()
-            .flex("1")
             .align_self(CssAlignSelf::Stretch)
-            .padding("0 1rem")
-            .overflow_y(CssOverflowY::Auto),
-        img![
-            C![
-                "logo",
-            ],
-            s()
-                .display(CssDisplay::Block)
-                .max_width(pc(100))
-                .height(rem(8))
-                .margin_top(rem(1))
-                .padding(rem(1))
-                .background_color(Color::SurfaceDarker20)
-                .raw("object-fit: contain;")
-                .raw("object-position: left center"),
-            attrs!{
-                At::Src => "https://images.metahub.space/logo/medium/tt0320691/img",
-                At::Alt => " ",
-            }
-        ],
+            .flex("1")
+            .overflow_y(CssOverflowY::Auto)
+            .padding("0 2rem"),
+        meta_item.logo.as_ref().map(|logo| {
+            img![
+                C!["logo"],
+                s()
+                    .raw("object-fit: contain;")
+                    .raw("object-position: center")
+                    .display(CssDisplay::Block)
+                    .height(rem(8))
+                    .margin("2rem 0")
+                    .max_width(pc(100)),
+                attrs!{
+                    At::Src => logo,
+                    At::Alt => " ",
+                }
+            ]
+        }),
         div![
             C![
                 "runtime-release-info-container",
