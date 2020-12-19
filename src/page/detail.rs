@@ -1,10 +1,19 @@
-use crate::{PageId, Actions};
+use crate::{PageId, Actions, Context};
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionLoad};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use crate::styles::{self, themes::Color};
+use stremio_core::models::meta_details::Selected as MetaDetailsSelected;
+use stremio_core::models::common::{ResourceLoadable, Loadable};
+use stremio_core::types::addon::ResourcePath;
+use stremio_core::types::resource::MetaItem;
+use seed_hooks::{*, topo::nested as view};
+
+fn on_click_not_implemented<Ms: 'static>() -> EventHandler<Ms> {
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+}
 
 // ------ ------
 //     Init
@@ -17,17 +26,15 @@ pub fn init(
 ) -> Option<PageId> {
     let type_name = url.next_hash_path_part()?.to_owned();
     let id = url.next_hash_path_part()?.to_owned();
-    let video_id = url.next_hash_path_part().map(ToOwned::to_owned);
+    let video_id = url.next_hash_path_part();
 
-    // @TODO refactor and integrate
-    // @TODO - wait until branch `details_model` or `development` is merged into `master` (?)
-    // orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
-    //     ActionLoad::Detail {
-    //         type_name,
-    //         id,
-    //         video_id,
-    //     },
-    // )))));
+    let selected_meta_details = MetaDetailsSelected {
+        meta_path: ResourcePath::without_extra("meta", &type_name, &id),
+        stream_path: video_id.map(|video_id| ResourcePath::without_extra("stream", &type_name, video_id)),
+    };
+    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::MetaDetails(selected_meta_details)
+    )))));
 
     model.get_or_insert_with(|| Model {});
     Some(PageId::Detail)
@@ -74,7 +81,9 @@ pub fn update(_: Msg, _: &mut Model, _: &mut impl Orders<Msg>) {
 //     View
 // ------ ------
 
-pub fn view<Ms: 'static>() -> Node<Ms> {
+#[view]
+pub fn view<Ms: 'static>(context: &Context) -> Node<Ms> {
+    let meta_items = &context.core_model.meta_details.meta_items;
     let list_style = s()
         .flex_grow("0")
         .flex_shrink("0")
@@ -82,16 +91,16 @@ pub fn view<Ms: 'static>() -> Node<Ms> {
         .align_self(CssAlignSelf::Stretch);
 
     div![
-        C!["detail-container",],
+        C!["metadetails-container",],
         s()
+            .background_color(Color::BackgroundDark2)
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Column)
-            .width(pc(100))
             .height(pc(100))
-            .background_color(Color::Background),
-        view_nav(),
+            .width(pc(100)),
+        nav_bar(meta_items),
         div![
-            C!["detail-content"],
+            C!["metadetails-content"],
             s()
                 .position(CssPosition::Relative)
                 .z_index("0")
@@ -111,88 +120,86 @@ pub fn view<Ms: 'static>() -> Node<Ms> {
     ]
 }
 
-fn view_nav<Ms: 'static>() -> Node<Ms> {
+#[view]
+fn nav_bar<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Ms> {
     div![
-        C!["nav-bar", "nav-bar-container",],
+        C!["nav-bar", "horizontal-nav-bar-container",],
         s()
+            .align_self(CssAlignSelf::Stretch)
             .flex(CssFlex::None)
-            .align_self(CssAlignSelf::Stretch),
-        s()
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Background)
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
+            .height(styles::global::HORIZONTAL_NAV_BAR_SIZE)
+            .overflow(CssOverflow::Visible)
+            .padding_right(rem(1)),
+        back_button(),
+        nav_bar_title(&meta_items),
+    ]
+}
+
+#[view]
+fn back_button<Ms: 'static>() -> Node<Ms> {
+    div![
+        C!["button-container", "back-button-container", "button-container"],
+        s()
+            .height(styles::global::HORIZONTAL_NAV_BAR_SIZE)
+            .width(styles::global::VERTICAL_NAV_BAR_SIZE)
             .align_items(CssAlignItems::Center)
-            .height(styles::global::NAV_BAR_SIZE)
-            .background_color(Color::SecondaryDark)
-            .overflow(CssOverflow::Visible),
-        div![
-            C![
-                "nav-tab-button",
-                "nav-tab-button-container",
-                "button-container",
-            ],
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .justify_content(CssJustifyContent::Center)
+            .cursor(CssCursor::Pointer),
+        s()
+            .hover()
+            .background_color(Color::BackgroundLight2),
+        attrs!{
+            At::TabIndex => -1,
+        },
+        on_click_not_implemented(),
+        svg![
+            C!["icon"],
             s()
+                .fill(Color::SecondaryVariant2Light1_90)
                 .flex(CssFlex::None)
-                .align_self(CssAlignSelf::Stretch)
-                .max_width(rem(11)),
-            s()
-                .display(CssDisplay::Flex)
-                .flex_direction(CssFlexDirection::Row)
-                .align_items(CssAlignItems::Center)
-                .padding("0 1rem"),
-            s()
-                .hover()
-                .background_color(Color::Secondary),
-            s()
-                .active()
-                .background_color(Color::Background),
-            styles::button_container(),
+                .height(rem(1.7))
+                .width(rem(1.7)),
             attrs! {
-                At::TabIndex => -1,
-                At::Title => "back",
+                At::ViewBox => "0 0 607 1024",
+                "icon" => "ic_back_ios",
             },
-            svg![
-                C!["icon",],
-                s()
-                    .flex(CssFlex::None)
-                    .width(rem(1.5))
-                    .height(rem(1.2))
-                    .margin_right(rem(0.5))
-                    .fill(Color::SurfaceLighter),
-                s()
-                    .only_child()
-                    .margin_right("0"),
-                attrs! {
-                    At::ViewBox => "0 0 607 1024",
-                    "icon" => "ic_back_ios",
-                },
-                path![attrs! {
-                    At::D => "M607.473 926.419l-412.009-414.419 412.009-414.419-97.28-97.581-510.193 512 510.193 512z"
-                }]
-            ],
-            div![
-                C!["label",], 
-                s()
-                    .flex("1")
-                    .max_height(em(2.4))
-                    .color(Color::SurfaceLighter),
-                "Back"
-            ]
-        ],
-        h2![
-            C!["title"], 
-            s()
-                .flex("1")
-                .padding("0 1rem")
-                .font_size(rem(1.1))
-                .font_style(CssFontStyle::Normal)
-                .font_weight("400")
-                .white_space(CssWhiteSpace::NoWrap)
-                .text_overflow("ellipsis")
-                .color(Color::SurfaceLighter),
-            "Underworld",
+            path![attrs! {
+                At::D => "M607.473 926.419l-412.009-414.419 412.009-414.419-97.28-97.581-510.193 512 510.193 512z"
+            }]
         ]
     ]
 }
+
+#[view]
+fn nav_bar_title<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Ms>> {
+    if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
+        return Some(h2![
+            C!["title"], 
+            s()
+                .color(Color::SecondaryVariant2Light1_90)
+                .flex("4 0 0")
+                .font_size(rem(1.2))
+                .font_style(CssFontStyle::Normal)
+                .font_weight("500")
+                .letter_spacing(rem(0.01))
+                .padding("0 1rem")
+                .text_overflow("ellipsis")
+                .white_space(CssWhiteSpace::NoWrap),
+            &meta_item.name,
+        ])
+    }
+    None
+}
+
+
+
+
 
 // ------ view background image ------
 

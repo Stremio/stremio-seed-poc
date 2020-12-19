@@ -21,7 +21,7 @@ use seed::{prelude::*, *};
 use seed_styles::pc;
 use seed_styles::*;
 use std::rc::Rc;
-use stremio_core::models::ctx::Ctx;
+use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails};
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
 use stremio_core::runtime::{Update, msg::Msg as CoreMsg, Effect};
@@ -119,6 +119,7 @@ struct CoreModel {
     catalog: CatalogWithFilters<MetaItemPreview>,
     addon_catalog: CatalogWithFilters<DescriptorPreview>,
     installed_addons: InstalledAddonsWithFilters,
+    meta_details: MetaDetails,
 }
 
 // ------ ------
@@ -273,7 +274,7 @@ fn view(model: &Model) -> Node<Msg> {
             model.page_id.map(|page_id| {
                 match page_id {
                     PageId::Board => page::board::view(&model.context.root_base_url).into_nodes(),
-                    PageId::Detail => page::detail::view().into_nodes(),
+                    PageId::Detail => page::detail::view(&model.context).into_nodes(),
                     PageId::Discover => {
                         if let Some(page_model) = &model.discover_model {
                             page::discover::view(page_model, &model.context)
