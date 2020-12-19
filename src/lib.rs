@@ -10,7 +10,7 @@
     unused_imports,
 )]
 
-mod entity;
+mod multi_select;
 mod page;
 mod styles;
 mod env;

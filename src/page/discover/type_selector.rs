@@ -1,4 +1,4 @@
-use crate::entity::multi_select;
+use crate::multi_select;
 use seed::{*, prelude::*};
 use std::fmt::Debug;
 use std::rc::Rc;

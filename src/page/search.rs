@@ -6,7 +6,7 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use serde::Deserialize;
 use localsearch::LocalSearch;
 
-const search_debounce_time: u32 = 0;
+const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
@@ -128,7 +128,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::SearchQueryInputChanged(query) => {
             model.input_search_query = query;
             model.debounced_search_query_change = Some(
-                orders.perform_cmd_with_handle(cmds::timeout(search_debounce_time, || Msg::UpdateSearchQuery))
+                orders.perform_cmd_with_handle(cmds::timeout(SEARCH_DEBOUNCE_TIME, || Msg::UpdateSearchQuery))
             );
         },
         Msg::UpdateSearchQuery => {

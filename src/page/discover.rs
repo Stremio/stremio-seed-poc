@@ -1,4 +1,4 @@
-use crate::{entity::multi_select, Context, PageId, Actions, Urls as RootUrls};
+use crate::{multi_select, Context, PageId, Actions, Urls as RootUrls};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -111,18 +111,10 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
     MetaItemPreviewClicked(MetaItemPreview),
-    // TypeSelectorMsg(type_selector::Msg),
-    // TypeSelectorChanged(Vec<multi_select::Item>),
-    // CatalogSelectorMsg(catalog_selector::Msg),
-    // CatalogSelectorChanged(Vec<multi_select::Item>),
-    // ExtraPropSelectorMsg(extra_prop_selector::Msg),
-    // ExtraPropSelectorChanged(Vec<multi_select::Item>),
     SendResourceRequest(ResourceRequest)
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
-    let catalog = &context.core_model.catalog;
-
     match msg {
         Msg::CoreMsg(core_msg) => {
             if let CoreMsg::Internal(Internal::ResourceRequestResult(_, result)) = core_msg.as_ref() {
@@ -132,6 +124,8 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             }
         }
         Msg::MetaItemPreviewClicked(meta_preview) => {
+            // @TODO: link to Detail page
+
             // if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
             //     let id = &meta_preview.id;
             //     let type_name = &meta_preview.type_name;
@@ -151,63 +145,6 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::SendResourceRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
-
-        // ------ TypeSelector  ------
-        // Msg::TypeSelectorMsg(msg) => {
-        //     // let msg_to_parent = type_selector::update(
-        //     //     msg,
-        //     //     &mut model.type_selector_model,
-        //     //     &mut orders.proxy(Msg::TypeSelectorMsg),
-        //     //     type_selector::groups(&catalog.types),
-        //     //     Msg::TypeSelectorChanged,
-        //     // );
-        //     // if let Some(msg) = msg_to_parent {
-        //     //     orders.send_msg(msg);
-        //     // }
-        // }
-        // Msg::TypeSelectorChanged(groups_with_selected_items) => {
-        //     // let res_req = type_selector::resource_request(groups_with_selected_items);
-        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        // }
-
-        // // ------ CatalogSelector  ------
-        // Msg::CatalogSelectorMsg(msg) => {
-        //     // let msg_to_parent = catalog_selector::update(
-        //     //     msg,
-        //     //     &mut model.catalog_selector_model,
-        //     //     &mut orders.proxy(Msg::CatalogSelectorMsg),
-        //     //     catalog_selector::items(&catalog.catalogs, &catalog.selected),
-        //     //     Msg::CatalogSelectorChanged,
-        //     // );
-        //     // if let Some(msg) = msg_to_parent {
-        //     //     orders.send_msg(msg);
-        //     // }
-        // }
-        // Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-        //     // let res_req = catalog_selector::resource_request(groups_with_selected_items);
-        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        // }
-
-        // // ------ ExtraPropSelector  ------
-        // Msg::ExtraPropSelectorMsg(msg) => {
-        //     // let msg_to_parent = extra_prop_selector::update(
-        //     //     msg,
-        //     //     &mut model.extra_prop_selector_model,
-        //     //     &mut orders.proxy(Msg::ExtraPropSelectorMsg),
-        //     //     extra_prop_selector::groups(&catalog.selectable_extra, &catalog.selected),
-        //     //     Msg::ExtraPropSelectorChanged,
-        //     // );
-        //     // if let Some(msg) = msg_to_parent {
-        //     //     orders.send_msg(msg);
-        //     // }
-        // }
-        // Msg::ExtraPropSelectorChanged(groups_with_selected_items) => {
-        //     // if let Some(res_req) =
-        //     //     extra_prop_selector::resource_request(groups_with_selected_items, &catalog.selected)
-        //     // {
-        //     //     orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        //     // }
-        // }
     }
 }
 
