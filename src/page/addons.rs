@@ -34,6 +34,10 @@ impl Default for AddonRequest {
     }
 }
 
+fn on_click_not_implemented() -> EventHandler<Msg> {
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+}
+
 // ------ ------
 //     Init
 // ------ ------
@@ -63,12 +67,11 @@ pub fn init(
 
     load_catalog(addon_request.unwrap_or_default(), context, orders);
 
-    model.get_or_insert_with(move || Model {
+    let model = model.get_or_insert_with(move || Model {
         base_url,
-        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
         search_query: String::new(),
-        modal: None,
     });
+    model.search_query = String::new();
     Some(PageId::Addons)
 }
 
@@ -120,9 +123,7 @@ pub fn default_resource_request() -> ResourceRequest {
 
 pub struct Model {
     base_url: Url,
-    _core_msg_sub_handle: SubHandle,
     search_query: String,
-    modal: Option<Modal>,
 }
 
 // ------ ------
@@ -160,75 +161,13 @@ impl<'a> Urls<'a> {
 
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
-    CoreMsg(Rc<CoreMsg>),
-    // CatalogSelectorMsg(catalog_selector::Msg),
-    // CatalogSelectorChanged(Vec<multi_select::Item>),
-    // TypeSelectorMsg(type_selector::Msg),
-    // TypeSelectorChanged(Vec<multi_select::Item>),
     SearchQueryChanged(String),
-    AddAddonButtonClicked,
-    UninstallAddonButtonClicked(DescriptorPreview),
-    InstallAddonButtonClicked(DescriptorPreview),
-    ShareAddonButtonClicked(DescriptorPreview),
     SendAddonRequest(AddonRequest),
 }
 
-pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
-    let catalog = &context.core_model.addon_catalog;
-
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::CoreMsg(core_msg) => {
-            if let CoreMsg::Action(Action::Load(ActionLoad::CatalogWithFilters(_))) = core_msg.as_ref()
-            {
-                model.search_query = String::new();
-            }
-        }
-        // ------ CatalogSelector  ------
-        // Msg::CatalogSelectorMsg(msg) => {
-        //     // let msg_to_parent = catalog_selector::update(
-        //     //     msg,
-        //     //     &mut model.catalog_selector_model,
-        //     //     &mut orders.proxy(Msg::CatalogSelectorMsg),
-        //     //     catalog_selector::groups(&catalog.catalogs, &catalog.selected),
-        //     //     Msg::CatalogSelectorChanged,
-        //     // );
-        //     // if let Some(msg) = msg_to_parent {
-        //     //     orders.send_msg(msg);
-        //     // }
-        // }
-        // Msg::CatalogSelectorChanged(groups_with_selected_items) => {
-        //     // @TODO
-        //     // let res_req = catalog_selector::resource_request(groups_with_selected_items);
-        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        // }
-
-        // // ------ TypeSelector  ------
-        // Msg::TypeSelectorMsg(msg) => {
-        //     // let msg_to_parent = type_selector::update(
-        //     //     msg,
-        //     //     &mut model.type_selector_model,
-        //     //     &mut orders.proxy(Msg::TypeSelectorMsg),
-        //     //     type_selector::groups(
-        //     //         &catalog.catalogs,
-        //     //         &catalog.selected,
-        //     //         &context.core_model.ctx.content.addons,
-        //     //     ),
-        //     //     Msg::TypeSelectorChanged,
-        //     // );
-        //     // if let Some(msg) = msg_to_parent {
-        //     //     orders.send_msg(msg);
-        //     // }
-        // }
-        // Msg::TypeSelectorChanged(groups_with_selected_items) => {
-        //     // let res_req = type_selector::resource_request(groups_with_selected_items);
-        //     // orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
-        // }
-
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
-        Msg::AddAddonButtonClicked => model.modal = Some(Modal::AddAddon),
-        Msg::UninstallAddonButtonClicked(_addon) => model.modal = Some(Modal::UninstallAddon),
-        Msg::InstallAddonButtonClicked(_addon) => model.modal = Some(Modal::InstallAddon),
-        Msg::ShareAddonButtonClicked(_addon) => model.modal = Some(Modal::ShareAddon),
         Msg::SendAddonRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).addon_request(&res_req));
         }
@@ -238,80 +177,6 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 // ------ ------
 //     View
 // ------ ------
-
-// pub fn view(model: &Model, context: &Context) -> Vec<Node<Msg>> {
-//     let catalog = &context.core_model.addon_catalog;
-
-//     vec![
-//         div![
-//             C!["addons-container"],
-//             s()
-//                 .display(CssDisplay::Flex)
-//                 .flex_direction(CssFlexDirection::Column)
-//                 .width(pc(100))
-//                 .height(pc(100))
-//                 .background_color(Color::Background),
-//             div![
-//                 C!["addons-content"],
-//                 s()
-//                     .flex("1")
-//                     .display(CssDisplay::Flex)
-//                     .align_self(CssAlignSelf::Stretch)
-//                     .flex_direction(CssFlexDirection::Column),
-//                 div![
-//                     C!["top-bar-container"],
-//                     s()
-//                         .flex(CssFlex::None)
-//                         .display(CssDisplay::Flex)
-//                         .flex_direction(CssFlexDirection::Row)
-//                         .margin(rem(2))
-//                         .overflow(CssOverflow::Visible),
-//                     // add addon button
-//                     view_add_addon_button(),
-//                     // catalog selector
-//                     // @TODO
-//                     // catalog_selector::view(
-//                     //     &model.catalog_selector_model,
-//                     //     &catalog_selector::groups(&catalog.catalogs, &catalog.selected)
-//                     // )
-//                     // .map_msg(Msg::CatalogSelectorMsg),
-//                     // type selector
-//                     // @TODO
-//                     // type_selector::view(
-//                     //     &model.type_selector_model,
-//                     //     &type_selector::groups(
-//                     //         &catalog.catalogs,
-//                     //         &catalog.selected,
-//                     //         &context.core_model.ctx.content.addons
-//                     //     )
-//                     // )
-//                     // .map_msg(Msg::TypeSelectorMsg),
-//                     // search input
-//                     view_search_input(&model.search_query),
-//                 ],
-//                 div![
-//                     C!["addons-list-container"],
-//                     s()
-//                         .flex("1")
-//                         .align_self(CssAlignSelf::Stretch)
-//                         .padding("0 2rem")
-//                         .overflow_y(CssOverflowY::Auto),
-//                     // view_content(
-//                     //     &context.core_model.addon_catalog.content,
-//                     //     &model.search_query,
-//                     //     &context.core_model.ctx.content.addons,
-//                     //     &catalog.selected
-//                     // ),
-//                 ]
-//             ],
-//         ],
-//         if let Some(modal) = &model.modal {
-//             modal::view(modal, || Msg::CloseModal)
-//         } else {
-//             empty![]
-//         },
-//     ]
-// }
 
 #[view]
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
@@ -350,12 +215,6 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                         .flex_direction(CssFlexDirection::Column),
                     selectable_inputs(model, context),
                     addons_list_container(context, &model.search_query),
-                    // context.core_model.catalog.addon_catalog.as_ref().map(|resource_loadable| {
-                    //     meta_items(
-                    //         &resource_loadable.content,
-                    //         model.selected_meta_preview_id.as_ref()
-                    //     )
-                    // }),
                 ],
             ],
         ],
@@ -448,7 +307,7 @@ fn add_addon_button() -> Node<Msg> {
             At::TabIndex => 0,
             At::Title => "Add addon",
         },
-        ev(Ev::Click, |_| Msg::AddAddonButtonClicked),
+        on_click_not_implemented(),
         svg![
             C!["icon",],
             s()
@@ -792,6 +651,7 @@ fn uninstall_button() -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::BackgroundLight2),
+        on_click_not_implemented(),
         div![
             C!["label"],
             s()
@@ -832,6 +692,7 @@ fn share_button() -> Node<Msg> {
             .style_other(":hover .label")
             .color(Color::SecondaryVariant1Light2)
             .text_decoration(CssTextDecoration::Underline),
+        on_click_not_implemented(),
         svg![
             C!["icon"],
             s()
@@ -866,353 +727,3 @@ fn share_button() -> Node<Msg> {
         ]
     ]
 }
-
-// ------ view addons ------
-
-// fn view_addons(
-//     addons: &[DescriptorPreview],
-//     search_query: &str,
-//     installed_addons: &[Descriptor],
-// ) -> Vec<Node<Msg>> {
-//     addons
-//         .iter()
-//         .filter_map(|addon| {
-//             if is_addon_in_search_results(addon, search_query) {
-//                 Some(view_addon(
-//                     addon,
-//                     installed_addons
-//                         .iter()
-//                         .any(|installed_addon| installed_addon.manifest.id == addon.manifest.id),
-//                 ))
-//             } else {
-//                 None
-//             }
-//         })
-//         .collect()
-// }
-
-// ------ view addon ------
-
-// fn view_addon(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
-//     div![
-//         C!["addon-container", "addon", "button-container",],
-//         styles::button_container(),
-//         s()
-//             .display(CssDisplay::Flex)
-//             .flex_direction(CssFlexDirection::Row)
-//             .flex_wrap(CssFlexWrap::Wrap)
-//             .align_items(CssAlignItems::FlexStart)
-//             .padding(rem(1))
-//             .background_color(Color::BackgroundLighter)
-//             .cursor(CssCursor::Inherit),
-//         s()
-//             .width(pc(100))
-//             .margin_bottom(rem(2)),
-//         attrs! {
-//             At::TabIndex => 0,
-//         },
-//         view_logo_container(&addon.manifest.logo),
-//         view_info_container(addon),
-//         view_buttons_container(addon, addon_installed)
-//     ]
-// }
-
-// fn view_logo_container(logo_url: &Option<String>) -> Node<Msg> {
-//     div![
-//         C!["logo-container"],
-//         s()
-//             .flex(CssFlex::None)
-//             .width(rem(8))
-//             .height(rem(8))
-//             .background_color(Color::BackgroundDarker),
-//         if let Some(logo_url) = logo_url {
-//             img![
-//                 C!["logo",],
-//                 s()
-//                     .display(CssDisplay::Block)
-//                     .width(pc(100))
-//                     .height(pc(100))
-//                     .raw(r#"object-fit: contain;"#)
-//                     .raw(r#"object-position: center;"#),
-//                 attrs! {
-//                     At::Src => logo_url,
-//                 }
-//             ]
-//         } else {
-//             svg![
-//                 C!["icon",],
-//                 s()
-//                     .display(CssDisplay::Block)
-//                     .width(pc(100))
-//                     .height(pc(100))
-//                     .padding(rem(1))
-//                     .fill(Color::SurfaceLighter),
-//                 attrs! {
-//                     At::ViewBox => "0 0 1043 1024",
-//                     "icon" => "ic_addons",
-//                 },
-//                 path![attrs! {
-//                     At::D => "M145.468 679.454c-40.056-39.454-80.715-78.908-120.471-118.664-33.431-33.129-33.129-60.235 0-90.353l132.216-129.807c5.693-5.938 12.009-11.201 18.865-15.709l0.411-0.253c23.492-15.059 41.864-7.529 48.188 18.974 0 7.228 2.711 14.758 3.614 22.287 3.801 47.788 37.399 86.785 82.050 98.612l0.773 0.174c10.296 3.123 22.128 4.92 34.381 4.92 36.485 0 69.247-15.94 91.702-41.236l0.11-0.126c24.858-21.654 40.48-53.361 40.48-88.718 0-13.746-2.361-26.941-6.701-39.201l0.254 0.822c-14.354-43.689-53.204-75.339-99.907-78.885l-0.385-0.023c-18.372-2.409-41.562 0-48.188-23.492s11.445-34.635 24.998-47.887q65.054-62.946 130.409-126.795c32.527-31.925 60.235-32.226 90.353 0 40.659 39.153 80.715 78.908 120.471 118.362 8.348 8.594 17.297 16.493 26.82 23.671l0.587 0.424c8.609 7.946 20.158 12.819 32.846 12.819 24.823 0 45.29-18.653 48.148-42.707l0.022-0.229c3.012-13.252 4.518-26.805 8.734-39.755 12.103-42.212 50.358-72.582 95.705-72.582 3.844 0 7.637 0.218 11.368 0.643l-0.456-0.042c54.982 6.832 98.119 49.867 105.048 104.211l0.062 0.598c0.139 1.948 0.218 4.221 0.218 6.512 0 45.084-30.574 83.026-72.118 94.226l-0.683 0.157c-12.348 3.915-25.299 5.722-37.948 8.433-45.779 9.638-60.235 46.984-30.118 82.824 15.265 17.569 30.806 33.587 47.177 48.718l0.409 0.373c31.925 31.925 64.452 62.946 96.075 94.871 13.698 9.715 22.53 25.511 22.53 43.369s-8.832 33.655-22.366 43.259l-0.164 0.111c-45.176 45.176-90.353 90.353-137.035 134.325-5.672 5.996-12.106 11.184-19.169 15.434l-0.408 0.227c-4.663 3.903-10.725 6.273-17.341 6.273-13.891 0-25.341-10.449-26.92-23.915l-0.012-0.127c-2.019-7.447-3.714-16.45-4.742-25.655l-0.077-0.848c-4.119-47.717-38.088-86.476-82.967-97.721l-0.76-0.161c-9.584-2.63-20.589-4.141-31.947-4.141-39.149 0-74.105 17.956-97.080 46.081l-0.178 0.225c-21.801 21.801-35.285 51.918-35.285 85.185 0 1.182 0.017 2.36 0.051 3.533l-0.004-0.172c1.534 53.671 40.587 97.786 91.776 107.115l0.685 0.104c12.649 2.409 25.901 3.313 38.249 6.626 22.588 6.325 30.118 21.685 18.372 41.864-4.976 8.015-10.653 14.937-17.116 21.035l-0.051 0.047c-44.875 44.574-90.353 90.353-135.228 133.12-10.241 14.067-26.653 23.106-45.176 23.106s-34.935-9.039-45.066-22.946l-0.111-0.159c-40.659-38.852-80.414-78.908-120.471-118.362z"
-//                 }]
-//             ]
-//         }
-//     ]
-// }
-
-// fn view_info_container(addon: &DescriptorPreview) -> Node<Msg> {
-//     div![
-//         C!["info-container"],
-//         s()
-//             .flex_grow("1000")
-//             .flex_shrink("1")
-//             .flex_basis("0")
-//             .display(CssDisplay::Flex)
-//             .flex_direction(CssFlexDirection::Row)
-//             .flex_wrap(CssFlexWrap::Wrap)
-//             .align_items(CssAlignItems::Baseline)
-//             .min_width(rem(40))
-//             .padding("0 0.5rem"),
-//         div![
-//             C!["name-container"],
-//             s()
-//                 .flex_grow("0")
-//                 .flex_shrink("1")
-//                 .flex_basis(CssFlexBasis::Auto)
-//                 .padding("0 0.5rem")
-//                 .max_height(em(3.6))
-//                 .font_size(rem(1.5))
-//                 .color(Color::SurfaceLighter),
-//             attrs! {
-//                 At::Title => addon.manifest.name,
-//             },
-//             &addon.manifest.name,
-//         ],
-//         div![
-//             C!["version-container"],
-//             s()
-//                 .flex_grow("1")
-//                 .flex_shrink("1")
-//                 .flex_basis(CssFlexBasis::Auto)
-//                 .padding("0 0.5rem")
-//                 .max_height(em(2.4))
-//                 .color(Color::SurfaceLight),
-//             attrs! {
-//                 At::Title => format!("v.{}", addon.manifest.version),
-//             },
-//             format!("v.{}", addon.manifest.version),
-//         ],
-//         div![
-//             C!["types-container"],
-//             s()
-//                 .flex_grow("0")
-//                 .flex_shrink("0")
-//                 .flex_basis("100%")
-//                 .margin_top(rem(0.5))
-//                 .padding("0 0.5rem")
-//                 .max_height(em(2.4))
-//                 .color(Color::SurfaceLight)
-//                 .text_transform(CssTextTransform::Capitalize),
-//             format_addon_types(&addon.manifest.types),
-//         ],
-//         if let Some(description) = &addon.manifest.description {
-//             div![
-//                 C!["description-container"],
-//                 s()
-//                     .flex_grow("0")
-//                     .flex_shrink("0")
-//                     .flex_basis("100%")
-//                     .margin_top(rem(0.5))
-//                     .padding("0 0.5rem")
-//                     .max_height(em(4.8))
-//                     .color(Color::SurfaceLight),
-//                 attrs! {
-//                     At::Title => description,
-//                 },
-//                 description,
-//             ]
-//         } else {
-//             empty![]
-//         }
-//     ]
-// }
-
-// // fn format_addon_types(types: &[String]) -> String {
-// //     match types.len() {
-// //         0 => "".to_owned(),
-// //         1 => types[0].to_owned(),
-// //         _ => {
-// //             let (last, rest) = types.split_last().unwrap();
-// //             format!("{} & {}", rest.join(", "), last)
-// //         }
-// //     }
-// // }
-
-// struct ButtonContainerStyles {
-//     styles: Vec<Style>,
-//     icon: Style,
-//     label: Style,
-// }
-
-// fn view_buttons_container(addon: &DescriptorPreview, addon_installed: bool) -> Node<Msg> {
-//     let button_container_styles = ButtonContainerStyles {
-//         styles:  vec![
-//             s()
-//                 .flex(CssFlex::None)
-//                 .display(CssDisplay::Flex)
-//                 .flex_direction(CssFlexDirection::Row)
-//                 .align_items(CssAlignItems::Center)
-//                 .justify_content(CssJustifyContent::Center)
-//                 .width(rem(17))
-//                 .height(rem(3.5))
-//                 .padding("0 1rem"),
-//             s()
-//                 .not(":first-child")
-//                 .margin_top(rem(1)),
-//             s()
-//                 .not(":last-child")
-//                 .margin_right(rem(1)),
-//         ],
-//         icon: s()
-//             .flex(CssFlex::None)
-//             .display(CssDisplay::Block)
-//             .width(rem(1.5))
-//             .height(rem(1.5))
-//             .margin_right(rem(1)),
-//         label: s()
-//             .flex_grow("0")
-//             .flex_shrink("1")
-//             .flex_basis(CssFlexBasis::Auto)
-//             .max_height("500")
-//             .font_size(rem(1.2))
-//             .font_weight("500")
-//             .text_align(CssTextAlign::Center)
-//     };
-    
-//     div![
-//         C!["buttons-container"],
-//         s()
-//             .flex_grow("1")
-//             .flex_shrink("0")
-//             .flex_basis("0")
-//             .display(CssDisplay::Flex)
-//             .flex_direction(CssFlexDirection::Row)
-//             .flex_wrap(CssFlexWrap::Wrap)
-//             .align_items(CssAlignItems::FlexEnd)
-//             .min_width(rem(17)),
-//         if addon_installed {
-//             view_uninstall_addon_button(addon, &button_container_styles)
-//         } else {
-//             view_install_addon_button(addon, &button_container_styles)
-//         },
-//         view_share_addon_button(addon, &button_container_styles)
-//     ]
-// }
-
-// fn view_uninstall_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
-//     div![
-//         C!["uninstall-button-container", "button-container",],
-//         styles::button_container(),
-//         style.styles,
-//         s()
-//             .outline_color(Color::SurfaceLight)
-//             .outline_style(CssOutlineStyle::Solid),
-//         s()
-//             .hover()
-//             .outline_color(Color::SurfaceLight),
-//         s()
-//             .style_other(":hover .label")
-//             .color(Color::SurfaceLight),
-//         attrs! {
-//             At::TabIndex => -1,
-//             At::Title => "Uninstall",
-//         },
-//         ev(
-//             Ev::Click,
-//             enc!((addon) move |_| Msg::UninstallAddonButtonClicked(addon))
-//         ),
-//         div![
-//             C!["label",],
-//             &style.label,
-//             s()
-//                 .color(Color::SurfaceDark),
-//             "Uninstall"
-//         ]
-//     ]
-// }
-
-// fn view_install_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
-//     div![
-//         C!["install-button-container", "button-container",],
-//         styles::button_container(),
-//         style.styles,
-//         s()
-//             .background_color(Color::Signal5),
-//         s()
-//             .hover()
-//             .filter("brightness(1.2)"),
-//         attrs! {
-//             At::TabIndex => -1,
-//             At::Title => "Install",
-//         },
-//         ev(
-//             Ev::Click,
-//             enc!((addon) move |_| Msg::InstallAddonButtonClicked(addon))
-//         ),
-//         div![
-//             C!["label",], 
-//             &style.label,
-//             s()
-//                 .color(Color::SurfaceLighter),
-//             "Install"
-//         ]
-//     ]
-// }
-
-// fn view_share_addon_button(addon: &DescriptorPreview, style: &ButtonContainerStyles) -> Node<Msg> {
-//     div![
-//         C!["share-button-container", "button-container",],
-//         styles::button_container(),
-//         style.styles,
-//         s()
-//             .hover()
-//             .outline(CssOutline::None)
-//             .background_color(Color::SecondaryLight),
-//         s()
-//             .style_other(":hover .icon")
-//             .fill(Color::SurfaceLighter),
-//         s()
-//             .style_other(":hover .label")
-//             .color(Color::SurfaceLighter),
-//         s()
-//             .outline_color(Color::SecondaryLighter)
-//             .outline_style(CssOutlineStyle::Solid),
-//         attrs! {
-//             At::TabIndex => -1,
-//             At::Title => "Share addon",
-//         },
-//         ev(
-//             Ev::Click,
-//             enc!((addon) move |_| Msg::ShareAddonButtonClicked(addon))
-//         ),
-//         svg![
-//             C!["icon",],
-//             &style.icon,
-//             s()
-//                 .fill(Color::SecondaryLighter),
-//             attrs! {
-//                 At::ViewBox => "0 0 1024 1024",
-//                 "icon" => "ic_share",
-//             },
-//             path![attrs! {
-//                 At::D => "M846.005 679.454c-62.726 0.19-117.909 32.308-150.171 80.95l-0.417 0.669-295.755-96.979c2.298-11.196 3.614-24.064 3.614-37.239 0-0.038-0-0.075-0-0.113l0 0.006c0-0.039 0-0.085 0-0.132 0-29.541-6.893-57.472-19.159-82.272l0.486 1.086 221.967-143.059c42.092 37.259 97.727 60.066 158.685 60.235l0.035 0c0.81 0.010 1.768 0.016 2.726 0.016 128.794 0 233.38-103.646 234.901-232.079l0.001-0.144c0-131.737-106.794-238.532-238.532-238.532s-238.532 106.794-238.532 238.532h0c0.012 33.532 7.447 65.325 20.752 93.828l-0.573-1.367-227.087 146.372c-32.873-23.074-73.687-36.92-117.729-37.045l-0.031-0c-0.905-0.015-1.974-0.023-3.044-0.023-108.186 0-196.124 86.69-198.139 194.395l-0.003 0.189c2.017 107.893 89.956 194.583 198.142 194.583 1.070 0 2.139-0.008 3.205-0.025l-0.161 0.002c0.108 0 0.235 0 0.363 0 60.485 0 114.818-26.336 152.159-68.168l0.175-0.2 313.826 103.002c-0.004 0.448-0.006 0.976-0.006 1.506 0 98.47 79.826 178.296 178.296 178.296s178.296-79.826 178.296-178.296c0-98.468-79.823-178.293-178.29-178.296l-0-0zM923.106 851.727c0.054 1.079 0.084 2.343 0.084 3.614 0 42.748-34.654 77.402-77.402 77.402s-77.402-34.654-77.402-77.402c0-42.748 34.654-77.402 77.402-77.402 0.076 0 0.152 0 0.229 0l-0.012-0c0.455-0.010 0.99-0.015 1.527-0.015 41.12 0 74.572 32.831 75.572 73.711l0.002 0.093zM626.748 230.4c3.537-73.358 63.873-131.495 137.788-131.495s134.251 58.137 137.776 131.179l0.012 0.316c-3.537 73.358-63.873 131.495-137.788 131.495s-134.251-58.137-137.776-131.179l-0.012-0.316zM301.176 626.748c-1.34 53.35-44.907 96.087-98.456 96.087-0.54 0-1.078-0.004-1.616-0.013l0.081 0.001c-1.607 0.096-3.486 0.151-5.377 0.151-53.061 0-96.075-43.014-96.075-96.075s43.014-96.075 96.075-96.075c1.892 0 3.77 0.055 5.635 0.162l-0.258-0.012c0.459-0.008 1-0.012 1.543-0.012 53.443 0 96.943 42.568 98.445 95.648l0.003 0.139z"
-//             }]
-//         ],
-//         div![
-//             C!["label",], 
-//             &style.label, 
-//             s()
-//                 .color(Color::SecondaryLighter),
-//             "Share addon"
-//         ]
-//     ]
-// }

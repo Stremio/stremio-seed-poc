@@ -236,7 +236,6 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 page::addons::update(
                     page_msg,
                     page_model,
-                    &mut model.context,
                     &mut orders.proxy(Msg::AddonsMsg),
                 );
             }
