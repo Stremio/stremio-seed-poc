@@ -170,7 +170,6 @@ pub enum Msg {
     UninstallAddonButtonClicked(DescriptorPreview),
     InstallAddonButtonClicked(DescriptorPreview),
     ShareAddonButtonClicked(DescriptorPreview),
-    CloseModal,
     SendAddonRequest(AddonRequest),
 }
 
@@ -230,7 +229,6 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::UninstallAddonButtonClicked(_addon) => model.modal = Some(Modal::UninstallAddon),
         Msg::InstallAddonButtonClicked(_addon) => model.modal = Some(Modal::InstallAddon),
         Msg::ShareAddonButtonClicked(_addon) => model.modal = Some(Modal::ShareAddon),
-        Msg::CloseModal => model.modal = None,
         Msg::SendAddonRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).addon_request(&res_req));
         }
@@ -351,7 +349,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                         .flex("1")
                         .flex_direction(CssFlexDirection::Column),
                     selectable_inputs(model, context),
-                    addons_list_container(context),
+                    addons_list_container(context, &model.search_query),
                     // context.core_model.catalog.addon_catalog.as_ref().map(|resource_loadable| {
                     //     meta_items(
                     //         &resource_loadable.content,
@@ -361,11 +359,6 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                 ],
             ],
         ],
-        if let Some(modal) = &model.modal {
-            modal::view(modal, || Msg::CloseModal)
-        } else {
-            empty![]
-        },
     ]
 }
 
@@ -554,7 +547,7 @@ fn search_input(search_query: &str) -> Node<Msg> {
 }
 
 #[view]
-fn addons_list_container(context: &Context) -> Node<Msg> {
+fn addons_list_container(context: &Context, search_query: &str) -> Node<Msg> {
     let installed_addons = &context.core_model.installed_addons; 
     let remote_addons = &context.core_model.addon_catalog;
 
@@ -565,12 +558,12 @@ fn addons_list_container(context: &Context) -> Node<Msg> {
             .flex("1")
             .overflow_y("auto")
             .padding("0 1.5rem"),
-        IF!(installed_addons.selected.is_some() => addons_list(&installed_addons.catalog)),
+        IF!(installed_addons.selected.is_some() => addons_list(&installed_addons.catalog, search_query)),
         IF!(remote_addons.selected.is_some() => {
             if let Some(catalog) = remote_addons.catalog.as_ref() {
                 match &catalog.content {
                     Loadable::Loading => vec![div!["Loading"]],
-                    Loadable::Ready(addons) => addons_list(addons),
+                    Loadable::Ready(addons) => addons_list(addons, search_query),
                     Loadable::Err(err) => vec![div!["Error:", err.to_string()]],
                 }
             } else {
@@ -581,8 +574,30 @@ fn addons_list_container(context: &Context) -> Node<Msg> {
 }
 
 #[view]
-fn addons_list(addons: &[DescriptorPreview]) -> Vec<Node<Msg>> {
-    addons.iter().map(|addon| addon_container(&addon.manifest)).collect()
+fn addons_list(addons: &[DescriptorPreview], search_query: &str) -> Vec<Node<Msg>> {
+    addons
+        .iter()
+        .filter(|addon| is_addon_in_search_results(addon, search_query))
+        .map(|addon| addon_container(&addon.manifest))
+        .collect()
+}
+
+fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> bool {
+    if search_query.is_empty() {
+        return true;
+    }
+
+    let search_query = search_query.to_lowercase();
+
+    if addon.manifest.name.to_lowercase().contains(&search_query) {
+        return true;
+    }
+    if let Some(description) = &addon.manifest.description {
+        if description.to_lowercase().contains(&search_query) {
+            return true;
+        }
+    }
+    false
 }
 
 #[view]
@@ -730,6 +745,18 @@ fn addon_info(addon: &ManifestPreview) -> Node<Msg> {
     ]
 }
 
+fn format_addon_types(types: &[String]) -> String {
+    match types.len() {
+        0 => "".to_owned(),
+        1 => types[0].to_owned(),
+        _ => {
+            let (last, rest) = types.split_last().unwrap();
+            format!("{} & {}", rest.join(", "), last)
+        }
+    }
+}
+
+
 #[view]
 fn addon_buttons(addon: &ManifestPreview) -> Node<Msg> {
     div![
@@ -838,35 +865,6 @@ fn share_button() -> Node<Msg> {
             "SHARE ADDON",
         ]
     ]
-}
-
-fn format_addon_types(types: &[String]) -> String {
-    match types.len() {
-        0 => "".to_owned(),
-        1 => types[0].to_owned(),
-        _ => {
-            let (last, rest) = types.split_last().unwrap();
-            format!("{} & {}", rest.join(", "), last)
-        }
-    }
-}
-
-fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> bool {
-    if search_query.is_empty() {
-        return true;
-    }
-
-    let search_query = search_query.to_lowercase();
-
-    if addon.manifest.name.to_lowercase().contains(&search_query) {
-        return true;
-    }
-    if let Some(description) = &addon.manifest.description {
-        if description.to_lowercase().contains(&search_query) {
-            return true;
-        }
-    }
-    false
 }
 
 // ------ view addons ------
