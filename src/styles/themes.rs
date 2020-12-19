@@ -1,25 +1,6 @@
 use seed_styles::*;
 use std::collections::HashMap;
 
-// @TODO refactor + hide in the library
-pub fn get_color_value(color: Color) -> String {
-    app_themes().get_with(|themes| {
-        themes
-            .iter()
-            .find(|theme| theme.name == "default_color_theme")
-            .map(|theme| {
-                let colors = theme
-                    .anymap.get::<HashMap<Color, CssColor>>().unwrap();
-                let css_color = colors.get(&color).unwrap();
-                let string_color = css_color.to_string();
-                string_color
-                    .strip_prefix("color: ").unwrap()
-                    .strip_suffix(";").unwrap()
-                    .to_owned()
-            })
-    }).unwrap()
-}
-
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Breakpoint {
     Zero,
@@ -362,3 +343,23 @@ pub fn default_color_theme() -> Theme {
         .set_color(SurfaceLight5_90, hsla(0, 0, 100, 0.9))
         .set_color(SurfaceDark5_90, hsla(0, 0, 50, 0.9))
 }
+
+// @TODO refactor + hide in the library Styles
+pub fn get_color_value(color: Color) -> String {
+    app_themes().get_with(|themes| {
+        themes
+            .iter()
+            .find(|theme| theme.name == "default_color_theme")
+            .map(|theme| {
+                let colors = theme
+                    .anymap.get::<HashMap<Color, CssColor>>().unwrap();
+                let css_color = colors.get(&color).unwrap();
+                let string_color = css_color.to_string();
+                string_color
+                    .strip_prefix("color: ").unwrap()
+                    .strip_suffix(";").unwrap()
+                    .to_owned()
+            })
+    }).unwrap()
+}
+

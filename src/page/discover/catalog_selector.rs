@@ -1,4 +1,4 @@
-use crate::entity::multi_select;
+use crate::multi_select;
 use itertools::Itertools;
 use seed::{*, prelude::*};
 use std::fmt::Debug;
@@ -8,7 +8,6 @@ use stremio_core::models::common::Loadable;
 use stremio_core::types::resource::MetaItemPreview;
 use stremio_core::types::addon::ResourceRequest;
 use seed_hooks::{*, topo::nested as view};
-
 
 // ------ ------
 //     View
@@ -31,12 +30,6 @@ pub fn items<Ms: 'static>(
     catalog: &CatalogWithFilters<MetaItemPreview>,
     send_res_req_msg: impl Fn(ResourceRequest) -> Ms + 'static + Copy,
 ) -> Vec<multi_select::Item<Ms>> {
-    // let selected_request = if let Some(selected_request) = catalog.selected {
-    //     selected_request
-    // } else {
-    //     return Vec::new()
-    // };
-
     catalog
         .selectable
         .catalogs

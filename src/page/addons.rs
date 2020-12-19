@@ -1,6 +1,5 @@
-use crate::{entity::multi_select, Context, PageId, Actions, Urls as RootUrls};
+use crate::{multi_select, Context, PageId, Actions, Urls as RootUrls};
 use enclose::enc;
-use modal::Modal;
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
@@ -15,7 +14,6 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use seed_hooks::{*, topo::nested as view};
 
 mod catalog_selector;
-mod modal;
 mod type_selector;
 
 const DEFAULT_RESOURCE: &str = "addon_catalog";
