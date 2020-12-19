@@ -6,8 +6,7 @@ use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, Action
 use stremio_core::models::catalog_with_filters::Selected as CatalogWithFiltersSelected;
 use stremio_core::models::installed_addons_with_filters::{InstalledAddonsRequest, Selected as InstalledAddonsWithFiltersSelected};
 use stremio_core::models::common::{Loadable, ResourceError};
-use stremio_core::types::addon::{Descriptor, DescriptorPreview, ManifestPreview};
-use stremio_core::types::addon::{ResourceRequest, ResourcePath};
+use stremio_core::types::addon::{Descriptor, DescriptorPreview, ManifestPreview, ResourceRequest, ResourcePath};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
