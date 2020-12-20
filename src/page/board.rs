@@ -48,6 +48,24 @@ pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
                 At::Href => RootUrls::new(root_base_url).search_urls().root()
             },
             "Go to Search ▶"
-        ]
+        ],
+        a![
+            style! {
+                St::Padding => px(20),
+            },
+            attrs! {
+                At::Href => RootUrls::new(root_base_url).detail_urls().without_video_id("series", "tt8111088")
+            },
+            "Go to Detail (Mandalorian [series]) ▶"
+        ],
+        a![
+            style! {
+                St::Padding => px(20),
+            },
+            attrs! {
+                At::Href => RootUrls::new(root_base_url).detail_urls().with_video_id("movie", "tt11656172", "tt11656172")
+            },
+            "Go to Detail (Hard Kill [movie]) ▶"
+        ],
     ]
 }
