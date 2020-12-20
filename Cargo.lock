@@ -24,6 +24,7 @@ dependencies = [
 [[package]]
 name = "atomic_hooks"
 version = "0.1.6"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
 dependencies = [
  "anymap",
  "atomic_hooks_macros",
@@ -36,6 +37,7 @@ dependencies = [
 [[package]]
 name = "atomic_hooks_macros"
 version = "0.1.6"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
 dependencies = [
  "darling",
  "illicit 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -232,11 +234,12 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "dyn-cache"
 version = "0.12.0"
+source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
 dependencies = [
  "downcast-rs",
  "hash_hasher",
  "hashbrown",
- "illicit 1.1.1",
+ "illicit 1.1.1 (git+https://github.com/MartinKavik/moxie?branch=simple-mutex)",
  "paste",
  "simple-mutex",
 ]
@@ -516,15 +519,6 @@ dependencies = [
 [[package]]
 name = "illicit"
 version = "1.1.1"
-dependencies = [
- "illicit-macro 1.0.0",
- "owning_ref",
- "scopeguard",
-]
-
-[[package]]
-name = "illicit"
-version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "825d9e489691b0b3d3cc456312c5e96121483e3ec372c5b7b29680cea4db84a6"
 dependencies = [
@@ -534,8 +528,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "illicit"
+version = "1.1.1"
+source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
+dependencies = [
+ "illicit-macro 1.0.0 (git+https://github.com/MartinKavik/moxie?branch=simple-mutex)",
+ "owning_ref",
+ "scopeguard",
+]
+
+[[package]]
 name = "illicit-macro"
 version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e735fac4fa42c34ce6d7fb2f5a729bf1e5db239f3b09aa7bf36f2068147d7d96"
 dependencies = [
  "proc-macro-error",
  "quote 1.0.7",
@@ -545,8 +551,7 @@ dependencies = [
 [[package]]
 name = "illicit-macro"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e735fac4fa42c34ce6d7fb2f5a729bf1e5db239f3b09aa7bf36f2068147d7d96"
+source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
 dependencies = [
  "proc-macro-error",
  "quote 1.0.7",
@@ -988,6 +993,7 @@ dependencies = [
 [[package]]
 name = "seed_hooks"
 version = "0.1.5"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
 dependencies = [
  "atomic_hooks",
  "derive_more",
@@ -1001,6 +1007,7 @@ dependencies = [
 [[package]]
 name = "seed_style_macros"
 version = "0.1.4"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
 dependencies = [
  "darling",
  "eager",
@@ -1016,6 +1023,7 @@ dependencies = [
 [[package]]
 name = "seed_styles"
 version = "0.1.9"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
 dependencies = [
  "anymap",
  "derive_more",
@@ -1201,6 +1209,7 @@ checksum = "213701ba3370744dcd1a12960caa4843b3d68b4d1c0a5d575e0d65b2ee9d16c0"
 [[package]]
 name = "stremio-core"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Stremio/stremio-core.git?branch=development#8bc109f83c3c08e010c7b95419e6b8b42e1294bd"
 dependencies = [
  "base64",
  "boolinator",
@@ -1229,6 +1238,7 @@ dependencies = [
 [[package]]
 name = "stremio-derive"
 version = "0.1.0"
+source = "git+ssh://git@github.com/Stremio/stremio-core.git?branch=development#8bc109f83c3c08e010c7b95419e6b8b42e1294bd"
 dependencies = [
  "case",
  "proc-macro-crate",
@@ -1390,9 +1400,10 @@ dependencies = [
 [[package]]
 name = "topo"
 version = "0.13.0"
+source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
 dependencies = [
  "dyn-cache",
- "illicit 1.1.1",
+ "illicit 1.1.1 (git+https://github.com/MartinKavik/moxie?branch=simple-mutex)",
  "once_cell",
  "simple-mutex",
  "topo-macro",
@@ -1401,6 +1412,7 @@ dependencies = [
 [[package]]
 name = "topo-macro"
 version = "0.10.0"
+source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
 dependencies = [
  "quote 1.0.7",
  "syn 1.0.53",

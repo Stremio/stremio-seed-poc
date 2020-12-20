@@ -25,25 +25,21 @@ localsearch = { git = "ssh://git@github.com/MartinKavik/Localsearch.git", branch
 seed = { git = "https://github.com/seed-rs/seed", branch = "master" }
 # seed = { path = "../seed" }
 
-# seed_styles = { git = "https://github.com/arn-the-long-beard/seed_styles_preview.git", package = "seed_styles_preview", branch = "hot_fix/update_with_new_hooks" }
-# seed_styles = { path = "../seed_styles_preview", package = "seed_styles_preview" }
-# seed_styles = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_styles", branch = "main" }
-seed_styles = { path = "d:/repos/styles_hooks/seed_styles" }
+seed_styles = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_styles", branch = "fixed_topo" }
+# seed_styles = { path = "d:/repos/styles_hooks/seed_styles" }
 
-# stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
-stremio-core = { path = "../stremio-core" }
+stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "development" }
+# stremio-core = { path = "../stremio-core" }
 
-# stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "master" }
-stremio-derive = { path = "../stremio-core/stremio-derive" }
+stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "development" }
+# stremio-derive = { path = "../stremio-core/stremio-derive" }
 
 # stremio-core-web = { path = "d:/repos/stremio-core-web" }
 chrono = "0.4.19"
 http = "0.2.1"
 
-# seed_hooks = { git = "https://github.com/arn-the-long-beard/seed_hooks.git", branch = "hot_fix/update_with_new_hooks" }
-# seed_hooks = { path = "../seed_hooks" }
-# seed_hooks = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_hooks", branch = "main" }
-seed_hooks = { path = "d:/repos/styles_hooks/seed_hooks" }
+seed_hooks = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_hooks", branch = "fixed_topo" }
+# seed_hooks = { path = "d:/repos/styles_hooks/seed_hooks" }
 
 [dependencies.web-sys]
 version = "0.3.46"
