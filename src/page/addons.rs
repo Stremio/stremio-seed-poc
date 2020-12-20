@@ -282,7 +282,7 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
     ]
 }
 
-
+#[view]
 fn add_addon_button() -> Node<Msg> {
     div![
         C!["add-button-container", "button-container",],
@@ -336,6 +336,7 @@ fn add_addon_button() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_input(search_query: &str) -> Node<Msg> {
     div![
         C!["search-bar", "search-bar-container"],

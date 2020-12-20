@@ -80,6 +80,7 @@ pub fn view<Ms: 'static>(title: &str, items: Vec<Item<Ms>>, left_margin: bool) -
     ]
 }
 
+#[view]
 fn menu<Ms: 'static>(items: Vec<Item<Ms>>) -> Node<Ms> {
     div![
         C!["menu-container", "menu-direction-bottom-right"],
@@ -109,6 +110,7 @@ fn menu<Ms: 'static>(items: Vec<Item<Ms>>) -> Node<Ms> {
     ]
 }
 
+#[view]
 fn menu_item<Ms: 'static>(item: Item<Ms>) -> Node<Ms> {
     div![
         C!["option-container", "button-container", IF!(item.selected => "selected")],

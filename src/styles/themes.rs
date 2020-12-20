@@ -34,6 +34,7 @@ pub fn default_breakpoint_theme() -> Theme {
         .breakpoint_scale([640, 800, 1000, 1300, 1600, 1900, 2200, 2500, 2800, 3800]) 
 }
 
+// @TODO: Remove unused
 #[derive(Hash, PartialEq, Eq, Copy, Clone, Debug)]
 pub enum Color {
     PrimaryLighter,
@@ -162,6 +163,7 @@ pub enum Color {
     Signal540,
     Signal520,
     // new
+    Accent3,
     Accent3_90,
     Accent3Light2,
     Background,
@@ -182,10 +184,15 @@ pub enum Color {
     SecondaryVariant2Light1_90,
     SecondaryVariant2Light2_90,
     SecondaryVariant1Dark1_60,
+    Surface90,
+    SurfaceLight2_90,
     SurfaceLight5,
+    SurfaceLight5_20,
+    SurfaceLight5_30,
     SurfaceLight5_40,
     SurfaceLight5_60,
     SurfaceLight5_90,
+    SurfaceDark3_90,
     SurfaceDark5_90,
 }
 impl ColorTheme for Color {} 
@@ -319,6 +326,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Signal540, rgba(34,180,103,0.4))
         .set_color(Signal520, rgba(34,180,103,0.2))
         // new
+        .set_color(Accent3, hsl(147.7, 68, 41.7))
         .set_color(Accent3_90, hsla(147.7, 68, 41.7, 0.9))
         .set_color(Accent3Light2, hsl(147.7, 68, 51.7))
         .set_color(Background, hsl(243, 24.4, 21))
@@ -339,10 +347,15 @@ pub fn default_color_theme() -> Theme {
         .set_color(SecondaryVariant2Light1_90, hsla(222.8, 100, 78, 0.9))
         .set_color(SecondaryVariant2Light2_90, hsla(222.8, 100, 83, 0.9))
         .set_color(SecondaryVariant1Dark1_60, hsla(224.3, 42.1, 61, 0.6))
+        .set_color(Surface90, hsla(0, 0, 75, 0.9))
+        .set_color(SurfaceLight2_90, hsla(0, 0, 85, 0.9))
         .set_color(SurfaceLight5, hsl(0, 0, 100))
+        .set_color(SurfaceLight5_20, hsla(0, 0, 100, 0.2))
+        .set_color(SurfaceLight5_30, hsla(0, 0, 100, 0.3))
         .set_color(SurfaceLight5_40, hsla(0, 0, 100, 0.4))
         .set_color(SurfaceLight5_60, hsla(0, 0, 100, 0.6))
         .set_color(SurfaceLight5_90, hsla(0, 0, 100, 0.9))
+        .set_color(SurfaceDark3_90, hsla(0, 0, 60, 0.9))
         .set_color(SurfaceDark5_90, hsla(0, 0, 50, 0.9))
 }
 
