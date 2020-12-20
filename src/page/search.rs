@@ -5,6 +5,7 @@ use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use serde::Deserialize;
 use localsearch::LocalSearch;
+use seed_hooks::{*, topo::nested as view};
 
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
@@ -209,6 +210,7 @@ fn index(videos: Vec<Video>) -> LocalSearch<Video> {
 //     View
 // ------ ------
 
+#[view]
 pub fn view(model: &Model, context: &Context ) -> Node<Msg> {
     div![
         C!["route-content"],
@@ -235,6 +237,7 @@ pub fn view(model: &Model, context: &Context ) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn horizontal_nav_bar(root_base_url: &Url, input_search_query: &str) -> Node<Msg> {
     nav![
         C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
@@ -261,6 +264,7 @@ fn horizontal_nav_bar(root_base_url: &Url, input_search_query: &str) -> Node<Msg
     ]
 }
 
+#[view]
 fn logo_container() -> Node<Msg> {
     div![
         C!["logo-container"],
@@ -275,6 +279,7 @@ fn logo_container() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn logo() -> Node<Msg> {
     img![
         C!["logo"],
@@ -290,6 +295,7 @@ fn logo() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn spacer(max_width: Option<&str>) -> Node<Msg> {
     div![
         C!["spacing"],
@@ -302,6 +308,7 @@ fn spacer(max_width: Option<&str>) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_bar(input_search_query: &str) -> Node<Msg> {
     label![
         C!["search-bar", "search-bar-container"],
@@ -321,6 +328,7 @@ fn search_bar(input_search_query: &str) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_input(input_search_query: &str) -> Node<Msg> {
     input![
         C!["search-input", "text-input"],
@@ -353,6 +361,7 @@ fn search_input(input_search_query: &str) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_button() -> Node<Msg> {
     div![
         C!["submit-button-container", "button-container"],
@@ -373,6 +382,7 @@ fn search_button() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_icon() -> Node<Msg> {
     svg![
         C!["icon"],
@@ -404,6 +414,7 @@ fn search_icon() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn addons_top_button(root_base_url: &Url) -> Node<Msg> {
     a![
         C!["button-container"],
@@ -427,6 +438,7 @@ fn addons_top_button(root_base_url: &Url) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn addons_top_icon() -> Node<Msg> {
     svg![
         C!["icon"],
@@ -448,6 +460,7 @@ fn addons_top_icon() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn fullscreen_button() -> Node<Msg> {
     div![
         C!["button-container"],
@@ -471,6 +484,7 @@ fn fullscreen_button() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn fullscreen_icon() -> Node<Msg> {
     svg![
         C!["icon"],
@@ -507,6 +521,7 @@ fn fullscreen_icon() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn menu_button() -> Node<Msg> {
     label![
         C!["button-container"],
@@ -531,6 +546,7 @@ fn menu_button() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn menu_icon() -> Node<Msg> {
     svg![
         C!["icon"],
@@ -562,6 +578,7 @@ fn menu_icon() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn vertical_nav_bar(root_base_url: &Url) -> Node<Msg> {
     nav![
         C!["vertical-nav-bar", "vertical-nav-bar-container"],
@@ -579,6 +596,7 @@ fn vertical_nav_bar(root_base_url: &Url) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn vertical_nav_buttons(root_base_url: &Url) -> Vec<Node<Msg>> {
     vec![
         vertical_nav_button(
@@ -630,6 +648,7 @@ fn vertical_nav_buttons(root_base_url: &Url) -> Vec<Node<Msg>> {
     ]
 }
 
+#[view]
 fn vertical_nav_button(title: &str, href: Option<String>, margin_top: bool, icon: Node<Msg>) -> Node<Msg> {
     a![
         C!["nav-tab-button", "nav-tab-button-container"],
@@ -657,6 +676,7 @@ fn vertical_nav_button(title: &str, href: Option<String>, margin_top: bool, icon
     ]
 }
 
+#[view]
 fn vertical_nav_icon(icon: &str, view_box: &str, paths: Vec<Node<Msg>>) -> Node<Msg> {
     svg![
         C!["icon"],
@@ -675,6 +695,7 @@ fn vertical_nav_icon(icon: &str, view_box: &str, paths: Vec<Node<Msg>>) -> Node<
     ]
 }
 
+#[view]
 fn vertical_nav_label(title: &str) -> Node<Msg> {
     div![
         C!["label"],
@@ -691,6 +712,7 @@ fn vertical_nav_label(title: &str) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn nav_content_container(search_results: &[VideoGroupResults], videos_loaded: bool) -> Node<Msg> {
     div![
         C!["nav-content-container"],
@@ -705,6 +727,7 @@ fn nav_content_container(search_results: &[VideoGroupResults], videos_loaded: bo
     ]
 }
 
+#[view]
 fn search_content(search_results: &[VideoGroupResults], videos_loaded: bool) -> Node<Msg> {
     div![
         C!["search-content"],
@@ -722,6 +745,7 @@ fn search_content(search_results: &[VideoGroupResults], videos_loaded: bool) -> 
     ]
 }
 
+#[view]
 fn loading() -> Node<Msg> {
     div![
         C!["loading"],
@@ -734,6 +758,7 @@ fn loading() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_hints_container() -> Node<Msg> {
     div![
         C!["search-hints-container"],
@@ -768,6 +793,7 @@ fn search_hints_container() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_hint_container(
     label: &str,
     icon: &str, 
@@ -813,10 +839,12 @@ fn search_hint_container(
     ]
 }
 
+#[view]
 fn search_rows(search_results: &[VideoGroupResults]) -> Vec<Node<Msg>> {
     search_results.iter().enumerate().map(search_row).collect()
 }
 
+#[view]
 fn search_row((index, group): (usize, &VideoGroupResults)) -> Node<Msg> {
     div![
         C!["search-row", "search-row-poster", "meta-row-container"],
@@ -829,6 +857,7 @@ fn search_row((index, group): (usize, &VideoGroupResults)) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_row_header_container(group: &VideoGroupResults) -> Node<Msg> {
     let see_all_title = "SEE ALL";
     div![
@@ -889,6 +918,7 @@ fn search_row_header_container(group: &VideoGroupResults) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn see_all_icon() -> Node<Msg> {
     svg![
         C!["icon"],
@@ -910,6 +940,7 @@ fn see_all_icon() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
     div![
         C!["meta-items-container"],
@@ -923,6 +954,7 @@ fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn meta_item(video: &Video) -> Node<Msg> {
     a![
         el_key(&video.id),
@@ -964,6 +996,7 @@ fn meta_item(video: &Video) -> Node<Msg> {
     ]
 }
 
+#[view]
 fn dummy_meta_item() -> Node<Msg> {
     div![
         C!["meta-item", "poster-shape-poster"],
@@ -973,6 +1006,7 @@ fn dummy_meta_item() -> Node<Msg> {
     ]
 }
 
+#[view]
 fn poster_container(poster: &str) -> Node<Msg> {
     div![
         C!["poster-container"],
