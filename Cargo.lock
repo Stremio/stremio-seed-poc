@@ -24,11 +24,11 @@ dependencies = [
 [[package]]
 name = "atomic_hooks"
 version = "0.1.6"
-source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=main#354325090fac907fec36517eef9c39ebc4c7bbe2"
 dependencies = [
  "anymap",
  "atomic_hooks_macros",
- "illicit 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "illicit",
  "slotmap",
  "topo",
  "typemap",
@@ -37,10 +37,10 @@ dependencies = [
 [[package]]
 name = "atomic_hooks_macros"
 version = "0.1.6"
-source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=main#354325090fac907fec36517eef9c39ebc4c7bbe2"
 dependencies = [
  "darling",
- "illicit 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "illicit",
  "proc-macro2 1.0.24",
  "quote 1.0.7",
  "syn 1.0.53",
@@ -233,15 +233,16 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "dyn-cache"
-version = "0.12.0"
-source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8d34607e14125f5a3ee85dfc30bb470cb0deb003199a7a7eeb8032983336869"
 dependencies = [
  "downcast-rs",
  "hash_hasher",
  "hashbrown",
- "illicit 1.1.1 (git+https://github.com/MartinKavik/moxie?branch=simple-mutex)",
+ "illicit",
+ "parking_lot",
  "paste",
- "simple-mutex",
 ]
 
 [[package]]
@@ -261,12 +262,6 @@ name = "enclose"
 version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1056f553da426e9c025a662efa48b52e62e0a3a7648aa2d15aeaaf7f0d329357"
-
-[[package]]
-name = "event-listener"
-version = "2.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7531096570974c3a9dcf9e4b8e1cede1ec26cf5046219fb3b9d897503b9be59"
 
 [[package]]
 name = "fnv"
@@ -522,17 +517,7 @@ version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "825d9e489691b0b3d3cc456312c5e96121483e3ec372c5b7b29680cea4db84a6"
 dependencies = [
- "illicit-macro 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "owning_ref",
- "scopeguard",
-]
-
-[[package]]
-name = "illicit"
-version = "1.1.1"
-source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
-dependencies = [
- "illicit-macro 1.0.0 (git+https://github.com/MartinKavik/moxie?branch=simple-mutex)",
+ "illicit-macro",
  "owning_ref",
  "scopeguard",
 ]
@@ -549,16 +534,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "illicit-macro"
-version = "1.0.0"
-source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
-dependencies = [
- "proc-macro-error",
- "quote 1.0.7",
- "syn 1.0.53",
-]
-
-[[package]]
 name = "indexmap"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -566,6 +541,18 @@ checksum = "55e2e4c765aa53a0424761bf9f41aa7a6ac1efa87238f59560640e27fca028f2"
 dependencies = [
  "autocfg",
  "hashbrown",
+]
+
+[[package]]
+name = "instant"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61124eeebbd69b8190558df225adf7e4caafce0d743919e5d6b19652314ec5ec"
+dependencies = [
+ "cfg-if 1.0.0",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -628,6 +615,15 @@ dependencies = [
  "fxhash",
  "num-traits",
  "utf8-ranges",
+]
+
+[[package]]
+name = "lock_api"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd96ffd135b2fd7b973ac026d28085defbe8983df057ced3eb4f2130b0831312"
+dependencies = [
+ "scopeguard",
 ]
 
 [[package]]
@@ -731,6 +727,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ff55baddef9e4ad00f88b6c743a2a8062d4c6ade126c2a528644b8e444d52ce"
 dependencies = [
  "stable_deref_trait",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d7744ac029df22dca6284efe4e898991d28e3085c706c972bcd7da4a27a15eb"
+dependencies = [
+ "instant",
+ "lock_api",
+ "parking_lot_core",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ccb628cad4f84851442432c60ad8e1f607e29752d0bf072cbd0baf28aa34272"
+dependencies = [
+ "cfg-if 1.0.0",
+ "instant",
+ "libc",
+ "redox_syscall",
+ "smallvec 1.5.1",
+ "winapi",
 ]
 
 [[package]]
@@ -933,6 +954,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "redox_syscall"
+version = "0.1.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
+
+[[package]]
 name = "rust-hsluv"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -993,7 +1020,7 @@ dependencies = [
 [[package]]
 name = "seed_hooks"
 version = "0.1.5"
-source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=main#354325090fac907fec36517eef9c39ebc4c7bbe2"
 dependencies = [
  "atomic_hooks",
  "derive_more",
@@ -1007,12 +1034,12 @@ dependencies = [
 [[package]]
 name = "seed_style_macros"
 version = "0.1.4"
-source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=main#354325090fac907fec36517eef9c39ebc4c7bbe2"
 dependencies = [
  "darling",
  "eager",
  "heck",
- "illicit 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "illicit",
  "proc-macro2 1.0.24",
  "quote 1.0.7",
  "seed",
@@ -1023,7 +1050,7 @@ dependencies = [
 [[package]]
 name = "seed_styles"
 version = "0.1.9"
-source = "git+https://github.com/seed-rs/styles_hooks?branch=fixed_topo#fa9132df07a0d823a78288a2927fa50fd77e316b"
+source = "git+https://github.com/seed-rs/styles_hooks?branch=main#354325090fac907fec36517eef9c39ebc4c7bbe2"
 dependencies = [
  "anymap",
  "derive_more",
@@ -1081,7 +1108,7 @@ checksum = "ca37e3e4d1b39afd7ff11ee4e947efae85adfddf4841787bfa47c470e96dc26d"
 dependencies = [
  "array-init",
  "serde",
- "smallvec",
+ "smallvec 0.6.13",
 ]
 
 [[package]]
@@ -1113,15 +1140,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2579985fda508104f7587689507983eadd6a6e84dd35d6d115361f530916fa0d"
 
 [[package]]
-name = "simple-mutex"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38aabbeafa6f6dead8cebf246fe9fae1f9215c8d29b3a69f93bd62a9e4a3dcd6"
-dependencies = [
- "event-listener",
-]
-
-[[package]]
 name = "slab"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1141,6 +1159,12 @@ checksum = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
 dependencies = [
  "maybe-uninit",
 ]
+
+[[package]]
+name = "smallvec"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae524f056d7d770e174287294f562e95044c68e88dec909a00d2094805db9d75"
 
 [[package]]
 name = "stable_deref_trait"
@@ -1399,20 +1423,22 @@ dependencies = [
 
 [[package]]
 name = "topo"
-version = "0.13.0"
-source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0deb3a4bf57a9178825d33b525cb8866f18f30b871bd6f5ad4bbf452889ac995"
 dependencies = [
  "dyn-cache",
- "illicit 1.1.1 (git+https://github.com/MartinKavik/moxie?branch=simple-mutex)",
+ "illicit",
  "once_cell",
- "simple-mutex",
+ "parking_lot",
  "topo-macro",
 ]
 
 [[package]]
 name = "topo-macro"
 version = "0.10.0"
-source = "git+https://github.com/MartinKavik/moxie?branch=simple-mutex#c311f5286612251452a95eea8b1c69f84f2ca005"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b420cb55838be8020a93bdb628c171339fc945c0be4eb8cd1432186a9030b8f2"
 dependencies = [
  "quote 1.0.7",
  "syn 1.0.53",

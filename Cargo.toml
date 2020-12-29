@@ -25,7 +25,7 @@ localsearch = { git = "ssh://git@github.com/MartinKavik/Localsearch.git", branch
 seed = { git = "https://github.com/seed-rs/seed", branch = "master" }
 # seed = { path = "../seed" }
 
-seed_styles = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_styles", branch = "fixed_topo" }
+seed_styles = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_styles", branch = "main" }
 # seed_styles = { path = "d:/repos/styles_hooks/seed_styles" }
 
 stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "development" }
@@ -38,7 +38,7 @@ stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch
 chrono = "0.4.19"
 http = "0.2.1"
 
-seed_hooks = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_hooks", branch = "fixed_topo" }
+seed_hooks = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_hooks", branch = "main" }
 # seed_hooks = { path = "d:/repos/styles_hooks/seed_hooks" }
 
 [dependencies.web-sys]
