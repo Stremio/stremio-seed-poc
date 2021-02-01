@@ -38,6 +38,7 @@ const DETAIL: &str = "metadetails";
 const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
 const SEARCH: &str = "search";
+const TEST_LINKS: &str = "test_links";
 
 // ------ ------
 //    Actions
@@ -109,6 +110,7 @@ pub enum PageId {
     Addons,
     NotFound,
     Search,
+    TestLinks,
 }
 
 // ------ CoreModel  ------
@@ -128,8 +130,8 @@ struct CoreModel {
 
 struct_urls!();
 impl<'a> Urls<'a> {
-    pub fn board(self) -> Url {
-        self.base_url().add_hash_path_part(BOARD)
+    pub fn root(self) -> Url {
+        self.base_url()
     }
     pub fn discover_urls(self) -> page::discover::Urls<'a> {
         page::discover::Urls::new(self.base_url().add_hash_path_part(DISCOVER))
@@ -145,6 +147,9 @@ impl<'a> Urls<'a> {
     }
     pub fn search_urls(self) -> page::search::Urls<'a> {
         page::search::Urls::new(self.base_url().add_hash_path_part(SEARCH))
+    }
+    pub fn test_links(self) -> Url {
+        self.base_url().add_hash_path_part(TEST_LINKS)
     }
 }
 
@@ -167,7 +172,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::UrlChanged(subs::UrlChanged(mut url)) => {
             let page_id = match url.next_hash_path_part() {
-                None | Some(BOARD) => Some(PageId::Board),
+                None => Some(PageId::Board),
                 Some(DISCOVER) => page::discover::init(
                     url,
                     &mut model.discover_model,
@@ -190,6 +195,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut model.search_model,
                     &mut orders.proxy(Msg::SearchMsg),
                 ),
+                Some(TEST_LINKS) => Some(PageId::TestLinks),
                 _ => None,
             };
             model.page_id = page_id.or(Some(PageId::NotFound));
@@ -303,6 +309,7 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     },
+                    PageId::TestLinks => page::test_links::view(&model.context.root_base_url).into_nodes(),
                     PageId::NotFound => page::not_found::view().into_nodes(),
                 }
             })

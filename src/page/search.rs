@@ -601,7 +601,7 @@ fn vertical_nav_buttons(root_base_url: &Url) -> Vec<Node<Msg>> {
     vec![
         vertical_nav_button(
             "Board", 
-            Some(RootUrls::new(root_base_url).board().to_string()), 
+            Some(RootUrls::new(root_base_url).root().to_string()), 
             true, 
             vertical_nav_icon("ic_board", "0 0 1395 1024", vec![
                 path![attrs!{At::D => "M1308.009 174.381l-1220.668 0c-48.237 0-87.341-39.104-87.341-87.341v0.301c0-48.237 39.104-87.341 87.341-87.341l1220.668-0c48.237 0 87.341 39.104 87.341 87.341v-0.301c0 48.237-39.104 87.341-87.341 87.341z"}],

@@ -5,3 +5,4 @@ pub mod discover;
 pub mod not_found;
 pub mod player;
 pub mod search;
+pub mod test_links;
