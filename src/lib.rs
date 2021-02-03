@@ -308,8 +308,7 @@ fn view(model: &Model) -> Node<Msg> {
                     PageId::Detail => page::detail::view(&model.context).into_nodes(),
                     PageId::Discover => {
                         if let Some(page_model) = &model.discover_model {
-                            page::discover::view(page_model, &model.context)
-                                .map_msg(Msg::DiscoverMsg)
+                            page::discover::view(page_model, &model.context, page_id, Msg::DiscoverMsg)
                                 .into_nodes()
                         } else {
                             vec![]
