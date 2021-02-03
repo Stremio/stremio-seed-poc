@@ -32,7 +32,6 @@ use seed_hooks::{*, topo::nested as view};
 
 // ---- url parts ----
 
-const BOARD: &str = "board";
 const DISCOVER: &str = "discover";
 const DETAIL: &str = "metadetails";
 const PLAYER: &str = "player";
@@ -70,6 +69,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         },
         page_id: None,
         // ---- page models ----
+        board_model: None,
         detail_model: None,
         discover_model: None,
         addons_model: None,
@@ -86,6 +86,7 @@ pub struct Model {
     context: Context,
     page_id: Option<PageId>,
     // ---- page models ----
+    board_model: Option<page::board::Model>,
     detail_model: Option<page::detail::Model>,
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
@@ -162,6 +163,7 @@ enum Msg {
     UrlChanged(subs::UrlChanged),
     CoreMsg(Rc<CoreMsg>),
     HandleEffectMsg(Rc<CoreMsg>),
+    BoardMsg(page::board::Msg),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
     AddonsMsg(page::addons::Msg),
@@ -172,7 +174,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::UrlChanged(subs::UrlChanged(mut url)) => {
             let page_id = match url.next_hash_path_part() {
-                None => Some(PageId::Board),
+                None => page::board::init(
+                    url,
+                    &mut model.board_model,
+                    &mut orders.proxy(Msg::BoardMsg),
+                ),
                 Some(DISCOVER) => page::discover::init(
                     url,
                     &mut model.discover_model,
@@ -222,6 +228,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::HandleEffectMsg(core_msg) => {
             orders.notify(core_msg);
+        }
+        Msg::BoardMsg(page_msg) => {
+            if let Some(page_model) = &mut model.board_model {
+                page::board::update(page_msg, page_model, &mut orders.proxy(Msg::BoardMsg));
+            }
         }
         Msg::DiscoverMsg(page_msg) => {
             if let Some(page_model) = &mut model.discover_model {
@@ -279,7 +290,13 @@ fn view(model: &Model) -> Node<Msg> {
                 .z_index("0"),
             model.page_id.map(|page_id| {
                 match page_id {
-                    PageId::Board => page::board::view(&model.context.root_base_url).into_nodes(),
+                    PageId::Board => if let Some(page_model) = &model.board_model {
+                        page::board::view(page_model, &model.context)
+                            .map_msg(Msg::BoardMsg)
+                            .into_nodes()
+                    } else {
+                        vec![]
+                    },
                     PageId::Detail => page::detail::view(&model.context).into_nodes(),
                     PageId::Discover => {
                         if let Some(page_model) = &model.discover_model {
