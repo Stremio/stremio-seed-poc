@@ -1,4 +1,4 @@
-use crate::{multi_select, Context, PageId, Actions, Urls as RootUrls};
+use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -153,104 +153,50 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 // ------ ------
 
 #[view]
-pub fn view(model: &Model, context: &Context) -> Node<Msg> {
-    div![
-        C!["discover-container", "main-nav-bars-container"],
-        s()
-            .height(pc(100))
-            .width(pc(100))
-            .background_color(Color::BackgroundDark2)
-            .position(CssPosition::Relative)
-            .z_index("0"),
-        horizontal_nav_bar(),
-        vertical_nav_bar(),
-        div![
-            C!["nav-content-container"],
-            s()
-                .position(CssPosition::Absolute)
-                .bottom("0")
-                .left(global::VERTICAL_NAV_BAR_SIZE)
-                .right("0")
-                .top(global::HORIZONTAL_NAV_BAR_SIZE)
-                .z_index("0"),
-            div![
-                C!["discover-content"],
-                s()
-                    .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .height(pc(100))
-                    .width(pc(100)),            
-                div![
-                    C!["catalog-container"],
-                    s()
-                        .align_self(CssAlignSelf::Stretch)
-                        .display(CssDisplay::Flex)
-                        .flex("1")
-                        .flex_direction(CssFlexDirection::Column),
-                    selectable_inputs(model, context),
-                    context.core_model.catalog.catalog.as_ref().map(|resource_loadable| {
-                        meta_items(
-                            &resource_loadable.content,
-                            model.selected_meta_preview_id.as_ref()
-                        )
-                    }),
-                ],
-                div![
-                    C!["meta-preview-container", "compact"],
-                    s()
-                        .align_self(CssAlignSelf::Stretch)
-                        .background_color(Color::BackgroundDark3)
-                        .flex(CssFlex::None)
-                        .width(rem(28))
-                        .display(CssDisplay::Flex)
-                        .flex_direction(CssFlexDirection::Column)
-                        .position(CssPosition::Relative)
-                        .z_index("0"),
-                    s()
-                        .only_and_below(Breakpoint::XXSmall)
-                        .display(CssDisplay::None),
-                ]
-            ],
-        ]
-    ]
+pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
+    let page_content = discover_content(model, context);
+    super::basic_layout(page_content.map_msg(msg_mapper), "discover-container", context, page_id)
 }
 
 #[view]
-fn horizontal_nav_bar() -> Node<Msg> {
-    nav![
-        C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
+fn discover_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
+    div![
+        C!["discover-content"],
         s()
-            .left("0")
-            .position(CssPosition::Absolute)
-            .right("0")
-            .top("0")
-            .z_index("0")
-            .align_items(CssAlignItems::Center)
-            .background_color(Color::Background)
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
-            .height(global::HORIZONTAL_NAV_BAR_SIZE)
-            .overflow(CssOverflow::Visible)
-            .padding_right(rem(1)),
-        // .. @TODO implemented in the Search page
-    ]
-}
-
-#[view]
-fn vertical_nav_bar() -> Node<Msg> {
-    nav![
-        C!["vertical-nav-bar", "vertical-nav-bar-container"],
-        s()
-            .bottom("0")
-            .left("0")
-            .position(CssPosition::Absolute)
-            .top(global::HORIZONTAL_NAV_BAR_SIZE)
-            .z_index("1")
-            .background_color(Color::BackgroundDark1)
-            .overflow_y(CssOverflowY::Auto)
-            .raw("scrollbar-width: none;")
-            .width(global::VERTICAL_NAV_BAR_SIZE),
-        // .. @TODO implemented in the Search page
+            .height(pc(100))
+            .width(pc(100)),            
+        div![
+            C!["catalog-container"],
+            s()
+                .align_self(CssAlignSelf::Stretch)
+                .display(CssDisplay::Flex)
+                .flex("1")
+                .flex_direction(CssFlexDirection::Column),
+            selectable_inputs(model, context),
+            context.core_model.catalog.catalog.as_ref().map(|resource_loadable| {
+                meta_items(
+                    &resource_loadable.content,
+                    model.selected_meta_preview_id.as_ref()
+                )
+            }),
+        ],
+        div![
+            C!["meta-preview-container", "compact"],
+            s()
+                .align_self(CssAlignSelf::Stretch)
+                .background_color(Color::BackgroundDark3)
+                .flex(CssFlex::None)
+                .width(rem(28))
+                .display(CssDisplay::Flex)
+                .flex_direction(CssFlexDirection::Column)
+                .position(CssPosition::Relative)
+                .z_index("0"),
+            s()
+                .only_and_below(Breakpoint::XXSmall)
+                .display(CssDisplay::None),
+        ]
     ]
 }
 

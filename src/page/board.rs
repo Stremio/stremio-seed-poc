@@ -145,7 +145,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         model.video_groups.values(), 
         !model.video_groups.is_empty()
     );
-    super::basic_layout(page_content.map_msg(msg_mapper), context, page_id)
+    super::basic_layout(page_content.map_msg(msg_mapper), "board-container", context, page_id)
 }
 
 #[view]

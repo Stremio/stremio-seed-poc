@@ -19,7 +19,7 @@ fn on_click_not_implemented() -> EventHandler<Msg> {
 }
 
 #[view]
-pub fn basic_layout(page_content: Node<Msg>, context: &Context, page_id: PageId) -> Node<Msg> {
+pub fn basic_layout(page_content: Node<Msg>, container_class: &str, context: &Context, page_id: PageId) -> Node<Msg> {
     div![
         C!["route-content"],
         s()
@@ -31,7 +31,7 @@ pub fn basic_layout(page_content: Node<Msg>, context: &Context, page_id: PageId)
             .overflow(CssOverflow::Hidden)
             .z_index("0"),
         div![
-            C!["board-container", "main-nav-bars-container"],
+            C![container_class, "main-nav-bars-container"],
             s()
                 .background_color(Color::BackgroundDark2)
                 .height(pc(100))
