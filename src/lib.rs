@@ -159,10 +159,11 @@ impl<'a> Urls<'a> {
 // ------ ------
 
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
-enum Msg {
+pub enum Msg {
     UrlChanged(subs::UrlChanged),
     CoreMsg(Rc<CoreMsg>),
     HandleEffectMsg(Rc<CoreMsg>),
+    GoToSearchPage,
     BoardMsg(page::board::Msg),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
@@ -228,6 +229,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::HandleEffectMsg(core_msg) => {
             orders.notify(core_msg);
+        }
+        Msg::GoToSearchPage => {
+            orders.request_url(Urls::new(&model.context.root_base_url).search_urls().root());
         }
         Msg::BoardMsg(page_msg) => {
             if let Some(page_model) = &mut model.board_model {
@@ -296,8 +300,7 @@ fn view(model: &Model) -> Node<Msg> {
             model.page_id.map(|page_id| {
                 match page_id {
                     PageId::Board => if let Some(page_model) = &model.board_model {
-                        page::board::view(page_model, &model.context, model.page_id)
-                            .map_msg(Msg::BoardMsg)
+                        page::board::view(page_model, &model.context, page_id, Msg::BoardMsg)
                             .into_nodes()
                     } else {
                         vec![]
