@@ -317,8 +317,7 @@ fn view(model: &Model) -> Node<Msg> {
                     PageId::Player => page::player::view().into_nodes(),
                     PageId::Addons => {
                         if let Some(page_model) = &model.addons_model {
-                            page::addons::view(page_model, &model.context)
-                                .map_msg(Msg::AddonsMsg)
+                            page::addons::view(page_model, &model.context, page_id, Msg::AddonsMsg)
                                 .into_nodes()
                         } else {
                             vec![]
