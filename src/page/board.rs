@@ -125,12 +125,16 @@ impl<'a> Urls<'a> {
 
 pub enum Msg {
     VideosReceived(VideoGroupId, Vec<MetaItemPreview>),
+    GoToSearchPage,
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::VideosReceived(video_group_id, videos) => {
             model.video_groups.get_mut(&video_group_id).unwrap().videos = videos;
+        }
+        Msg::GoToSearchPage => {
+            orders.request_url(RootUrls::new(&context.root_base_url).search_urls().root());
         }
     }
 }
@@ -252,6 +256,7 @@ fn search_bar(input_search_query: &str) -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::BackgroundLight3),
+        ev(Ev::Click, |_| Msg::GoToSearchPage),
         search_input(input_search_query),
         search_button(),
     ]
