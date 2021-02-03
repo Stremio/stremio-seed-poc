@@ -6,6 +6,8 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use serde::Deserialize;
 use localsearch::LocalSearch;
 use seed_hooks::{*, topo::nested as view};
+use indexmap::{IndexMap, indexmap};
+use stremio_core::types::resource::{MetaItemPreview, PosterShape};
 
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
@@ -24,47 +26,63 @@ pub fn init(
 ) -> Option<PageId> {
     let base_url = url.to_hash_base_url();
 
-    let video_groups = vec![
-        VideoGroup {
-            label: "Cinemeta - top movie".to_owned(),
-            videos: Vec::new(),
-        },
-        VideoGroup {
-            label: "Cinemeta - top series".to_owned(),
-            videos: Vec::new(),
-        },
-        VideoGroup {
-            label: "Cinemeta - imdbRating movie".to_owned(),
-            videos: Vec::new(),
-        },
-        VideoGroup {
-            label: "Cinemeta - imdbRating series".to_owned(),
-            videos: Vec::new(),
-        },
-        VideoGroup {
-            label: "YouTube - top channel".to_owned(),
-            videos: Vec::new(),
-        },
-    ];
-
     if model.is_none() {
+        let video_groups = indexmap!{
+            VideoGroupId::CinemetaTopMovie => VideoGroup {
+                label: "Cinemeta - top movie".to_owned(),
+                videos: Vec::new(),
+            },
+            VideoGroupId::CinemetaTopSeries => VideoGroup {
+                label: "Cinemeta - top series".to_owned(),
+                videos: Vec::new(),
+            },
+            VideoGroupId::CinemetaImdbMovie => VideoGroup {
+                label: "Cinemeta - imdbRating movie".to_owned(),
+                videos: Vec::new(),
+            },
+            VideoGroupId::CinemetaImdbSeries => VideoGroup {
+                label: "Cinemeta - imdbRating series".to_owned(),
+                videos: Vec::new(),
+            },
+            VideoGroupId::YoutubeTopChannel => VideoGroup {
+                label: "YouTube - top channel".to_owned(),
+                videos: Vec::new(),
+            },
+        };
+
         *model = Some(Model {
             base_url,
             video_groups,
         });
-        // orders.perform_cmd(async { 
-        //     Msg::VideosReceived(get_videos().await.unwrap()) 
-        // });
+
+        let resources = vec![
+            (VideoGroupId::CinemetaTopMovie, "https://v4-cinemeta.strem.io/catalog/movie/top.json"),
+            (VideoGroupId::CinemetaTopSeries, "https://v4-cinemeta.strem.io/catalog/series/top.json"),
+            (VideoGroupId::CinemetaImdbMovie, "https://v4-cinemeta.strem.io/catalog/movie/imdbRating.json"),
+            (VideoGroupId::CinemetaImdbSeries, "https://v4-cinemeta.strem.io/catalog/series/imdbRating.json"),
+            (VideoGroupId::YoutubeTopChannel, "https://v3-channels.strem.io/catalog/channel/top.json"),
+        ];
+        for (video_group_id, url) in resources.into_iter() {
+            orders.perform_cmd(async move { 
+                Msg::VideosReceived(video_group_id, get_videos(url).await.unwrap()) 
+            });
+        }
     }
     Some(PageId::Board)
 }
 
-async fn get_videos() -> Result<Vec<Video>, FetchError> {
-    fetch("/data/cinemeta_20_000.json")
+async fn get_videos(url: &str) -> Result<Vec<MetaItemPreview>, FetchError> {
+    fetch(url)
         .await?
         .check_status()?
-        .json::<Vec<Video>>()
+        .json::<ResourceResponse>()
         .await
+        .map(|response| response.metas.into_iter().take(10).collect())
+}
+
+#[derive(Deserialize)]
+struct ResourceResponse {
+    metas: Vec<MetaItemPreview>
 }
 
 // ------ ------
@@ -73,32 +91,21 @@ async fn get_videos() -> Result<Vec<Video>, FetchError> {
 
 pub struct Model {
     base_url: Url,
-    video_groups: Vec<VideoGroup>,
+    video_groups: IndexMap<VideoGroupId, VideoGroup>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum VideoGroupId {
+    CinemetaTopMovie,
+    CinemetaTopSeries,
+    CinemetaImdbMovie,
+    CinemetaImdbSeries,
+    YoutubeTopChannel,
+}
+
 struct VideoGroup {
     label: String,
-    videos: Vec<Video>,
-}
-
-#[derive(Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Video {
-    id: String,
-    name: String,
-    poster: String,
-    #[serde(rename = "type")]
-    type_: VideoType,
-    imdb_rating: f64,
-    popularity: f64,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-enum VideoType {
-    Movie,
-    Series,
+    videos: Vec<MetaItemPreview>,
 }
 
 // ------ ------
@@ -117,32 +124,13 @@ impl<'a> Urls<'a> {
 // ------ ------
 
 pub enum Msg {
-    VideosReceived(Vec<Video>),
+    VideosReceived(VideoGroupId, Vec<MetaItemPreview>),
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::VideosReceived(videos) => {
-            // let mut cinemeta_top_movie = Vec::new();
-            // let mut cinemeta_top_series = Vec::new();
-
-            // for video in videos {
-            //     match video.type_ {
-            //         VideoType::Movie => cinemeta_top_movie.push(video),  
-            //         VideoType::Series => cinemeta_top_series.push(video),
-            //     }
-            // }
-            // model.video_groups = vec![
-            //     VideoGroup {
-            //         label: "Cinemeta - top movie".to_owned(),
-            //         videos: index(cinemeta_top_movie),
-            //     },
-            //     VideoGroup {
-            //         label: "Cinemeta - top series".to_owned(),
-            //         videos: index(cinemeta_top_series),
-            //     },
-            // ];
-            // orders.send_msg(Msg::Search);
+        Msg::VideosReceived(video_group_id, videos) => {
+            model.video_groups.get_mut(&video_group_id).unwrap().videos = videos;
         }
     }
 }
@@ -164,7 +152,7 @@ pub fn view(model: &Model, context: &Context ) -> Node<Msg> {
             .overflow(CssOverflow::Hidden)
             .z_index("0"),
         div![
-            C!["search-container", "main-nav-bars-container"],
+            C!["board-container", "main-nav-bars-container"],
             s()
                 .background_color(Color::BackgroundDark2)
                 .height(pc(100))
@@ -654,7 +642,7 @@ fn vertical_nav_label(title: &str) -> Node<Msg> {
 }
 
 #[view]
-fn nav_content_container(video_groups: &[VideoGroup]) -> Node<Msg> {
+fn nav_content_container(video_groups: &IndexMap<VideoGroupId, VideoGroup>) -> Node<Msg> {
     div![
         C!["nav-content-container"],
         s()
@@ -664,14 +652,14 @@ fn nav_content_container(video_groups: &[VideoGroup]) -> Node<Msg> {
             .right("0")
             .top(global::HORIZONTAL_NAV_BAR_SIZE)
             .z_index("0"),
-        search_content(video_groups, !video_groups.is_empty()),
+        board_content(video_groups.values(), !video_groups.is_empty()),
     ]
 }
 
 #[view]
-fn search_content(video_groups: &[VideoGroup], videos_loaded: bool) -> Node<Msg> {
+fn board_content<'a>(video_groups: impl Iterator<Item = &'a VideoGroup>, videos_loaded: bool) -> Node<Msg> {
     div![
-        C!["search-content"],
+        C!["board-content"],
         s()
             .height(pc(100))
             .overflow_y(CssOverflowY::Auto)
@@ -679,7 +667,7 @@ fn search_content(video_groups: &[VideoGroup], videos_loaded: bool) -> Node<Msg>
         if !videos_loaded {
             vec![loading()]
         } else {
-            search_rows(video_groups)
+            board_rows(video_groups)
         }
     ]
 }
@@ -698,25 +686,25 @@ fn loading() -> Node<Msg> {
 }
 
 #[view]
-fn search_rows(search_results: &[VideoGroup]) -> Vec<Node<Msg>> {
-    search_results.iter().enumerate().map(search_row).collect()
+fn board_rows<'a>(video_groups: impl Iterator<Item = &'a VideoGroup>) -> Vec<Node<Msg>> {
+    video_groups.enumerate().map(board_row).collect()
 }
 
 #[view]
-fn search_row((index, group): (usize, &VideoGroup)) -> Node<Msg> {
+fn board_row((index, group): (usize, &VideoGroup)) -> Node<Msg> {
     div![
-        C!["search-row", "search-row-poster", "meta-row-container"],
+        C!["board-row", "board-row-poster", "meta-row-container"],
         s()
             .margin("4rem 2rem")
             .overflow(CssOverflow::Visible),
         IF!(index == 0 => s().margin_top(rem(2))),
-        search_row_header_container(group),
-        search_row_meta_items_container(group),
+        board_row_header_container(group),
+        board_row_meta_items_container(group),
     ]
 }
 
 #[view]
-fn search_row_header_container(group: &VideoGroup) -> Node<Msg> {
+fn board_row_header_container(group: &VideoGroup) -> Node<Msg> {
     let see_all_title = "SEE ALL";
     div![
         C!["header-container"],
@@ -799,7 +787,7 @@ fn see_all_icon() -> Node<Msg> {
 }
 
 #[view]
-fn search_row_meta_items_container(group: &VideoGroup) -> Node<Msg> {
+fn board_row_meta_items_container(group: &VideoGroup) -> Node<Msg> {
     div![
         C!["meta-items-container"],
         s()
@@ -813,7 +801,7 @@ fn search_row_meta_items_container(group: &VideoGroup) -> Node<Msg> {
 }
 
 #[view]
-fn meta_item(video: &Video) -> Node<Msg> {
+fn meta_item(video: &MetaItemPreview) -> Node<Msg> {
     a![
         el_key(&video.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
@@ -831,7 +819,7 @@ fn meta_item(video: &Video) -> Node<Msg> {
             At::Title => video.name,
         },
         on_click_not_implemented(),
-        poster_container(&video.poster),
+        video.poster.as_ref().map(poster_container),
         div![
             C!["title-bar-container"],
             s()
@@ -865,7 +853,7 @@ fn dummy_meta_item() -> Node<Msg> {
 }
 
 #[view]
-fn poster_container(poster: &str) -> Node<Msg> {
+fn poster_container(poster: &String) -> Node<Msg> {
     div![
         C!["poster-container"],
         s()
