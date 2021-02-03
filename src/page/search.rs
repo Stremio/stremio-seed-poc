@@ -82,7 +82,7 @@ struct VideoGroupResults {
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-struct Video {
+pub struct Video {
     id: String,
     name: String,
     poster: String,
@@ -94,7 +94,7 @@ struct Video {
 
 #[derive(Copy, Clone, Eq, PartialEq, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-enum VideoType {
+pub enum VideoType {
     Movie,
     Series,
 }
