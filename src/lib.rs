@@ -291,7 +291,7 @@ fn view(model: &Model) -> Node<Msg> {
             model.page_id.map(|page_id| {
                 match page_id {
                     PageId::Board => if let Some(page_model) = &model.board_model {
-                        page::board::view(page_model, &model.context)
+                        page::board::view(page_model, &model.context, model.page_id)
                             .map_msg(Msg::BoardMsg)
                             .into_nodes()
                     } else {
