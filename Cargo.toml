@@ -21,6 +21,7 @@ js-sys = "0.3.46"
 enclose = "1.1.8"
 itertools = "0.8.1"
 localsearch = { git = "ssh://git@github.com/MartinKavik/Localsearch.git", branch = "master" }
+indexmap = "1.6.1"
 
 seed = { git = "https://github.com/seed-rs/seed", branch = "master" }
 # seed = { path = "../seed" }
