@@ -231,7 +231,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::BoardMsg(page_msg) => {
             if let Some(page_model) = &mut model.board_model {
-                page::board::update(page_msg, page_model, &mut orders.proxy(Msg::BoardMsg));
+                page::board::update(
+                    page_msg, 
+                    page_model, 
+                    &mut model.context,
+                    &mut orders.proxy(Msg::BoardMsg)
+                );
             }
         }
         Msg::DiscoverMsg(page_msg) => {
