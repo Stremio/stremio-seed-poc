@@ -188,7 +188,7 @@ fn back_button<Ms: 'static>() -> Node<Ms> {
         attrs!{
             At::TabIndex => -1,
         },
-        on_click_not_implemented(),
+        ev(Ev::Click, |_| Url::go_back(1)),
         svg![
             C!["icon"],
             s()
