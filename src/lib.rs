@@ -325,8 +325,7 @@ fn view(model: &Model) -> Node<Msg> {
                     }
                     PageId::Search => {
                         if let Some(page_model) = &model.search_model {
-                            page::search::view(page_model, &model.context)
-                                .map_msg(Msg::SearchMsg)
+                            page::search::view(page_model, &model.context, page_id, Msg::SearchMsg)
                                 .into_nodes()
                         } else {
                             vec![]
