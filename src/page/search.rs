@@ -8,6 +8,7 @@ use localsearch::LocalSearch;
 use seed_hooks::{*, topo::nested as view};
 use crate::page;
 use std::rc::Rc;
+use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
 
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
@@ -74,12 +75,14 @@ pub struct Model {
 struct VideoGroup {
     label: String,
     videos: LocalSearch<Video>,
+    see_all_url: Url,
 }
 
 #[derive(Debug)]
 struct VideoGroupResults {
     label: String,
     videos: Vec<Video>,
+    see_all_url: Url,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -118,7 +121,7 @@ pub enum Msg {
     Search,
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::SearchQueryInputChanged(query) => {
             model.input_search_query = query;
@@ -146,10 +149,18 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 VideoGroup {
                     label: "Cinemeta - top movie".to_owned(),
                     videos: index(cinemeta_top_movie),
+                    see_all_url: RootUrls::new(&context.root_base_url).discover_urls().res_req(&ResourceRequest::new(
+                        "https://v4-cinemeta.strem.io/manifest.json".parse().expect("valid BASE url"),
+                        ResourcePath::without_extra("catalog", "movie", "top"),
+                    )),
                 },
                 VideoGroup {
                     label: "Cinemeta - top series".to_owned(),
                     videos: index(cinemeta_top_series),
+                    see_all_url: RootUrls::new(&context.root_base_url).discover_urls().res_req(&ResourceRequest::new(
+                        "https://v4-cinemeta.strem.io/manifest.json".parse().expect("valid BASE url"),
+                        ResourcePath::without_extra("catalog", "series", "top"),
+                    )),
                 },
             ];
             orders.send_msg(Msg::Search);
@@ -170,6 +181,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                         search_results.push(VideoGroupResults {
                             label: group.label.clone(),
                             videos: group_results,
+                            see_all_url: group.see_all_url.clone(),
                         });
                     }
                 }
@@ -405,8 +417,8 @@ fn search_row_header_container(group: &VideoGroupResults) -> Node<Msg> {
             attrs!{
                 At::TabIndex => 0,
                 At::Title => see_all_title,
+                At::Href => group.see_all_url,
             },
-            on_click_not_implemented(),
             div![
                 C!["label"],
                 s()
