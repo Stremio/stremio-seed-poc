@@ -13,13 +13,28 @@ use seed_styles::{pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use seed_hooks::{*, topo::nested as view};
+use std::rc::Rc;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
 }
 
+pub struct BasicLayoutArgs<'a> {
+    page_content: Node<Msg>,
+    container_class: &'a str,
+    context: &'a Context,
+    page_id: PageId,
+    search_args: Option<SearchArgs<'a>>,
+}
+
+pub struct SearchArgs<'a> {
+    input_search_query: &'a str,
+    on_search_query_input_changed: Rc<dyn Fn(String) -> Msg>,
+    on_search: Rc<dyn Fn() -> Msg>,
+}
+
 #[view]
-pub fn basic_layout(page_content: Node<Msg>, container_class: &str, context: &Context, page_id: PageId) -> Node<Msg> {
+pub fn basic_layout(args: BasicLayoutArgs) -> Node<Msg> {
     div![
         C!["route-content"],
         s()
@@ -31,22 +46,22 @@ pub fn basic_layout(page_content: Node<Msg>, container_class: &str, context: &Co
             .overflow(CssOverflow::Hidden)
             .z_index("0"),
         div![
-            C![container_class, "main-nav-bars-container"],
+            C![args.container_class, "main-nav-bars-container"],
             s()
                 .background_color(Color::BackgroundDark2)
                 .height(pc(100))
                 .width(pc(100))
                 .position(CssPosition::Relative)
                 .z_index("0"),
-            horizontal_nav_bar(&context.root_base_url, ""),
-            vertical_nav_bar(&context.root_base_url, page_id),
-            nav_content_container(page_content),
+            horizontal_nav_bar(&args.context.root_base_url, args.search_args.as_ref()),
+            vertical_nav_bar(&args.context.root_base_url, args.page_id),
+            nav_content_container(args.page_content),
         ]
     ]
 }
 
 #[view]
-fn horizontal_nav_bar(root_base_url: &Url, input_search_query: &str) -> Node<Msg> {
+fn horizontal_nav_bar(root_base_url: &Url, search_args: Option<&SearchArgs>) -> Node<Msg> {
     nav![
         C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
         s()
@@ -64,7 +79,7 @@ fn horizontal_nav_bar(root_base_url: &Url, input_search_query: &str) -> Node<Msg
             .padding_right(rem(1)),
         logo_container(),
         spacer(None),
-        search_bar(input_search_query),
+        search_bar(search_args),
         spacer(Some("11rem")),
         addons_top_button(root_base_url),
         fullscreen_button(),
@@ -117,7 +132,7 @@ fn spacer(max_width: Option<&str>) -> Node<Msg> {
 }
 
 #[view]
-fn search_bar(input_search_query: &str) -> Node<Msg> {
+fn search_bar(search_args: Option<&SearchArgs>) -> Node<Msg> {
     label![
         C!["search-bar", "search-bar-container"],
         s()
@@ -132,13 +147,13 @@ fn search_bar(input_search_query: &str) -> Node<Msg> {
             .hover()
             .background_color(Color::BackgroundLight3),
         ev(Ev::Click, |_| Msg::GoToSearchPage),
-        search_input(input_search_query),
-        search_button(),
+        search_input(search_args),
+        search_button(search_args),
     ]
 }
 
 #[view]
-fn search_input(input_search_query: &str) -> Node<Msg> {
+fn search_input(search_args: Option<&SearchArgs>) -> Node<Msg> {
     input![
         C!["search-input", "text-input"],
         s()
@@ -164,14 +179,17 @@ fn search_input(input_search_query: &str) -> Node<Msg> {
             At::TabIndex => -1,
             At::Type => "text",
             At::Placeholder => "Search or paste link",
-            At::Value => input_search_query,
+            At::Value => search_args.map(|args| args.input_search_query).unwrap_or_default(),
         },
-        // input_ev(Ev::Input, Msg::SearchQueryInputChanged),
+        search_args.map(|args| {
+            let on_change = Rc::clone(&args.on_search_query_input_changed);
+            input_ev(Ev::Input, move |query| on_change(query))
+        }),
     ]
 }
 
 #[view]
-fn search_button() -> Node<Msg> {
+fn search_button(search_args: Option<&SearchArgs>) -> Node<Msg> {
     div![
         C!["submit-button-container", "button-container"],
         s()
@@ -186,7 +204,10 @@ fn search_button() -> Node<Msg> {
         attrs!{
             At::TabIndex => -1,
         },
-        // ev(Ev::Click, |_| Msg::Search),
+        search_args.map(|args| {
+            let on_search = Rc::clone(&args.on_search);
+            ev(Ev::Click, move |_| on_search())
+        }),
         search_icon(),
     ]
 }

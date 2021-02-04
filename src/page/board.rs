@@ -8,6 +8,7 @@ use localsearch::LocalSearch;
 use seed_hooks::{*, topo::nested as view};
 use indexmap::{IndexMap, indexmap};
 use stremio_core::types::resource::{MetaItemPreview, PosterShape};
+use crate::page;
 
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
@@ -144,8 +145,15 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
     let page_content = board_content(
         model.video_groups.values(), 
         !model.video_groups.is_empty()
-    );
-    super::basic_layout(page_content.map_msg(msg_mapper), "board-container", context, page_id)
+    ).map_msg(msg_mapper);
+    
+    page::basic_layout(page::BasicLayoutArgs {
+        page_content,
+        container_class: "board-container",
+        context,
+        page_id,
+        search_args: None,
+    })
 }
 
 #[view]
