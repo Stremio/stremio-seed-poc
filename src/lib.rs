@@ -178,6 +178,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 None => page::board::init(
                     url,
                     &mut model.board_model,
+                    &mut model.context,
                     &mut orders.proxy(Msg::BoardMsg),
                 ),
                 Some(DISCOVER) => page::discover::init(
@@ -269,7 +270,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::SearchMsg(page_msg) => {
             if let Some(page_model) = &mut model.search_model {
-                page::search::update(page_msg, page_model, &mut orders.proxy(Msg::SearchMsg));
+                page::search::update(
+                    page_msg, 
+                    page_model, 
+                    &mut model.context,
+                    &mut orders.proxy(Msg::SearchMsg)
+                );
             }
         }
     }

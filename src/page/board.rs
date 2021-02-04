@@ -8,6 +8,7 @@ use localsearch::LocalSearch;
 use seed_hooks::{*, topo::nested as view};
 use indexmap::{IndexMap, indexmap};
 use stremio_core::types::resource::{MetaItemPreview, PosterShape};
+use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
 use crate::page;
 
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
@@ -23,31 +24,55 @@ fn on_click_not_implemented() -> EventHandler<Msg> {
 pub fn init(
     mut url: Url,
     model: &mut Option<Model>,
+    context: &mut Context,
     orders: &mut impl Orders<Msg>,
 ) -> Option<PageId> {
+    let root_url_base = &context.root_base_url;
     let base_url = url.to_hash_base_url();
+
+    // @TODO load dynamically? (together with the `let resources` below)
 
     if model.is_none() {
         let video_groups = indexmap!{
             VideoGroupId::CinemetaTopMovie => VideoGroup {
                 label: "Cinemeta - top movie".to_owned(),
                 videos: Vec::new(),
+                see_all_url: RootUrls::new(root_url_base).discover_urls().res_req(&ResourceRequest::new(
+                    "https://v4-cinemeta.strem.io/manifest.json".parse().expect("valid BASE url"),
+                    ResourcePath::without_extra("catalog", "movie", "top"),
+                )),
             },
             VideoGroupId::CinemetaTopSeries => VideoGroup {
                 label: "Cinemeta - top series".to_owned(),
                 videos: Vec::new(),
+                see_all_url: RootUrls::new(root_url_base).discover_urls().res_req(&ResourceRequest::new(
+                    "https://v4-cinemeta.strem.io/manifest.json".parse().expect("valid BASE url"),
+                    ResourcePath::without_extra("catalog", "series", "top"),
+                )),
             },
             VideoGroupId::CinemetaImdbMovie => VideoGroup {
                 label: "Cinemeta - imdbRating movie".to_owned(),
                 videos: Vec::new(),
+                see_all_url: RootUrls::new(root_url_base).discover_urls().res_req(&ResourceRequest::new(
+                    "https://v4-cinemeta.strem.io/manifest.json".parse().expect("valid BASE url"),
+                    ResourcePath::without_extra("catalog", "movie", "imdbRating"),
+                )),
             },
             VideoGroupId::CinemetaImdbSeries => VideoGroup {
                 label: "Cinemeta - imdbRating series".to_owned(),
                 videos: Vec::new(),
+                see_all_url: RootUrls::new(root_url_base).discover_urls().res_req(&ResourceRequest::new(
+                    "https://v4-cinemeta.strem.io/manifest.json".parse().expect("valid BASE url"),
+                    ResourcePath::without_extra("catalog", "series", "imdbRating"),
+                )),
             },
             VideoGroupId::YoutubeTopChannel => VideoGroup {
                 label: "YouTube - top channel".to_owned(),
                 videos: Vec::new(),
+                see_all_url: RootUrls::new(root_url_base).discover_urls().res_req(&ResourceRequest::new(
+                    "https://v3-channels.strem.io/manifest.json".parse().expect("valid BASE url"),
+                    ResourcePath::without_extra("catalog", "channel", "top"),
+                )),
             },
         };
 
@@ -76,13 +101,13 @@ async fn get_videos(url: &str) -> Result<Vec<MetaItemPreview>, FetchError> {
     fetch(url)
         .await?
         .check_status()?
-        .json::<ResourceResponse>()
+        .json::<FetchedResourceResponse>()
         .await
         .map(|response| response.metas.into_iter().take(10).collect())
 }
 
 #[derive(Deserialize)]
-struct ResourceResponse {
+struct FetchedResourceResponse {
     metas: Vec<MetaItemPreview>
 }
 
@@ -107,6 +132,7 @@ pub enum VideoGroupId {
 struct VideoGroup {
     label: String,
     videos: Vec<MetaItemPreview>,
+    see_all_url: Url,
 }
 
 // ------ ------
@@ -251,8 +277,8 @@ fn board_row_header_container(group: &VideoGroup) -> Node<Msg> {
             attrs!{
                 At::TabIndex => 0,
                 At::Title => see_all_title,
+                At::Href => group.see_all_url,
             },
-            on_click_not_implemented(),
             div![
                 C!["label"],
                 s()
