@@ -88,17 +88,9 @@ pub struct Video {
     id: String,
     name: String,
     poster: String,
-    #[serde(rename = "type")]
-    type_: VideoType,
+    r#type: String,
     imdb_rating: f64,
     popularity: f64,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum VideoType {
-    Movie,
-    Series,
 }
 
 // ------ ------
@@ -142,9 +134,12 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             let mut cinemeta_top_series = Vec::new();
 
             for video in videos {
-                match video.type_ {
-                    VideoType::Movie => cinemeta_top_movie.push(video),  
-                    VideoType::Series => cinemeta_top_series.push(video),
+                match video.r#type.as_str() {
+                    "movie" => cinemeta_top_movie.push(video),  
+                    "series" => cinemeta_top_series.push(video),
+                    unknown => {
+                        log!("Unhandled MetaItem type:", unknown);
+                    }
                 }
             }
             model.video_groups = vec![
@@ -216,7 +211,8 @@ fn index(videos: Vec<Video>) -> LocalSearch<Video> {
 pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
     let page_content = search_content(
         &model.search_results, 
-        !model.video_groups.is_empty()
+        !model.video_groups.is_empty(),
+        &context.root_base_url,
     ).map_msg(msg_mapper);
     
     page::basic_layout(page::BasicLayoutArgs {
@@ -233,7 +229,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 }
 
 #[view]
-fn search_content(search_results: &[VideoGroupResults], videos_loaded: bool) -> Node<Msg> {
+fn search_content(search_results: &[VideoGroupResults], videos_loaded: bool, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["search-content"],
         s()
@@ -245,7 +241,7 @@ fn search_content(search_results: &[VideoGroupResults], videos_loaded: bool) -> 
         } else if search_results.is_empty() {
             vec![search_hints_container()]
         } else {
-            search_rows(search_results)
+            search_rows(search_results, root_base_url)
         }
     ]
 }
@@ -345,12 +341,16 @@ fn search_hint_container(
 }
 
 #[view]
-fn search_rows(search_results: &[VideoGroupResults]) -> Vec<Node<Msg>> {
-    search_results.iter().enumerate().map(search_row).collect()
+fn search_rows(search_results: &[VideoGroupResults], root_base_url: &Url) -> Vec<Node<Msg>> {
+    search_results
+        .iter()
+        .enumerate()
+        .map(|(index, group)| search_row(index, group, root_base_url))
+        .collect()
 }
 
 #[view]
-fn search_row((index, group): (usize, &VideoGroupResults)) -> Node<Msg> {
+fn search_row(index: usize, group: &VideoGroupResults, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["search-row", "search-row-poster", "meta-row-container"],
         s()
@@ -358,7 +358,7 @@ fn search_row((index, group): (usize, &VideoGroupResults)) -> Node<Msg> {
             .overflow(CssOverflow::Visible),
         IF!(index == 0 => s().margin_top(rem(2))),
         search_row_header_container(group),
-        search_row_meta_items_container(group),
+        search_row_meta_items_container(group, root_base_url),
     ]
 }
 
@@ -446,7 +446,7 @@ fn see_all_icon() -> Node<Msg> {
 }
 
 #[view]
-fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
+fn search_row_meta_items_container(group: &VideoGroupResults, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["meta-items-container"],
         s()
@@ -454,13 +454,13 @@ fn search_row_meta_items_container(group: &VideoGroupResults) -> Node<Msg> {
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
             .overflow(CssOverflow::Visible),
-        group.videos.iter().map(meta_item),
+        group.videos.iter().map(|video| meta_item(video, root_base_url)),
         (0..10 - group.videos.len()).map(|_| dummy_meta_item()),
     ]
 }
 
 #[view]
-fn meta_item(video: &Video) -> Node<Msg> {
+fn meta_item(video: &Video, root_base_url: &Url) -> Node<Msg> {
     a![
         el_key(&video.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
@@ -476,8 +476,8 @@ fn meta_item(video: &Video) -> Node<Msg> {
         attrs!{
             At::TabIndex => 0,
             At::Title => video.name,
+            At::Href => RootUrls::new(root_base_url).detail_urls().without_video_id(&video.r#type, &video.id),
         },
-        on_click_not_implemented(),
         poster_container(&video.poster),
         div![
             C!["title-bar-container"],

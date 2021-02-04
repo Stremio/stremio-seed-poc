@@ -144,9 +144,10 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
     let page_content = board_content(
         model.video_groups.values(), 
-        !model.video_groups.is_empty()
+        !model.video_groups.is_empty(),
+        &context.root_base_url,
     ).map_msg(msg_mapper);
-    
+
     page::basic_layout(page::BasicLayoutArgs {
         page_content,
         container_class: "board-container",
@@ -157,7 +158,11 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 }
 
 #[view]
-fn board_content<'a>(video_groups: impl Iterator<Item = &'a VideoGroup>, videos_loaded: bool) -> Node<Msg> {
+fn board_content<'a>(
+    video_groups: impl Iterator<Item = &'a VideoGroup>, 
+    videos_loaded: bool, 
+    root_base_url: &Url
+) -> Node<Msg> {
     div![
         C!["board-content"],
         s()
@@ -167,7 +172,7 @@ fn board_content<'a>(video_groups: impl Iterator<Item = &'a VideoGroup>, videos_
         if !videos_loaded {
             vec![loading()]
         } else {
-            board_rows(video_groups)
+            board_rows(video_groups, root_base_url)
         }
     ]
 }
@@ -186,12 +191,12 @@ fn loading() -> Node<Msg> {
 }
 
 #[view]
-fn board_rows<'a>(video_groups: impl Iterator<Item = &'a VideoGroup>) -> Vec<Node<Msg>> {
-    video_groups.enumerate().map(board_row).collect()
+fn board_rows<'a>(video_groups: impl Iterator<Item = &'a VideoGroup>, root_base_url: &Url) -> Vec<Node<Msg>> {
+    video_groups.enumerate().map(|(index, group)| board_row(index, group, root_base_url)).collect()
 }
 
 #[view]
-fn board_row((index, group): (usize, &VideoGroup)) -> Node<Msg> {
+fn board_row(index: usize, group: &VideoGroup, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["board-row", "board-row-poster", "meta-row-container"],
         s()
@@ -199,7 +204,7 @@ fn board_row((index, group): (usize, &VideoGroup)) -> Node<Msg> {
             .overflow(CssOverflow::Visible),
         IF!(index == 0 => s().margin_top(rem(2))),
         board_row_header_container(group),
-        board_row_meta_items_container(group),
+        board_row_meta_items_container(group, root_base_url),
     ]
 }
 
@@ -287,7 +292,7 @@ fn see_all_icon() -> Node<Msg> {
 }
 
 #[view]
-fn board_row_meta_items_container(group: &VideoGroup) -> Node<Msg> {
+fn board_row_meta_items_container(group: &VideoGroup, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["meta-items-container"],
         s()
@@ -295,13 +300,13 @@ fn board_row_meta_items_container(group: &VideoGroup) -> Node<Msg> {
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
             .overflow(CssOverflow::Visible),
-        group.videos.iter().map(meta_item),
+        group.videos.iter().map(|video| meta_item(video, root_base_url)),
         (0..10 - group.videos.len()).map(|_| dummy_meta_item()),
     ]
 }
 
 #[view]
-fn meta_item(video: &MetaItemPreview) -> Node<Msg> {
+fn meta_item(video: &MetaItemPreview, root_base_url: &Url) -> Node<Msg> {
     a![
         el_key(&video.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container"],
@@ -317,9 +322,9 @@ fn meta_item(video: &MetaItemPreview) -> Node<Msg> {
         attrs!{
             At::TabIndex => 0,
             At::Title => video.name,
+            At::Href => RootUrls::new(root_base_url).detail_urls().without_video_id(&video.r#type, &video.id),
         },
-        on_click_not_implemented(),
-        video.poster.as_ref().map(poster_container),
+                video.poster.as_ref().map(poster_container),
         div![
             C!["title-bar-container"],
             s()
