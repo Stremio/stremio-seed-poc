@@ -56,8 +56,6 @@ pub fn init(
 
     model.get_or_insert_with(move || Model {
         base_url,
-        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
-        selected_meta_preview_id: None,
     });
     Some(PageId::Discover)
 }
@@ -84,8 +82,6 @@ pub fn default_resource_request() -> ResourceRequest {
 
 pub struct Model {
     base_url: Url,
-    _core_msg_sub_handle: SubHandle,
-    selected_meta_preview_id: Option<MetaItemPreviewId>,
 }
 
 // ------ ------
@@ -110,39 +106,11 @@ impl<'a> Urls<'a> {
 
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
-    CoreMsg(Rc<CoreMsg>),
-    MetaItemPreviewClicked(MetaItemPreview),
     SendResourceRequest(ResourceRequest)
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
-        Msg::CoreMsg(core_msg) => {
-            if let CoreMsg::Internal(Internal::ResourceRequestResult(_, result)) = core_msg.as_ref() {
-                if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
-                    model.selected_meta_preview_id = metas.first().map(|meta| meta.id.clone());
-                }
-            }
-        }
-        Msg::MetaItemPreviewClicked(meta_preview) => {
-            // @TODO: link to Detail page
-
-            // if model.selected_meta_preview_id.as_ref() == Some(&meta_preview.id) {
-            //     let id = &meta_preview.id;
-            //     let type_name = &meta_preview.type_name;
-
-            //     let detail_urls = RootUrls::new(&context.root_base_url).detail_urls();
-
-            //     orders.request_url(if meta_preview.type_name == "movie" {
-            //         detail_urls.with_video_id(type_name, id, id)
-            //     } else {
-            //         detail_urls.without_video_id(type_name, id)
-            //     });
-            // } else {
-            //     model.selected_meta_preview_id = Some(meta_preview.id);
-            // }
-        }
-
         Msg::SendResourceRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
@@ -184,7 +152,7 @@ fn discover_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             context.core_model.catalog.catalog.as_ref().map(|resource_loadable| {
                 meta_items(
                     &resource_loadable.content,
-                    model.selected_meta_preview_id.as_ref()
+                    &context.root_base_url,
                 )
             }),
         ],
@@ -371,7 +339,7 @@ fn pagination_next_button(next_page_request: Option<&ResourceRequest>) -> Node<M
 #[view]
 fn meta_items(
     content: &Loadable<Vec<MetaItemPreview>, ResourceError>,
-    selected_meta_preview_id: Option<&MetaItemPreviewId>,
+    root_base_url: &Url,
 ) -> Node<Msg> {
     let message_container_style = s()
         .padding("0 2rem")
@@ -422,13 +390,13 @@ fn meta_items(
                 .grid_template_columns("repeat(4, 1fr)"),
             meta_previews
                 .iter()
-                .map(|meta_preview| meta_item(meta_preview, selected_meta_preview_id)),
+                .map(|meta_preview| meta_item(meta_preview, root_base_url)),
         ],
     }
 }
 
 #[view]
-fn meta_item(meta: &MetaItemPreview, selected_meta_preview_id: Option<&MetaItemPreviewId>) -> Node<Msg> {
+fn meta_item(meta: &MetaItemPreview, root_base_url: &Url) -> Node<Msg> {
     let square = matches!(meta.poster_shape, PosterShape::Square);
     a![
         el_key(&meta.id),
@@ -445,8 +413,8 @@ fn meta_item(meta: &MetaItemPreview, selected_meta_preview_id: Option<&MetaItemP
         attrs!{
             At::TabIndex => 0,
             At::Title => meta.name,
+            At::Href => RootUrls::new(root_base_url).detail_urls().without_video_id(&meta.r#type, &meta.id),
         },
-        on_click_not_implemented(),
         poster_container(&meta.poster, square),
         div![
             C!["title-bar-container"],
