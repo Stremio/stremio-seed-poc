@@ -18,10 +18,6 @@ mod catalog_selector;
 mod extra_prop_selector;
 mod type_selector;
 
-type MetaItemPreviewId = String;
-// @TODO add into stremio-core?
-type ExtraPropOption = String;
-
 const DEFAULT_RESOURCE: &str = "catalog";
 const DEFAULT_TYPE: &str = "movie";
 const DEFAULT_ID: &str = "top";
@@ -56,6 +52,8 @@ pub fn init(
 
     model.get_or_insert_with(move || Model {
         base_url,
+        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
+        selected_meta_preview: None,
     });
     Some(PageId::Discover)
 }
@@ -82,6 +80,8 @@ pub fn default_resource_request() -> ResourceRequest {
 
 pub struct Model {
     base_url: Url,
+    _core_msg_sub_handle: SubHandle,
+    selected_meta_preview: Option<MetaItemPreview>,
 }
 
 // ------ ------
@@ -106,11 +106,24 @@ impl<'a> Urls<'a> {
 
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
+    CoreMsg(Rc<CoreMsg>),
+    SelectMetaItemPreview(MetaItemPreview),
     SendResourceRequest(ResourceRequest)
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::CoreMsg(core_msg) => {
+            if let CoreMsg::Internal(Internal::ResourceRequestResult(_, result)) = core_msg.as_ref() {
+                if let Ok(ResourceResponse::Metas { metas }) = result.as_ref() {
+                    // @TODO store only id or index?
+                    model.selected_meta_preview = metas.first().cloned();
+                }
+            }
+        }
+        Msg::SelectMetaItemPreview(meta_preview) => {
+            model.selected_meta_preview = Some(meta_preview);
+        }
         Msg::SendResourceRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
         }
@@ -133,7 +146,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 }
 
 #[view]
-fn discover_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
+fn discover_content(model: &Model, context: &Context) -> Node<Msg> {
     div![
         C!["discover-content"],
         s()
@@ -152,6 +165,7 @@ fn discover_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             context.core_model.catalog.catalog.as_ref().map(|resource_loadable| {
                 meta_items(
                     &resource_loadable.content,
+                    model.selected_meta_preview.as_ref(),
                     &context.root_base_url,
                 )
             }),
@@ -339,6 +353,7 @@ fn pagination_next_button(next_page_request: Option<&ResourceRequest>) -> Node<M
 #[view]
 fn meta_items(
     content: &Loadable<Vec<MetaItemPreview>, ResourceError>,
+    selected_meta_preview: Option<&MetaItemPreview>,
     root_base_url: &Url,
 ) -> Node<Msg> {
     let message_container_style = s()
@@ -390,14 +405,19 @@ fn meta_items(
                 .grid_template_columns("repeat(4, 1fr)"),
             meta_previews
                 .iter()
-                .map(|meta_preview| meta_item(meta_preview, root_base_url)),
+                .map(|meta_preview| meta_item(meta_preview, selected_meta_preview, root_base_url)),
         ],
     }
 }
 
 #[view]
-fn meta_item(meta: &MetaItemPreview, root_base_url: &Url) -> Node<Msg> {
+fn meta_item(
+    meta: &MetaItemPreview, 
+    selected_meta_preview: Option<&MetaItemPreview>, 
+    root_base_url: &Url
+) -> Node<Msg> {
     let square = matches!(meta.poster_shape, PosterShape::Square);
+    let selected = selected_meta_preview.map(|meta| &meta.id) != Some(&meta.id);
     a![
         el_key(&meta.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container", IF!(square => "poster-shape-square")],
@@ -415,6 +435,14 @@ fn meta_item(meta: &MetaItemPreview, root_base_url: &Url) -> Node<Msg> {
             At::Title => meta.name,
             At::Href => RootUrls::new(root_base_url).detail_urls().without_video_id(&meta.r#type, &meta.id),
         },
+        IF!(selected => {
+            let selected_meta = meta.clone();
+            ev(Ev::Click, move |event| {
+                event.prevent_default();
+                event.stop_propagation();
+                Msg::SelectMetaItemPreview(selected_meta)
+            })
+        }),
         poster_container(&meta.poster, square),
         div![
             C!["title-bar-container"],
