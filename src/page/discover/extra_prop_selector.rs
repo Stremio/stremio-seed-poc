@@ -1,4 +1,4 @@
-use crate::{multi_select, page::discover::ExtraPropOption};
+use crate::multi_select;
 use seed::{*, prelude::*};
 use std::fmt::Debug;
 use std::rc::Rc;
