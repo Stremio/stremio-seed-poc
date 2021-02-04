@@ -166,6 +166,7 @@ pub enum Color {
     Accent3,
     Accent3_90,
     Accent3Light2,
+    Accent4_90,
     Background,
     BackgroundDark1,
     BackgroundDark2,
@@ -331,6 +332,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Accent3, hsl(147.7, 68, 41.7))
         .set_color(Accent3_90, hsla(147.7, 68, 41.7, 0.9))
         .set_color(Accent3Light2, hsl(147.7, 68, 51.7))
+        .set_color(Accent4_90, hsla(160, 81.5, 46.8, 0.9))
         .set_color(Background, hsl(243, 24.4, 21))
         .set_color(BackgroundDark1, hsl(243, 24.4, 16))
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))

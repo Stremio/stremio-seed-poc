@@ -417,7 +417,7 @@ fn meta_item(
     root_base_url: &Url
 ) -> Node<Msg> {
     let square = matches!(meta.poster_shape, PosterShape::Square);
-    let selected = selected_meta_preview.map(|meta| &meta.id) != Some(&meta.id);
+    let selected = selected_meta_preview.map(|meta| &meta.id) == Some(&meta.id);
     a![
         el_key(&meta.id),
         C!["meta-item", "poster-shape-poster", "meta-item-container", "button-container", IF!(square => "poster-shape-square")],
@@ -430,12 +430,17 @@ fn meta_item(
             .hover()
             .background_color(Color::BackgroundLight3)
             .transition("background-color 100ms ease-out"),
+        IF!(selected => {
+            s()
+                .background_color(Color::BackgroundLight3)
+                .transition("background-color 100ms ease-out")
+        }),
         attrs!{
             At::TabIndex => 0,
             At::Title => meta.name,
             At::Href => RootUrls::new(root_base_url).detail_urls().without_video_id(&meta.r#type, &meta.id),
         },
-        IF!(selected => {
+        IF!(not(selected) => {
             let selected_meta = meta.clone();
             ev(Ev::Click, move |event| {
                 event.prevent_default();
@@ -443,7 +448,7 @@ fn meta_item(
                 Msg::SelectMetaItemPreview(selected_meta)
             })
         }),
-        poster_container(&meta.poster, square),
+        poster_container(&meta.poster, square, selected),
         div![
             C!["title-bar-container"],
             s()
@@ -467,7 +472,7 @@ fn meta_item(
 }
 
 #[view]
-fn poster_container(poster: &Option<String>, square: bool) -> Node<Msg> {
+fn poster_container(poster: &Option<String>, square: bool, selected: bool) -> Node<Msg> {
     let padding_top = if square { 
         pc(100).to_string() 
     } else { 
@@ -507,6 +512,62 @@ fn poster_container(poster: &Option<String>, square: bool) -> Node<Msg> {
                     At::Src => poster.clone().unwrap_or_default(),
                 },
             ]
-        ]
+        ],
+        IF!(selected => play_icon()),
+    ]
+}
+
+#[view]
+fn play_icon() -> Node<Msg> {
+    div![
+        C!["play-icon-layer"],
+        s()
+            .bottom("30%")
+            .left("0")
+            .overflow(CssOverflow::Visible)
+            .position(CssPosition::Absolute)
+            .right("0")
+            .top("30%")
+            .z_index("-2"),
+        svg![
+            C!["play-icon"],
+            s()
+                .display(CssDisplay::Block)
+                .filter("drop-shadow(0 0 0.5rem hsl(243,24.4%,21%))")
+                .height(pc(100))
+                .width(pc(100))
+                .overflow(CssOverflow::Visible),
+            attrs!{
+                At::ViewBox => "0 0 100 100",
+            },
+            circle![
+                C!["background"],
+                s()
+                    .fill(Color::Accent4_90),
+                attrs!{
+                    At::Cx => 50,
+                    At::Cy => 50,
+                    At::R => 50,
+                },
+            ],
+            svg![
+                C!["icon"],
+                s()
+                    .fill(Color::SurfaceLight5_90)
+                    .overflow(CssOverflow::Visible),
+                attrs!{
+                    At::X => 0,
+                    At::Y => 25,
+                    At::Width => 100,
+                    At::Height => 50,
+                    At::ViewBox => "0 0 37.14 32", 
+                },
+                path![
+                    attrs!{
+                        At::D => "M 9.14,0 37.14,16 9.14,32 Z",
+                    },
+                ],
+            ]
+        ],
     ]
 }
