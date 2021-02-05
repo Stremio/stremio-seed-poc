@@ -170,6 +170,7 @@ pub enum Color {
     Background,
     BackgroundDark1,
     BackgroundDark2,
+    BackgroundDark2_60,
     BackgroundDark2_70,
     BackgroundDark3,
     BackgroundLight1,
@@ -196,6 +197,7 @@ pub enum Color {
     SurfaceLight5_60,
     SurfaceLight5_90,
     SurfaceDark3_90,
+    SurfaceDark5_10,
     SurfaceDark5_90,
 }
 impl ColorTheme for Color {} 
@@ -336,6 +338,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Background, hsl(243, 24.4, 21))
         .set_color(BackgroundDark1, hsl(243, 24.4, 16))
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))
+        .set_color(BackgroundDark2_60, hsla(243, 24.4, 11, 0.6))
         .set_color(BackgroundDark2_70, hsla(243, 24.4, 11, 0.7))
         .set_color(BackgroundDark3, hsl(243, 24.4, 6))
         .set_color(BackgroundLight1, hsl(243, 24.4, 26))
@@ -362,6 +365,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(SurfaceLight5_60, hsla(0, 0, 100, 0.6))
         .set_color(SurfaceLight5_90, hsla(0, 0, 100, 0.9))
         .set_color(SurfaceDark3_90, hsla(0, 0, 60, 0.9))
+        .set_color(SurfaceDark5_10, hsla(0, 0, 50, 0.1))
         .set_color(SurfaceDark5_90, hsla(0, 0, 50, 0.9))
 }
 
