@@ -34,9 +34,12 @@ use seed_hooks::{*, topo::nested as view};
 
 const DISCOVER: &str = "discover";
 const DETAIL: &str = "metadetails";
+const INTRO: &str = "intro";
+const LIBRARY: &str = "library";
 const PLAYER: &str = "player";
 const ADDONS: &str = "addons";
 const SEARCH: &str = "search";
+const SETTINGS: &str = "settings";
 const TEST_LINKS: &str = "test_links";
 
 // ------ ------
@@ -107,10 +110,13 @@ pub enum PageId {
     Board,
     Detail,
     Discover,
+    Intro,
+    Library,
     Player,
     Addons,
     NotFound,
     Search,
+    Settings,
     TestLinks,
 }
 
@@ -140,6 +146,12 @@ impl<'a> Urls<'a> {
     pub fn detail_urls(self) -> page::detail::Urls<'a> {
         page::detail::Urls::new(self.base_url().add_hash_path_part(DETAIL))
     }
+    pub fn intro(self) -> Url {
+        self.base_url().add_hash_path_part(INTRO)
+    }
+    pub fn library(self) -> Url {
+        self.base_url().add_hash_path_part(LIBRARY)
+    }
     pub fn player(self) -> Url {
         self.base_url().add_hash_path_part(PLAYER)
     }
@@ -148,6 +160,9 @@ impl<'a> Urls<'a> {
     }
     pub fn search_urls(self) -> page::search::Urls<'a> {
         page::search::Urls::new(self.base_url().add_hash_path_part(SEARCH))
+    }
+    pub fn settings(self) -> Url {
+        self.base_url().add_hash_path_part(SETTINGS)
     }
     pub fn test_links(self) -> Url {
         self.base_url().add_hash_path_part(TEST_LINKS)
@@ -191,6 +206,8 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut model.detail_model,
                     &mut orders.proxy(Msg::DetailMsg),
                 ),
+                Some(INTRO) => Some(PageId::Intro),
+                Some(LIBRARY) => Some(PageId::Library),
                 Some(PLAYER) => Some(PageId::Player),
                 Some(ADDONS) => page::addons::init(
                     url,
@@ -203,6 +220,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut model.search_model,
                     &mut orders.proxy(Msg::SearchMsg),
                 ),
+                Some(SETTINGS) => Some(PageId::Settings),
                 Some(TEST_LINKS) => Some(PageId::TestLinks),
                 _ => None,
             };
@@ -320,6 +338,8 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     }
+                    PageId::Intro => page::intro::view().into_nodes(),
+                    PageId::Library => page::library::view().into_nodes(),
                     PageId::Player => page::player::view().into_nodes(),
                     PageId::Addons => {
                         if let Some(page_model) = &model.addons_model {
@@ -337,6 +357,7 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     },
+                    PageId::Settings => page::settings::view().into_nodes(),
                     PageId::TestLinks => page::test_links::view(&model.context.root_base_url).into_nodes(),
                     PageId::NotFound => page::not_found::view().into_nodes(),
                 }

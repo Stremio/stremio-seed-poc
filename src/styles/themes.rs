@@ -190,6 +190,7 @@ pub enum Color {
     SecondaryVariant1Dark5,
     Surface90,
     SurfaceLight2_90,
+    SurfaceLight3_90,
     SurfaceLight5,
     SurfaceLight5_20,
     SurfaceLight5_30,
@@ -358,6 +359,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(SecondaryVariant1Dark5, hsl(224.3, 42.1, 41))
         .set_color(Surface90, hsla(0, 0, 75, 0.9))
         .set_color(SurfaceLight2_90, hsla(0, 0, 85, 0.9))
+        .set_color(SurfaceLight3_90, hsla(0, 0, 90, 0.9))
         .set_color(SurfaceLight5, hsl(0, 0, 100))
         .set_color(SurfaceLight5_20, hsla(0, 0, 100, 0.2))
         .set_color(SurfaceLight5_30, hsla(0, 0, 100, 0.3))
