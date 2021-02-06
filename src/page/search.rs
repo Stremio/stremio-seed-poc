@@ -6,7 +6,7 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use serde::Deserialize;
 use localsearch::LocalSearch;
 use seed_hooks::{*, topo::nested as view};
-use crate::page;
+use crate::basic_layout::{basic_layout, BasicLayoutArgs, SearchArgs};
 use std::rc::Rc;
 use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
 
@@ -227,12 +227,12 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         &context.root_base_url,
     ).map_msg(msg_mapper);
     
-    page::basic_layout(page::BasicLayoutArgs {
+    basic_layout(BasicLayoutArgs {
         page_content,
         container_class: "search-container",
         context,
         page_id,
-        search_args: Some(page::SearchArgs {
+        search_args: Some(SearchArgs {
             input_search_query: &model.input_search_query,
             on_search_query_input_changed: Rc::new(move |query| msg_mapper(Msg::SearchQueryInputChanged(query))),
             on_search: Rc::new(move || msg_mapper(Msg::Search)),

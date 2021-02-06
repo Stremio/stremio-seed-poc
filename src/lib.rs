@@ -10,6 +10,7 @@
     unused_imports,
 )]
 
+mod basic_layout;
 mod multi_select;
 mod page;
 mod styles;

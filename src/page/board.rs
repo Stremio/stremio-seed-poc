@@ -9,7 +9,7 @@ use seed_hooks::{*, topo::nested as view};
 use indexmap::{IndexMap, indexmap};
 use stremio_core::types::resource::{MetaItemPreview, PosterShape};
 use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
-use crate::page;
+use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
@@ -174,7 +174,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         &context.root_base_url,
     ).map_msg(msg_mapper);
 
-    page::basic_layout(page::BasicLayoutArgs {
+    basic_layout(BasicLayoutArgs {
         page_content,
         container_class: "board-container",
         context,
