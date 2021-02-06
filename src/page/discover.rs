@@ -12,7 +12,7 @@ use seed_styles::{px, pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use seed_hooks::{*, topo::nested as view};
-use crate::page;
+use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 
 mod catalog_selector;
 mod extra_prop_selector;
@@ -136,7 +136,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 
 #[view]
 pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
-    page::basic_layout(page::BasicLayoutArgs {
+    basic_layout(BasicLayoutArgs {
         page_content: discover_content(model, context).map_msg(msg_mapper),
         container_class: "discover-container",
         context,
