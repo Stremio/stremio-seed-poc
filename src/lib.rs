@@ -64,12 +64,14 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         .subscribe(Msg::UrlChanged)
         .subscribe(|Actions::UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
         .subscribe(Msg::CoreMsg)
+        .stream(streams::window_event(Ev::Click, |_| Msg::WindowClicked))
         .notify(subs::UrlChanged(url));
 
     Model {
         context: Context {
             core_model: CoreModel::default(),
             root_base_url,
+            menu_visible: false,
         },
         page_id: None,
         // ---- page models ----
@@ -102,6 +104,7 @@ pub struct Model {
 pub struct Context {
     core_model: CoreModel,
     root_base_url: Url,
+    menu_visible: bool,
 }
 
 // ------ PageId ------
@@ -180,6 +183,9 @@ pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
     HandleEffectMsg(Rc<CoreMsg>),
     GoToSearchPage,
+    ToggleMenu,
+    HideMenu,
+    WindowClicked,
     BoardMsg(page::board::Msg),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
@@ -252,6 +258,19 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::GoToSearchPage => {
             orders.request_url(Urls::new(&model.context.root_base_url).search_urls().root());
+        }
+        Msg::ToggleMenu => {
+            model.context.menu_visible = !model.context.menu_visible;
+        }
+        Msg::HideMenu => {
+            model.context.menu_visible = false;
+        }
+        Msg::WindowClicked => {
+            if not(model.context.menu_visible) {
+                orders.skip();
+                return;
+            }
+            model.context.menu_visible = false;
         }
         Msg::BoardMsg(page_msg) => {
             if let Some(page_model) = &mut model.board_model {
