@@ -14,7 +14,7 @@ fn on_click_not_implemented() -> EventHandler<Msg> {
 }
 
 #[view]
-pub fn horizontal_nav_bar(root_base_url: &Url, search_args: Option<&SearchArgs>) -> Node<Msg> {
+pub fn horizontal_nav_bar(root_base_url: &Url, search_args: Option<&SearchArgs>, menu_visible: bool) -> Node<Msg> {
     nav![
         C!["horizontal-nav-bar", "horizontal-nav-bar-container"],
         s()
@@ -36,7 +36,7 @@ pub fn horizontal_nav_bar(root_base_url: &Url, search_args: Option<&SearchArgs>)
         spacer(Some("11rem")),
         addons_top_button(root_base_url),
         fullscreen_button(),
-        menu_button(root_base_url),
+        menu_button(root_base_url, menu_visible),
     ]
 }
 

@@ -3,13 +3,17 @@ use seed::{prelude::*, *};
 use seed_styles::{pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
-use seed_hooks::{*, topo::nested as view};
 use std::rc::Rc;
+use seed_hooks::{*, topo::nested as view, state_access::CloneState};
+
+fn on_click_not_implemented() -> EventHandler<Msg> {
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+}
 
 #[view]
-pub fn menu_button(root_base_url: &Url) -> Node<Msg> {
-    let active = true;
+pub fn menu_button(root_base_url: &Url, menu_visible: bool) -> Node<Msg> {
     label![
+        id!("menu-toggle"),
         C!["button-container"],
         s()
             .align_items(CssAlignItems::Center)
@@ -24,13 +28,18 @@ pub fn menu_button(root_base_url: &Url) -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::BackgroundLight2),
-        IF!(active => s().background_color(Color::BackgroundLight2)),
+        IF!(menu_visible => s().background_color(Color::BackgroundLight2)),
         attrs!{
             At::TabIndex => -1,
         },
-        ev(Ev::Click, |_| log!("menu_button clicked")),
+        ev(Ev::Click, |event| {
+            event.stop_propagation();
+            Msg::ToggleMenu
+        }),
         menu_icon(),
-        menu_container(root_base_url),
+        IF!(menu_visible => {
+            menu_container(root_base_url)
+        }),
     ]
 }
 
@@ -81,6 +90,9 @@ fn menu_container(root_base_url: &Url) -> Node<Msg> {
             .overflow(CssOverflow::Visible)
             .position(CssPosition::Absolute)
             .z_index("1"),
+        ev(Ev::Click, |event| {
+            event.stop_propagation();
+        }),
         div![
             C!["nav-menu-container"],
             s()
@@ -151,6 +163,7 @@ fn menu_section_user(root_base_url: &Url) -> Node<Msg> {
                 .grid_area("logout-button-area")
                 .padding("0 1rem 1rem 0")
                 .cursor(CssCursor::Pointer),
+            ev(Ev::Click, |_| Msg::HideMenu),
             div![
                 C!["logout-label"],
                 s()
@@ -174,7 +187,11 @@ fn menu_section_fullscreen() -> Node<Msg> {
         s()
             .border_top("thin solid hsla(0,0%,100%,0.2)"),
         menu_option(MenuOptionArgs { 
-            title: "Enter Fullscreen", link: None, icon: Some(fullscreen_icon()), 
+            title: "Enter Fullscreen", 
+            link: None, 
+            icon: Some(fullscreen_icon()), 
+            enabled: true,
+            on_click: Some(on_click_not_implemented()),
         }),
     ]
 }
@@ -189,22 +206,36 @@ fn menu_section_general(root_base_url: &Url) -> Node<Msg> {
             title: "Settings", 
             link: Some(LinkArgs { url: &RootUrls::new(root_base_url).settings().to_string(), target_blank: false }),
             icon: Some(settings_icon()),
+            enabled: true,
+            on_click: None,
         }),
         menu_option(MenuOptionArgs { 
             title: "Addons", 
             link: Some(LinkArgs { url: &RootUrls::new(root_base_url).addons_urls().root().to_string(), target_blank: false }),
             icon: Some(addons_icon()),
+            enabled: true,
+            on_click: None,
         }),
         menu_option(MenuOptionArgs { 
-            title: "Remote Control", link: None, icon: Some(remote_control_icon()) 
+            title: "Remote Control", 
+            link: None, 
+            icon: Some(remote_control_icon()), 
+            enabled: false, 
+            on_click: None,
         }),
         menu_option(MenuOptionArgs { 
-            title: "Play Magnet Link", link: None, icon: Some(play_magnet_link_icon())  
+            title: "Play Magnet Link", 
+            link: None, 
+            icon: Some(play_magnet_link_icon()), 
+            enabled: false,  
+            on_click: None,
         }),
         menu_option(MenuOptionArgs { 
             title: "Help & Feedback", 
             link: Some(LinkArgs { url: "https://stremio.zendesk.com/", target_blank: true }),
-            icon: Some(help_and_feedback_icon()) ,
+            icon: Some(help_and_feedback_icon()),
+            enabled: true,
+            on_click: None,
         }),
     ]
 }
@@ -219,16 +250,22 @@ fn menu_section_docs() -> Node<Msg> {
             title: "Terms of Service", 
             link: Some(LinkArgs { url: "https://www.stremio.com/tos", target_blank: true }), 
             icon: None,
+            enabled: true,
+            on_click: None,
         }),
         menu_option(MenuOptionArgs { 
             title: "Privacy Policy", 
             link: Some(LinkArgs { url: "https://www.stremio.com/privacy", target_blank: true }), 
             icon: None,
+            enabled: true,
+            on_click: None,
         }),
         menu_option(MenuOptionArgs { 
             title: "About Stremio", 
             link: Some(LinkArgs { url: "https://www.stremio.com/", target_blank: true }),
             icon: None,
+            enabled: true,
+            on_click: None,
         }),
     ]
 }
@@ -237,6 +274,8 @@ struct MenuOptionArgs<'a> {
     title: &'a str,
     link: Option<LinkArgs<'a>>,
     icon: Option<Node<Msg>>,
+    enabled: bool,
+    on_click: Option<EventHandler<Msg>>,
 }
 
 struct LinkArgs<'a> {
@@ -253,11 +292,16 @@ fn menu_option(args: MenuOptionArgs) -> Node<Msg> {
             .align_items(CssAlignItems::Center)
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Row)
-            .height(rem(4))
-            .cursor(CssCursor::Pointer),
-        s()
-            .hover()
-            .background_color(Color::BackgroundLight2),
+            .height(rem(4)),
+        IF!(args.enabled => {
+            s()
+                .cursor(CssCursor::Pointer)
+        }),
+        IF!(args.enabled => {
+            s()
+                .hover()
+                .background_color(Color::BackgroundLight2)
+        }),
         attrs!{
             At::TabIndex => 0,
             At::Title => args.title,
@@ -274,6 +318,10 @@ fn menu_option(args: MenuOptionArgs) -> Node<Msg> {
             Some (attrs!{
                 At::Target => "_blank",
             })
+        }),
+        args.on_click,
+        IF!(args.enabled => {
+            ev(Ev::Click, |_| Msg::HideMenu)
         }),
         args.icon,
         div![

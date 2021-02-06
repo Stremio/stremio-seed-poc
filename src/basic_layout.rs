@@ -47,7 +47,7 @@ pub fn basic_layout(args: BasicLayoutArgs) -> Node<Msg> {
                 .width(pc(100))
                 .position(CssPosition::Relative)
                 .z_index("0"),
-            horizontal_nav_bar(&args.context.root_base_url, args.search_args.as_ref()),
+            horizontal_nav_bar(&args.context.root_base_url, args.search_args.as_ref(), args.context.menu_visible),
             vertical_nav_bar(&args.context.root_base_url, args.page_id),
             nav_content_container(args.page_content),
         ]
