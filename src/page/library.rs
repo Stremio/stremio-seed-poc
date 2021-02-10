@@ -74,16 +74,88 @@ fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
         C!["library-content"],
         s()
             .display(CssDisplay::Flex)
-            .flex_direction(CssFlexDirection::Row)
+            .flex_direction(CssFlexDirection::Column)
             .height(pc(100))
             .width(pc(100)),            
-        message_container(),
+        message_container(&context.root_base_url),
     ]
 }
 
 #[view]
-fn message_container() -> Node<Msg> {
+fn message_container(root_url_base: &Url) -> Node<Msg> {
     div![
-        "library content"
+        C!["message-container", "no-user-message-container"],
+        s()
+            .padding(rem(4))
+            .align_items(CssAlignItems::Center)
+            .align_self(CssAlignSelf::Stretch)
+            .display(CssDisplay::Flex)
+            .flex("0 1 auto")
+            .flex_direction(CssFlexDirection::Column)
+            .overflow_y(CssOverflowY::Auto),
+        img![
+            C!["image"],
+            s()
+                .flex(CssFlex::None)
+                .height(rem(12))
+                .margin_bottom(rem(1))
+                .raw(r#"object-fit: contain;"#)
+                .raw(r#"object-position: center;"#)
+                .opacity("0.9")
+                .width(rem(12)),
+            attrs!{
+                At::Src => global::image_url("anonymous.png"),
+                At::Alt => "",
+            },
+        ],
+        login_button(root_url_base),
+        div![
+            C!["message-label"],
+            s()
+                .color(Color::SecondaryVariant2Light1_90)
+                .flex(CssFlex::None)
+                .font_size(rem(2.5))
+                .text_align(CssTextAlign::Center),
+            "Library is only available for logged in users!",
+        ]
+    ]
+}
+
+#[view]
+fn login_button(root_url_base: &Url) -> Node<Msg> {
+    a![
+        C!["login-button-container", "button-container"],
+        s()
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Accent3)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .flex_direction(CssFlexDirection::Row)
+            .justify_content(CssJustifyContent::Center)
+            .margin_bottom(rem(1))
+            .min_height(rem(4))
+            .padding("0.5rem 1rem")
+            .width(rem(20))
+            .cursor(CssCursor::Pointer),
+        s()
+            .hover()
+            .color(Color::Accent3Light1),
+        attrs!{
+            At::Href => RootUrls::new(root_url_base).intro(),
+            At::TabIndex => "0",
+        },
+        div![
+            C!["label"],
+            s()
+                .color(Color::SurfaceLight5_90)
+                .flex_basis(CssFlexBasis::Auto)
+                .flex_grow("0")
+                .flex_shrink("1")
+                .font_size(rem(1.2))
+                .font_weight("700")
+                .max_height(em(4.8))
+                .text_align(CssTextAlign::Center),
+            "LOG IN",
+        ]
     ]
 }
