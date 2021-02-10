@@ -77,6 +77,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         // ---- page models ----
         board_model: None,
         detail_model: None,
+        library_model: None,
         discover_model: None,
         addons_model: None,
         search_model: None,
@@ -94,6 +95,7 @@ pub struct Model {
     // ---- page models ----
     board_model: Option<page::board::Model>,
     detail_model: Option<page::detail::Model>,
+    library_model: Option<page::library::Model>,
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
     search_model: Option<page::search::Model>,
@@ -189,6 +191,7 @@ pub enum Msg {
     BoardMsg(page::board::Msg),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
+    LibraryMsg(page::library::Msg),
     AddonsMsg(page::addons::Msg),
     SearchMsg(page::search::Msg),
 }
@@ -214,7 +217,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut orders.proxy(Msg::DetailMsg),
                 ),
                 Some(INTRO) => Some(PageId::Intro),
-                Some(LIBRARY) => Some(PageId::Library),
+                Some(LIBRARY) => page::library::init(
+                    url,
+                    &mut model.library_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::LibraryMsg),
+                ),
                 Some(PLAYER) => Some(PageId::Player),
                 Some(ADDONS) => page::addons::init(
                     url,
@@ -297,6 +305,15 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 page::detail::update(page_msg, page_model, &mut orders.proxy(Msg::DetailMsg));
             }
         }
+        Msg::LibraryMsg(page_msg) => {
+            if let Some(page_model) = &mut model.library_model {
+                page::library::update(
+                    page_msg,
+                    page_model,
+                    &mut orders.proxy(Msg::LibraryMsg),
+                );
+            }
+        }
         Msg::AddonsMsg(page_msg) => {
             if let Some(page_model) = &mut model.addons_model {
                 page::addons::update(
@@ -359,7 +376,14 @@ fn view(model: &Model) -> Node<Msg> {
                         }
                     }
                     PageId::Intro => page::intro::view().into_nodes(),
-                    PageId::Library => page::library::view().into_nodes(),
+                    PageId::Library => {
+                        if let Some(page_model) = &model.library_model {
+                            page::library::view(page_model, &model.context, page_id, Msg::LibraryMsg)
+                                .into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    }
                     PageId::Player => page::player::view().into_nodes(),
                     PageId::Addons => {
                         if let Some(page_model) = &model.addons_model {

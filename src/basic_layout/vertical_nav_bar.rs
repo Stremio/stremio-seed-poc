@@ -55,7 +55,7 @@ fn vertical_nav_buttons(root_base_url: &Url, page_id: PageId) -> Vec<Node<Msg>> 
             )
         },
         {
-            let active = false;
+            let active = page_id == PageId::Library;
             vertical_nav_button(
                 "Library", 
                 active,
@@ -70,7 +70,7 @@ fn vertical_nav_buttons(root_base_url: &Url, page_id: PageId) -> Vec<Node<Msg>> 
             )
         },
         {
-            let active = false;
+            let active = page_id == PageId::Settings;
             vertical_nav_button(
                 "Settings", 
                 active,
