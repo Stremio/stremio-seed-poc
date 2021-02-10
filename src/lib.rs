@@ -81,6 +81,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         discover_model: None,
         addons_model: None,
         search_model: None,
+        settings_model: None,
     }
 }
 
@@ -99,6 +100,7 @@ pub struct Model {
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
     search_model: Option<page::search::Model>,
+    settings_model: Option<page::settings::Model>,
 }
 
 // ------ Context ------
@@ -194,6 +196,7 @@ pub enum Msg {
     LibraryMsg(page::library::Msg),
     AddonsMsg(page::addons::Msg),
     SearchMsg(page::search::Msg),
+    SettingsMsg(page::settings::Msg),
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -235,7 +238,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut model.search_model,
                     &mut orders.proxy(Msg::SearchMsg),
                 ),
-                Some(SETTINGS) => Some(PageId::Settings),
+                Some(SETTINGS) => page::settings::init(
+                    url,
+                    &mut model.settings_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::SettingsMsg),
+                ),
                 Some(TEST_LINKS) => Some(PageId::TestLinks),
                 _ => None,
             };
@@ -333,6 +341,15 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 );
             }
         }
+        Msg::SettingsMsg(page_msg) => {
+            if let Some(page_model) = &mut model.settings_model {
+                page::settings::update(
+                    page_msg,
+                    page_model,
+                    &mut orders.proxy(Msg::SettingsMsg),
+                );
+            }
+        }
     }
 }
 
@@ -401,7 +418,14 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     },
-                    PageId::Settings => page::settings::view().into_nodes(),
+                    PageId::Settings => {
+                        if let Some(page_model) = &model.settings_model {
+                            page::settings::view(page_model, &model.context, page_id, Msg::SettingsMsg)
+                                .into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    }
                     PageId::TestLinks => page::test_links::view(&model.context.root_base_url).into_nodes(),
                     PageId::NotFound => page::not_found::view().into_nodes(),
                 }
