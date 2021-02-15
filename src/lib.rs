@@ -77,6 +77,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         // ---- page models ----
         board_model: None,
         detail_model: None,
+        intro_model: None,
         library_model: None,
         discover_model: None,
         addons_model: None,
@@ -96,6 +97,7 @@ pub struct Model {
     // ---- page models ----
     board_model: Option<page::board::Model>,
     detail_model: Option<page::detail::Model>,
+    intro_model: Option<page::intro::Model>,
     library_model: Option<page::library::Model>,
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
@@ -193,6 +195,7 @@ pub enum Msg {
     BoardMsg(page::board::Msg),
     DiscoverMsg(page::discover::Msg),
     DetailMsg(page::detail::Msg),
+    IntroMsg(page::intro::Msg),
     LibraryMsg(page::library::Msg),
     AddonsMsg(page::addons::Msg),
     SearchMsg(page::search::Msg),
@@ -219,7 +222,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut model.detail_model,
                     &mut orders.proxy(Msg::DetailMsg),
                 ),
-                Some(INTRO) => Some(PageId::Intro),
+                Some(INTRO) => page::intro::init(
+                    url,
+                    &mut model.intro_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::IntroMsg),
+                ),
                 Some(LIBRARY) => page::library::init(
                     url,
                     &mut model.library_model,
@@ -313,6 +321,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 page::detail::update(page_msg, page_model, &mut orders.proxy(Msg::DetailMsg));
             }
         }
+        Msg::IntroMsg(page_msg) => {
+            if let Some(page_model) = &mut model.intro_model {
+                page::intro::update(page_msg, page_model, &mut orders.proxy(Msg::IntroMsg));
+            }
+        }
         Msg::LibraryMsg(page_msg) => {
             if let Some(page_model) = &mut model.library_model {
                 page::library::update(
@@ -392,7 +405,13 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     }
-                    PageId::Intro => page::intro::view().into_nodes(),
+                    PageId::Intro => if let Some(page_model) = &model.intro_model {
+                        page::intro::view(page_model)
+                            .map_msg(Msg::IntroMsg)
+                            .into_nodes()
+                    } else {
+                        vec![]
+                    },
                     PageId::Library => {
                         if let Some(page_model) = &model.library_model {
                             page::library::view(page_model, &model.context, page_id, Msg::LibraryMsg)
