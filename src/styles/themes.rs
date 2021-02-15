@@ -168,6 +168,7 @@ pub enum Color {
     Accent3Light1,
     Accent3Light2,
     Accent4_90,
+    Accent4Light1_90,
     Background,
     BackgroundDark1,
     BackgroundDark2,
@@ -199,7 +200,10 @@ pub enum Color {
     SurfaceLight5_40,
     SurfaceLight5_60,
     SurfaceLight5_90,
+    SurfaceDark2_90,
     SurfaceDark3_90,
+    SurfaceDark4_90,
+    SurfaceDark5,
     SurfaceDark5_10,
     SurfaceDark5_90,
 }
@@ -339,6 +343,7 @@ pub fn default_color_theme() -> Theme {
         .set_color(Accent3Light1, hsl(147.7, 68, 46.7))
         .set_color(Accent3Light2, hsl(147.7, 68, 51.7))
         .set_color(Accent4_90, hsla(160, 81.5, 46.8, 0.9))
+        .set_color(Accent4Light1_90, hsla(160, 81.5, 51.8, 0.9))
         .set_color(Background, hsl(243, 24.4, 21))
         .set_color(BackgroundDark1, hsl(243, 24.4, 16))
         .set_color(BackgroundDark2, hsl(243, 24.4, 11))
@@ -370,7 +375,10 @@ pub fn default_color_theme() -> Theme {
         .set_color(SurfaceLight5_40, hsla(0, 0, 100, 0.4))
         .set_color(SurfaceLight5_60, hsla(0, 0, 100, 0.6))
         .set_color(SurfaceLight5_90, hsla(0, 0, 100, 0.9))
+        .set_color(SurfaceDark2_90, hsla(0, 0, 65, 0.9))
         .set_color(SurfaceDark3_90, hsla(0, 0, 60, 0.9))
+        .set_color(SurfaceDark4_90, hsla(0, 0, 55, 0.9))
+        .set_color(SurfaceDark5, hsl(0, 0, 50))
         .set_color(SurfaceDark5_10, hsla(0, 0, 50, 0.1))
         .set_color(SurfaceDark5_90, hsla(0, 0, 50, 0.9))
 }
