@@ -97,6 +97,8 @@ fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
 
 #[view]
 fn side_menu_container(active_button: SideMenuButton) -> Node<Msg> {
+    // @TODO: https://academind.com/tutorials/scroll-aware-navigation/ ?
+
     let app_version = "5.0.0";
     div![
         C!["side-menu-container"],
