@@ -21,6 +21,7 @@ use futures::compat::Future01CompatExt;
 use seed::{prelude::*, *};
 use seed_styles::pc;
 use seed_styles::*;
+use core::future;
 use std::rc::Rc;
 use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails};
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
@@ -49,7 +50,7 @@ const TEST_LINKS: &str = "test_links";
 
 #[derive(Clone)]
 pub enum Actions {
-    UpdateCoreModel(Rc<CoreMsg>)
+    UpdateCoreModel(Rc<CoreMsg>),
 }
 
 // ------ ------
@@ -66,12 +67,14 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         .subscribe(Msg::CoreMsg)
         .stream(streams::window_event(Ev::Click, |_| Msg::WindowClicked))
         .notify(subs::UrlChanged(url));
+        // @TODO listen for `fullscreenchange` once it's implemented in Safari
 
     Model {
         context: Context {
             core_model: CoreModel::default(),
             root_base_url,
             menu_visible: false,
+            fullscreen: false,
         },
         page_id: None,
         // ---- page models ----
@@ -111,6 +114,7 @@ pub struct Context {
     core_model: CoreModel,
     root_base_url: Url,
     menu_visible: bool,
+    fullscreen: bool,
 }
 
 // ------ PageId ------
@@ -200,6 +204,7 @@ pub enum Msg {
     AddonsMsg(page::addons::Msg),
     SearchMsg(page::search::Msg),
     SettingsMsg(page::settings::Msg),
+    ToggleFullscreen,
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -363,6 +368,15 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 );
             }
         }
+        Msg::ToggleFullscreen => {
+            if model.context.fullscreen {
+                close_fullscreen();
+                model.context.fullscreen = false;
+            } else {
+                open_fullscreen();
+                model.context.fullscreen = true;
+            }
+        }
     }
 }
 
@@ -460,4 +474,16 @@ fn view(model: &Model) -> Node<Msg> {
 #[wasm_bindgen(start)]
 pub fn start() {
     App::start("app", init, update, view);
+}
+
+// ------ ------
+//    Extern
+// ------ ------
+
+#[wasm_bindgen(module = "/js/fullscreen.js")]
+extern "C" {
+    #[wasm_bindgen(js_name = openFullscreen)]
+    fn open_fullscreen();
+    #[wasm_bindgen(js_name = closeFullscreen)]
+    fn close_fullscreen();
 }
