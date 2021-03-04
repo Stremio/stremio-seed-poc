@@ -3,6 +3,11 @@ use seed_hooks::{*, topo::nested as view};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use web_sys::HtmlElement;
+use regex::Regex;
+use std::rc::Rc;
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionCtx, Event};
+use stremio_core::models::ctx::CtxError;
+use stremio_core::types::api::{AuthRequest, APIError};
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -37,6 +42,7 @@ pub fn init(
 
     let model = model.get_or_insert_with(move || Model {
         base_url,
+        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
         form_type,
         email: String::new(),
         password: String::new(),
@@ -45,6 +51,7 @@ pub fn init(
         privacy_policy_checked: false,
         marketing_checked: false,
         email_input: ElRef::new(),
+        form_error: None,
     });
     model.form_type = form_type;
     Some(PageId::Intro)
@@ -56,6 +63,7 @@ pub fn init(
 
 pub struct Model {
     base_url: Url,
+    _core_msg_sub_handle: SubHandle,
     form_type: FormType,
     email: String,
     password: String,
@@ -64,6 +72,13 @@ pub struct Model {
     privacy_policy_checked: bool,
     marketing_checked: bool,
     email_input: ElRef<HtmlElement>,
+    form_error: Option<FormError>,
+}
+
+enum FormError {
+    InvalidEmail,
+    InvalidPassword,
+    APIError(APIError),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -91,6 +106,7 @@ impl<'a> Urls<'a> {
 // ------ ------
 
 pub enum Msg {
+    CoreMsg(Rc<CoreMsg>),
     EmailChanged(String),
     PasswordChanged(String),
     ConfirmPasswordChanged(String),
@@ -98,10 +114,22 @@ pub enum Msg {
     PrivacyPolicyClicked,
     MarketingClicked,
     FocusEmail,
+    Login,
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::CoreMsg(core_msg) => {
+            match core_msg.as_ref() {
+                CoreMsg::Event(Event::UserAuthenticated {..}) => {
+                    orders.request_url(RootUrls::new(&context.root_base_url).root());
+                }
+                CoreMsg::Event(Event::Error {error: CtxError::API(api_error), ..}) => {
+                    model.form_error = Some(FormError::APIError(api_error.to_owned()));
+                }
+                _ => (),
+            }
+        }
         Msg::EmailChanged(email) => {
             model.email = email;
         }
@@ -122,6 +150,34 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::FocusEmail => {
             model.email_input.get().map(|input| input.focus().expect("focus email input"));
+        }
+        Msg::Login => {
+            let email = &model.email;
+            let password = &model.password;
+
+            // Basic regex from https://www.w3schools.com/tags/att_input_pattern.asp
+            // @TODO replace with RFC 5321/5322? ; compile the regex only once in a lazy static?
+            let email_regex = Regex::new(r"^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$").unwrap();
+
+            if email.len() == 0 || not(email_regex.is_match(email)) {
+                model.form_error = Some(FormError::InvalidEmail);
+                return
+            }
+
+            if password.len() == 0 {
+                model.form_error = Some(FormError::InvalidPassword);
+                return
+            }
+
+            let auth_request = AuthRequest::Login {
+                email: email.to_owned(),
+                password: password.to_owned(),
+                // @TODO uncomment with stremio dependencies update
+                // facebook: false,
+            };
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::Authenticate(auth_request)
+            )))));
         }
     }
 }
@@ -187,8 +243,9 @@ fn form_container(model: &Model) -> Node<Msg> {
             ]
         }),
         IF!(model.form_type == FormType::LogIn => {
-            vec![
+            nodes![
                 forgot_password_button(),
+                model.form_error.as_ref().map(error_message),
                 login_button(),
                 sign_up_with_email_button(&model.base_url),
             ]
@@ -718,6 +775,22 @@ fn forgot_password_button() -> Node<Msg> {
 }
 
 #[view]
+fn error_message(error: &FormError) -> Node<Msg> {
+    div![
+        s()
+            .color(Color::Accent5_90)
+            .margin("1rem 0")
+            .padding("0 1rem")
+            .text_align(CssTextAlign::Center),
+        match error {
+            FormError::InvalidEmail => "Invalid email",
+            FormError::InvalidPassword => "Invalid password",
+            FormError::APIError(api_error) => &api_error.message,
+        }
+    ]
+}
+
+#[view]
 fn login_button() -> Node<Msg> {
     div![
         C!["form-button", "submit-button", "button-container"],
@@ -737,7 +810,7 @@ fn login_button() -> Node<Msg> {
         attrs!{
             At::TabIndex => 0,
         },
-        on_click_not_implemented(),
+        ev(Ev::Click, |_| Msg::Login),
         div![
             C!["label"],
             s()

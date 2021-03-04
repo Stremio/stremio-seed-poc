@@ -5,13 +5,14 @@ use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use std::rc::Rc;
 use seed_hooks::{*, topo::nested as view, state_access::CloneState};
+use stremio_core::types::profile::User;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
 }
 
 #[view]
-pub fn menu_button(root_base_url: &Url, menu_visible: bool, fullscreen: bool) -> Node<Msg> {
+pub fn menu_button(root_base_url: &Url, menu_visible: bool, fullscreen: bool, user: Option<&User>) -> Node<Msg> {
     label![
         id!("menu-toggle"),
         C!["button-container"],
@@ -38,7 +39,7 @@ pub fn menu_button(root_base_url: &Url, menu_visible: bool, fullscreen: bool) ->
         }),
         menu_icon(),
         IF!(menu_visible => {
-            menu_container(root_base_url, fullscreen)
+            menu_container(root_base_url, fullscreen, user)
         }),
     ]
 }
@@ -76,7 +77,7 @@ fn menu_icon() -> Node<Msg> {
 }
 
 #[view]
-fn menu_container(root_base_url: &Url, fullscreen: bool) -> Node<Msg> {
+fn menu_container(root_base_url: &Url, fullscreen: bool, user: Option<&User>) -> Node<Msg> {
     div![
         C!["menu-container", "menu-direction-bottom-left"],
         s()
@@ -100,7 +101,7 @@ fn menu_container(root_base_url: &Url, fullscreen: bool) -> Node<Msg> {
                 .max_height(format!("calc(100vh - {})", global::HORIZONTAL_NAV_BAR_SIZE).as_str())
                 .overflow_y("auto")
                 .width(rem(20)),
-            menu_section_user(root_base_url),
+            menu_section_user(root_base_url, user),
             menu_section_fullscreen(fullscreen),
             menu_section_general(root_base_url),
             menu_section_docs(),
@@ -109,7 +110,7 @@ fn menu_container(root_base_url: &Url, fullscreen: bool) -> Node<Msg> {
 }
 
 #[view]
-fn menu_section_user(root_base_url: &Url) -> Node<Msg> {
+fn menu_section_user(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
     div![
         C!["user-info-container"],
         s()
@@ -146,7 +147,11 @@ fn menu_section_user(root_base_url: &Url) -> Node<Msg> {
                     .color(Color::SurfaceLight5_90)
                     .flex("1")
                     .max_height(em(2.4)),
-                "Anonymous user",
+                if let Some(user) = user {
+                    &user.email
+                } else {
+                    "Anonymous user"
+                },
             ]
         ],
         a![
