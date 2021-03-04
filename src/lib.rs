@@ -8,6 +8,8 @@
 #![allow(
     dead_code,
     unused_imports,
+    unused_mut,
+    unused_variables,
 )]
 
 mod basic_layout;
@@ -26,9 +28,16 @@ use std::rc::Rc;
 use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails};
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
-use stremio_core::runtime::{Update, msg::Msg as CoreMsg, Effect};
+use stremio_core::runtime::{Update, Effect};
+use stremio_core::runtime::{Env, EnvError};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Event, CtxStorageResponse};
 use stremio_core::types::addon::DescriptorPreview;
 use stremio_core::types::resource::MetaItemPreview;
+use stremio_core::types::profile::Profile;
+use stremio_core::types::library::LibraryBucket;
+use stremio_core::constants::{
+    LIBRARY_RECENT_STORAGE_KEY, LIBRARY_STORAGE_KEY, PROFILE_STORAGE_KEY,
+};
 use stremio_derive::Model;
 use seed_hooks::{*, topo::nested as view};
 
@@ -66,7 +75,12 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         .subscribe(|Actions::UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
         .subscribe(Msg::CoreMsg)
         .stream(streams::window_event(Ev::Click, |_| Msg::WindowClicked))
-        .notify(subs::UrlChanged(url));
+        .notify(subs::UrlChanged(url))
+        .perform_cmd(async { Msg::CtxStorageResponse(futures::try_join!(
+            WebEnv::get_storage::<Profile>(PROFILE_STORAGE_KEY),
+            WebEnv::get_storage::<LibraryBucket>(LIBRARY_RECENT_STORAGE_KEY),
+            WebEnv::get_storage::<LibraryBucket>(LIBRARY_STORAGE_KEY),
+        ))});
         // @TODO listen for `fullscreenchange` once it's implemented in Safari
 
     Model {
@@ -189,6 +203,7 @@ impl<'a> Urls<'a> {
 
 #[allow(clippy::enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
+    CtxStorageResponse(Result<CtxStorageResponse, EnvError>),
     UrlChanged(subs::UrlChanged),
     CoreMsg(Rc<CoreMsg>),
     HandleEffectMsg(Rc<CoreMsg>),
@@ -209,6 +224,21 @@ pub enum Msg {
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::CtxStorageResponse(Ok((profile, recent_bucket, other_bucket))) => {
+            let ctx = &mut model.context.core_model.ctx;
+            if let Some(profile) = profile {
+                ctx.profile = profile;
+            }
+            if let Some(recent_bucket) = recent_bucket {
+                ctx.library.merge_bucket(recent_bucket);
+            };
+            if let Some(other_bucket) = other_bucket {
+                ctx.library.merge_bucket(other_bucket);
+            };
+        }
+        Msg::CtxStorageResponse(Err(error)) => {
+            log!(error.message());
+        }
         Msg::UrlChanged(subs::UrlChanged(mut url)) => {
             let page_id = match url.next_hash_path_part() {
                 None => page::board::init(
@@ -283,6 +313,9 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             }
         }
         Msg::HandleEffectMsg(core_msg) => {
+            if let CoreMsg::Event(Event::UserLoggedOut {..}) = core_msg.as_ref() {
+                orders.request_url(Urls::new(&model.context.root_base_url).root());
+            }
             orders.notify(core_msg);
         }
         Msg::GoToSearchPage => {
@@ -328,7 +361,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::IntroMsg(page_msg) => {
             if let Some(page_model) = &mut model.intro_model {
-                page::intro::update(page_msg, page_model, &mut orders.proxy(Msg::IntroMsg));
+                page::intro::update(
+                    page_msg, 
+                    page_model, 
+                    &mut model.context, 
+                    &mut orders.proxy(Msg::IntroMsg)
+                );
             }
         }
         Msg::LibraryMsg(page_msg) => {

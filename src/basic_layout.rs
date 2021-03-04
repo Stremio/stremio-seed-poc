@@ -52,6 +52,7 @@ pub fn basic_layout(args: BasicLayoutArgs) -> Node<Msg> {
                 args.search_args.as_ref(), 
                 args.context.menu_visible,
                 args.context.fullscreen,
+                args.context.core_model.ctx.profile.auth.as_ref().map(|auth| &auth.user),
             ),
             vertical_nav_bar(&args.context.root_base_url, args.page_id),
             nav_content_container(args.page_content),
