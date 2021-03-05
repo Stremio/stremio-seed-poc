@@ -2,10 +2,19 @@ use seed::{prelude::*, *};
 use seed_hooks::{*, topo::nested as view};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
-use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
+use std::rc::Rc;
+use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Events, Urls as RootUrls};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
+use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg};
 use stremio_core::types::library::LibraryItem;
+use stremio_core::models::library_with_filters::{
+    Selected as LibraryWithFiltersSelected, 
+    LibraryWithFilters, 
+    LibraryRequest, 
+    LibraryRequestPage,
+    Sort,
+};
 
 // ------ ------
 //     Init
@@ -19,9 +28,48 @@ pub fn init(
 ) -> Option<PageId> {
     let base_url = url.to_hash_base_url();
 
-    let model = model.get_or_insert_with(move || Model {
+    let library_request = match url.remaining_hash_path_parts().as_slice() {
+        [type_, sort, page] => {
+            (|| Some(LibraryRequest {
+                r#type: if *type_ == "all" { None } else { Some(type_.to_string()) },
+                sort: match *sort {
+                    "last_watched" => Sort::LastWatched,
+                    "name" => Sort::Name,
+                    "times_watched" => Sort::TimesWatched,
+                    _ => None?
+                },
+                page: LibraryRequestPage(page.parse().ok()?),
+            }))()
+        }
+        _ => None,
+    };
+
+    load_library(library_request.clone(), orders);
+
+    let mut model = model.get_or_insert_with(move || Model {
+        base_url,
+        library_request: None,
+        _events_sub_handle: orders.subscribe_with_handle(|Events::LibraryLoadedFromStorage| Msg::ReloadLibrary),
     });
+    model.library_request = library_request;
     Some(PageId::Library)
+}
+
+fn load_library(library_request: Option<LibraryRequest>, orders: &mut impl Orders<Msg>) {
+    let selected_library = LibraryWithFiltersSelected {
+        request: library_request.unwrap_or_else(default_library_request)
+    };
+    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+        ActionLoad::LibraryWithFilters(selected_library),
+    )))));
+}
+
+pub fn default_library_request() -> LibraryRequest {
+    LibraryRequest {
+        r#type: None,
+        sort: Sort::default(),
+        page: LibraryRequestPage::default(),
+    }
 }
 
 // ------ ------
@@ -29,6 +77,9 @@ pub fn init(
 // ------ ------
 
 pub struct Model {
+    base_url: Url,
+    library_request: Option<LibraryRequest>,
+    _events_sub_handle: SubHandle,
 }
 
 // ------ ------
@@ -47,10 +98,14 @@ impl<'a> Urls<'a> {
 // ------ ------
 
 pub enum Msg {
+    ReloadLibrary,
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::ReloadLibrary => {
+            load_library(model.library_request.clone(), orders)
+        }
     }
 }
 
@@ -106,7 +161,8 @@ fn selectable_inputs_container() -> Node<Msg> {
 #[view]
 fn meta_items_container(library_items: &[LibraryItem]) -> Node<Msg> {
     div![
-        "meta_items_container",
+        C!["meta-items-container"],
+        "LIBRARY ITEMS"
     ]
 }
 
