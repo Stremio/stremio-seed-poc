@@ -5,6 +5,7 @@ use seed_styles::*;
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
+use stremio_core::types::library::LibraryItem;
 
 // ------ ------
 //     Init
@@ -70,6 +71,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 
 #[view]
 fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
+    let library_items = &context.core_model.library.catalog;
     div![
         C!["library-content"],
         s()
@@ -78,9 +80,13 @@ fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .height(pc(100))
             .width(pc(100)),  
         if context.core_model.ctx.profile.auth.is_some() {
-            vec![
+            nodes![
                 selectable_inputs_container(),
-                message_container(MessageContainer::EmptyLibrary)
+                if library_items.is_empty() {
+                    message_container(MessageContainer::EmptyLibrary)
+                } else {
+                    meta_items_container(library_items)
+                }
             ]
         } else {
             vec![
@@ -94,6 +100,13 @@ fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
 fn selectable_inputs_container() -> Node<Msg> {
     div![
         "selectable inputs container",
+    ]
+}
+
+#[view]
+fn meta_items_container(library_items: &[LibraryItem]) -> Node<Msg> {
+    div![
+        "meta_items_container",
     ]
 }
 
