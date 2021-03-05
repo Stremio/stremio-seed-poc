@@ -76,13 +76,34 @@ fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Column)
             .height(pc(100))
-            .width(pc(100)),            
-        message_container(&context.root_base_url),
+            .width(pc(100)),  
+        if context.core_model.ctx.profile.auth.is_some() {
+            vec![
+                selectable_inputs_container(),
+                message_container(MessageContainer::EmptyLibrary)
+            ]
+        } else {
+            vec![
+                message_container(MessageContainer::Login(&context.root_base_url))
+            ]
+        }          
     ]
 }
 
 #[view]
-fn message_container(root_url_base: &Url) -> Node<Msg> {
+fn selectable_inputs_container() -> Node<Msg> {
+    div![
+        "selectable inputs container",
+    ]
+}
+
+enum MessageContainer<'a> {
+    Login(&'a Url),
+    EmptyLibrary,
+}
+
+#[view]
+fn message_container(message_container: MessageContainer) -> Node<Msg> {
     div![
         C!["message-container", "no-user-message-container"],
         s()
@@ -104,11 +125,19 @@ fn message_container(root_url_base: &Url) -> Node<Msg> {
                 .opacity("0.9")
                 .width(rem(12)),
             attrs!{
-                At::Src => global::image_url("anonymous.png"),
+                At::Src => if let MessageContainer::Login(root_url_base) = message_container {
+                    global::image_url("anonymous.png")
+                } else {
+                    global::image_url("empty.png")
+                }
                 At::Alt => "",
             },
         ],
-        login_button(root_url_base),
+        if let MessageContainer::Login(root_url_base) = message_container {
+            login_button(root_url_base)
+        } else {
+            empty![]
+        },
         div![
             C!["message-label"],
             s()
@@ -116,7 +145,11 @@ fn message_container(root_url_base: &Url) -> Node<Msg> {
                 .flex(CssFlex::None)
                 .font_size(rem(2.5))
                 .text_align(CssTextAlign::Center),
-            "Library is only available for logged in users!",
+            if let MessageContainer::Login(root_url_base) = message_container {
+                "Library is only available for logged in users!"
+            } else {
+                "Empty Library"
+            },
         ]
     ]
 }
