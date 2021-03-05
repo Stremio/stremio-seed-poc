@@ -60,6 +60,7 @@ const TEST_LINKS: &str = "test_links";
 #[derive(Clone)]
 pub enum Actions {
     UpdateCoreModel(Rc<CoreMsg>),
+    Logout,
 }
 
 // ------ ------
@@ -72,7 +73,12 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
     let root_base_url = url.to_hash_base_url();
     orders
         .subscribe(Msg::UrlChanged)
-        .subscribe(|Actions::UpdateCoreModel(core_msg)| Msg::CoreMsg(core_msg))
+        .subscribe(|action: Actions| {
+            match action {
+                Actions::UpdateCoreModel(core_msg) => Msg::CoreMsg(core_msg),
+                Actions::Logout => Msg::Logout,
+            }
+        })
         .subscribe(Msg::CoreMsg)
         .stream(streams::window_event(Ev::Click, |_| Msg::WindowClicked))
         .notify(subs::UrlChanged(url))

@@ -2,6 +2,8 @@ use seed::{prelude::*, *};
 use seed_hooks::{*, topo::nested as view};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
+use std::borrow::Cow;
+use stremio_core::types::profile::User;
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -59,10 +61,14 @@ impl<'a> Urls<'a> {
 // ------ ------
 
 pub enum Msg {
+    Logout
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::Logout => {
+            orders.notify(Actions::Logout);
+        }
     }
 }
 
@@ -83,6 +89,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 
 #[view]
 fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
+    let user = context.core_model.ctx.profile.auth.as_ref().map(|auth| &auth.user);
     div![
         C!["settings-content"],
         s()
@@ -91,7 +98,7 @@ fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .height(pc(100))
             .width(pc(100)),            
         side_menu_container(model.active_side_menu_button),
-        sections_container(&context.root_base_url),
+        sections_container(&context.root_base_url, user),
     ]
 }
 
@@ -161,7 +168,7 @@ fn side_menu_button(title: &str, active: bool) -> Node<Msg> {
 }
 
 #[view]
-fn sections_container(root_base_url: &Url) -> Node<Msg> {
+fn sections_container(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
     div![
         C!["sections-container"],
         s()
@@ -169,21 +176,34 @@ fn sections_container(root_base_url: &Url) -> Node<Msg> {
             .flex("1")
             .overflow_y(CssOverflowY::Auto)
             .padding("0 2rem"),
-        general_section(root_base_url),
+        general_section(root_base_url, user),
         player_section(),
         streaming_server_section(),
     ]
 }
 
 #[view]
-fn general_section(root_base_url: &Url) -> Node<Msg> {
-    let email = "Anonymous user";
-    let options = vec![
+fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
+    let email = if let Some(user) = user {
+        &user.email
+    } else {
+        "Anonymous user"
+    };
+    let login_button_title = if user.is_some() { "Log out "} else { "Log in / Sign up" };
+
+    let avatar = user.and_then(|user| user.avatar.as_ref());
+    let user_image_url: Cow<_> = match (user, avatar) {
+        (None, _) => global::image_url("anonymous.png").into(),
+        (Some(_), None) => global::image_url("default_avatar.png").into(),
+        (Some(_), Some(avatar)) => avatar.into(),
+    };
+    
+    let options = nodes![
         option_container(Some(s().height(rem(6))), vec![
             div![
                 C!["avatar-container"],
                 s()
-                    .background_image(format!(r#"url("{}")"#, global::image_url("anonymous.png")).as_str())
+                    .background_image(format!(r#"url("{}")"#, user_image_url).as_str())
                     .align_self(CssAlignSelf::Stretch)
                     .background_clip("content-box")
                     .background_origin("content-box")
@@ -223,7 +243,36 @@ fn general_section(root_base_url: &Url) -> Node<Msg> {
                             .max_height(em(2.4)),
                         email,
                     ]
-                ]
+                ],
+                IF!(user.is_some() => {
+                    a![
+                        C!["logout-button-container", "button-container"],
+                        s()
+                            .flex("0 1 50%")
+                            .align_items(CssAlignItems::Center)
+                            .display(CssDisplay::Flex)
+                            .flex_direction(CssFlexDirection::Row)
+                            .cursor(CssCursor::Pointer),
+                        s()
+                            .style_other(":hover .logout-label")
+                            .color(Color::SurfaceLight5_90)
+                            .text_decoration(CssTextDecoration::Underline),
+                        attrs!{
+                            At::TabIndex => 0,
+                            At::Title => "Log out",
+                            At::Href => RootUrls::new(root_base_url).intro(),
+                        },
+                        user.map(|_| ev(Ev::Click, |_| Msg::Logout)),
+                        div![
+                            C!["logout-label"],
+                            s()
+                                .color(Color::Surface90)
+                                .flex("1")
+                                .max_height(em(1.2)),
+                            "Log out",
+                        ],
+                    ]
+                }),
             ],
             a![
                 C!["user-panel-container", "button-container"],
@@ -258,7 +307,7 @@ fn general_section(root_base_url: &Url) -> Node<Msg> {
                 ]
             ],
         ]),
-        option_container(None, vec![
+        IF!(user.is_none() => { option_container(None, vec![
             a![
                 C!["option-input-container", "button-container"],
                 s()
@@ -287,10 +336,10 @@ fn general_section(root_base_url: &Url) -> Node<Msg> {
                         .flex_grow("0")
                         .flex_shrink("1")
                         .line_height(rem(1.5)),
-                    "Log in / Sign up",
+                        "Log in / Sign up",
                 ],
             ]
-        ]),
+        ])}),
         option_container(None, vec![
             div![
                 C!["option-name-container"],
