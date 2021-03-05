@@ -44,12 +44,7 @@ pub fn init(
         base_url,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
         form_type,
-        email: String::new(),
-        password: String::new(),
-        confirm_password: String::new(),
-        terms_and_conditions_checked: false,
-        privacy_policy_checked: false,
-        marketing_checked: false,
+        form_data: FormData::default(),
         email_input: ElRef::new(),
         form_error: None,
     });
@@ -65,20 +60,9 @@ pub struct Model {
     base_url: Url,
     _core_msg_sub_handle: SubHandle,
     form_type: FormType,
-    email: String,
-    password: String,
-    confirm_password: String,
-    terms_and_conditions_checked: bool,
-    privacy_policy_checked: bool,
-    marketing_checked: bool,
+    form_data: FormData,
     email_input: ElRef<HtmlElement>,
     form_error: Option<FormError>,
-}
-
-enum FormError {
-    InvalidEmail,
-    InvalidPassword,
-    APIError(APIError),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -86,6 +70,22 @@ enum FormType {
     SignUp,
     LogIn,
 } 
+
+#[derive(Default)]
+struct FormData {
+    email: String,
+    password: String,
+    confirm_password: String,
+    terms_and_conditions_checked: bool,
+    privacy_policy_checked: bool,
+    marketing_checked: bool,
+}
+
+enum FormError {
+    InvalidEmail,
+    InvalidPassword,
+    APIError(APIError),
+}
 
 // ------ ------
 //     Urls
@@ -122,6 +122,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::CoreMsg(core_msg) => {
             match core_msg.as_ref() {
                 CoreMsg::Event(Event::UserAuthenticated {..}) => {
+                    model.form_data = FormData::default();
                     orders.request_url(RootUrls::new(&context.root_base_url).root());
                 }
                 CoreMsg::Event(Event::Error {error: CtxError::API(api_error), ..}) => {
@@ -131,29 +132,29 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             }
         }
         Msg::EmailChanged(email) => {
-            model.email = email;
+            model.form_data.email = email;
         }
         Msg::PasswordChanged(password) => {
-            model.password = password;
+            model.form_data.password = password;
         }
         Msg::ConfirmPasswordChanged(confirm_password) => {
-            model.confirm_password = confirm_password;
+            model.form_data.confirm_password = confirm_password;
         }
         Msg::TermsAndConditionsClicked => {
-            model.terms_and_conditions_checked = !model.terms_and_conditions_checked;
+            model.form_data.terms_and_conditions_checked = !model.form_data.terms_and_conditions_checked;
         }
         Msg::PrivacyPolicyClicked => {
-            model.privacy_policy_checked = !model.privacy_policy_checked;
+            model.form_data.privacy_policy_checked = !model.form_data.privacy_policy_checked;
         }
         Msg::MarketingClicked => {
-            model.marketing_checked = !model.marketing_checked;
+            model.form_data.marketing_checked = !model.form_data.marketing_checked;
         }
         Msg::FocusEmail => {
             model.email_input.get().map(|input| input.focus().expect("focus email input"));
         }
         Msg::Login => {
-            let email = &model.email;
-            let password = &model.password;
+            let email = &model.form_data.email;
+            let password = &model.form_data.password;
 
             // Basic regex from https://www.w3schools.com/tags/att_input_pattern.asp
             // @TODO replace with RFC 5321/5322? ; compile the regex only once in a lazy static?
@@ -230,14 +231,14 @@ fn form_container(model: &Model) -> Node<Msg> {
         IF!(model.form_type == FormType::SignUp => {
             login_form_button(&model.base_url)
         }),
-        email_input(&model.email, &model.email_input),
-        password_input(&model.password),
+        email_input(&model.form_data.email, &model.email_input),
+        password_input(&model.form_data.password),
         IF!(model.form_type == FormType::SignUp => {
             vec![
-                confirm_password_input(&model.confirm_password),
-                terms_and_conditions_checkbox(model.terms_and_conditions_checked),
-                privacy_policy_checkbox(model.privacy_policy_checked),
-                marketing_checkbox(model.marketing_checked),
+                confirm_password_input(&model.form_data.confirm_password),
+                terms_and_conditions_checkbox(model.form_data.terms_and_conditions_checked),
+                privacy_policy_checkbox(model.form_data.privacy_policy_checked),
+                marketing_checkbox(model.form_data.marketing_checked),
                 sign_up_button(),
                 guest_login_button(),
             ]
