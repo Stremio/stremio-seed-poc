@@ -1,17 +1,19 @@
 use crate::{PageId, Actions, Context};
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionLoad};
+use std::collections::HashMap;
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionLoad, ActionCtx};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use crate::styles::{self, themes::Color};
 use stremio_core::models::meta_details::Selected as MetaDetailsSelected;
 use stremio_core::models::common::{ResourceLoadable, Loadable};
 use stremio_core::types::addon::ResourcePath;
-use stremio_core::types::resource::{MetaItem, Link};
+use stremio_core::types::resource::{MetaItem, Link, MetaItemPreview};
+use stremio_core::types::library::LibraryItem;
 use seed_hooks::{*, topo::nested as view};
 
-fn on_click_not_implemented<Ms: 'static>() -> EventHandler<Ms> {
+fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
 }
 
@@ -70,10 +72,38 @@ impl<'a> Urls<'a> {
 //    Update
 // ------ ------
 
-pub struct Msg;
+pub enum Msg {
+    AddToLibrary(MetaItem),
+    RemoveFromLibrary(String),
+}
 
-pub fn update(_: Msg, _: &mut Model, _: &mut impl Orders<Msg>) {
-    unimplemented!()
+pub fn update(msg: Msg, _: &mut Model, orders: &mut impl Orders<Msg>) {
+    match msg {
+        Msg::AddToLibrary(meta_item) => {
+            let item = MetaItemPreview {
+                id: meta_item.id,
+                r#type: meta_item.r#type,
+                name: meta_item.name,
+                poster: meta_item.poster,
+                logo: meta_item.logo,
+                description: meta_item.description,
+                release_info: meta_item.release_info,
+                runtime: meta_item.runtime,
+                released: meta_item.released,
+                poster_shape: meta_item.poster_shape,
+                trailer_streams: meta_item.trailer_streams,
+                behavior_hints: meta_item.behavior_hints,
+            };
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::AddToLibrary(item)
+            )))));
+        }
+        Msg::RemoveFromLibrary(id) => {
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::RemoveFromLibrary(id)
+            )))));
+        }
+    }
 }
 
 // ------ ------
@@ -81,8 +111,9 @@ pub fn update(_: Msg, _: &mut Model, _: &mut impl Orders<Msg>) {
 // ------ ------
 
 #[view]
-pub fn view<Ms: 'static>(context: &Context) -> Node<Ms> {
+pub fn view(context: &Context) -> Node<Msg> {
     let meta_items = &context.core_model.meta_details.meta_items;
+    let library = &context.core_model.ctx.library.items;
     div![
         C!["metadetails-container",],
         s()
@@ -102,7 +133,7 @@ pub fn view<Ms: 'static>(context: &Context) -> Node<Ms> {
                 .position(CssPosition::Relative)
                 .z_index("0"),
             background_image_layer(meta_items),
-            meta_preview(meta_items),
+            meta_preview(meta_items, library),
             div![
                 C!["spacing"],
                 s()
@@ -114,7 +145,7 @@ pub fn view<Ms: 'static>(context: &Context) -> Node<Ms> {
 }
 
 #[view]
-fn side_bar<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Ms>> {
+fn side_bar(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Msg>> {
     if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
         match meta_item.r#type.as_str() {
             "series" => return Some(videos_list(meta_item)),
@@ -126,7 +157,7 @@ fn side_bar<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<No
 }
 
 #[view]
-fn videos_list<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
+fn videos_list(meta_item: &MetaItem) -> Node<Msg> {
     div![
         C!["videos-list", "videos-list-container"],
         s()
@@ -139,7 +170,7 @@ fn videos_list<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
 }
 
 #[view]
-fn streams_list<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
+fn streams_list(meta_item: &MetaItem) -> Node<Msg> {
     div![
         C!["streams-list", "streams-list-container"],
         s()
@@ -152,7 +183,7 @@ fn streams_list<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
 }
 
 #[view]
-fn nav_bar<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Ms> {
+fn nav_bar(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Msg> {
     div![
         C!["nav-bar", "horizontal-nav-bar-container",],
         s()
@@ -171,7 +202,7 @@ fn nav_bar<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Ms> {
 }
 
 #[view]
-fn back_button<Ms: 'static>() -> Node<Ms> {
+fn back_button() -> Node<Msg> {
     div![
         C!["button-container", "back-button-container", "button-container"],
         s()
@@ -208,7 +239,7 @@ fn back_button<Ms: 'static>() -> Node<Ms> {
 }
 
 #[view]
-fn nav_bar_title<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Ms>> {
+fn nav_bar_title(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Msg>> {
     if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
         return Some(h2![
             C!["title"], 
@@ -229,7 +260,7 @@ fn nav_bar_title<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Opti
 }
 
 #[view]
-fn background_image_layer<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Ms> {
+fn background_image_layer(meta_items: &[ResourceLoadable<MetaItem>]) -> Node<Msg> {
     div![
         C!["background-image-layer"],
         s()
@@ -276,7 +307,7 @@ fn background_image_layer<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]
 }
 
 #[view]
-fn meta_preview<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Ms>> {
+fn meta_preview(meta_items: &[ResourceLoadable<MetaItem>], library: &HashMap<String, LibraryItem>) -> Option<Node<Msg>> {
     if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
         return Some(div![
             C!["meta-preview", "meta-preview-container",],
@@ -288,14 +319,14 @@ fn meta_preview<Ms: 'static>(meta_items: &[ResourceLoadable<MetaItem>]) -> Optio
                 .position(CssPosition::Relative)
                 .z_index("0"),
             meta_info(meta_item),
-            action_buttons(meta_item),
+            action_buttons(meta_item, library),
         ])
     }
     None
 }
 
 #[view]
-fn meta_info<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
+fn meta_info(meta_item: &MetaItem) -> Node<Msg> {
     div![
         C!["meta-info-container"],
         s()
@@ -330,7 +361,7 @@ fn meta_info<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
 }
 
 #[view]
-fn meta_info_logo<Ms: 'static>(meta_item: &MetaItem) -> Option<Node<Ms>> {
+fn meta_info_logo(meta_item: &MetaItem) -> Option<Node<Msg>> {
     meta_item.logo.as_ref().map(|logo| {
         img![
             C!["logo"],
@@ -350,7 +381,7 @@ fn meta_info_logo<Ms: 'static>(meta_item: &MetaItem) -> Option<Node<Ms>> {
 }
 
 #[view]
-fn meta_info_runtime_release<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
+fn meta_info_runtime_release(meta_item: &MetaItem) -> Node<Msg> {
     div![
         C!["runtime-release-info-container"],
         s()
@@ -388,7 +419,7 @@ fn meta_info_runtime_release<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
 }
 
 #[view]
-fn imdb_pill<Ms: 'static>(meta_item: &MetaItem) -> Option<Node<Ms>> {
+fn imdb_pill(meta_item: &MetaItem) -> Option<Node<Msg>> {
     meta_item.links.iter().find(|link| link.category == "imdb").map(|link| {
         a![
             C!["imdb-button-container", "button-container"],
@@ -460,7 +491,7 @@ fn imdb_pill<Ms: 'static>(meta_item: &MetaItem) -> Option<Node<Ms>> {
 }
 
 #[view]
-fn meta_links<Ms: 'static>(meta_item: &MetaItem) -> Vec<Node<Ms>> {
+fn meta_links(meta_item: &MetaItem) -> Vec<Node<Msg>> {
     let mut genres = Vec::new(); 
     let mut cast = Vec::new(); 
     let mut writers = Vec::new(); 
@@ -494,7 +525,7 @@ fn meta_links<Ms: 'static>(meta_item: &MetaItem) -> Vec<Node<Ms>> {
 }
 
 #[view]
-fn meta_link_group<Ms: 'static>(title: &str, links: &[&Link]) -> Node<Ms> {
+fn meta_link_group(title: &str, links: &[&Link]) -> Node<Msg> {
     div![
         C!["meta-links", "meta-links-container"],
         s()
@@ -519,7 +550,7 @@ fn meta_link_group<Ms: 'static>(title: &str, links: &[&Link]) -> Node<Ms> {
 }
 
 #[view]
-fn meta_link<Ms: 'static>(link: &Link) -> Node<Ms> {
+fn meta_link(link: &Link) -> Node<Msg> {
     a![
         C!["link-container", "button-container"],
         s()
@@ -549,7 +580,7 @@ fn meta_link<Ms: 'static>(link: &Link) -> Node<Ms> {
 }
 
 #[view]
-fn action_buttons<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
+fn action_buttons(meta_item: &MetaItem, library: &HashMap<String, LibraryItem>) -> Node<Msg> {
     div![
         C!["action-buttons-container",],
         s()
@@ -560,15 +591,29 @@ fn action_buttons<Ms: 'static>(meta_item: &MetaItem) -> Node<Ms> {
             .flex_wrap(CssFlexWrap::Wrap)
             .max_height(rem(10))
             .padding("0 2rem"),
-        action_button("Add to library", "0 0 1264 1024", "ic_addlib", add_to_library_paths()),
+        if library.get(&meta_item.id).map(|library_item| not(library_item.removed)).unwrap_or_default() {
+            let id = meta_item.id.to_owned();
+            action_button(
+                "Remove from Library", "0 0 1264 1024", "ic_removelib", 
+                remove_from_library_paths(), 
+                ev(Ev::Click, move |_| Msg::RemoveFromLibrary(id))
+            )
+        } else {
+            let meta_item = meta_item.to_owned();
+            action_button(
+                "Add to Library", "0 0 1264 1024", "ic_addlib", 
+                add_to_library_paths(),
+                ev(Ev::Click, move |_| Msg::AddToLibrary(meta_item))
+            )
+        },
         IF!(not(meta_item.trailer_streams.is_empty()) => {
-            action_button("Trailer", "0 0 840 1024", "ic_movies", trailer_paths())
+            action_button("Trailer", "0 0 840 1024", "ic_movies", trailer_paths(), None)
         }),
-        action_button("Share", "0 0 1024 1024", "ic_share", share_paths()),
+        action_button("Share", "0 0 1024 1024", "ic_share", share_paths(), None),
     ]
 }
 
-fn add_to_library_paths<Ms: 'static>() -> Vec<Node<Ms>> {
+fn add_to_library_paths() -> Vec<Node<Msg>> {
     vec![
         path![attrs! {
             At::D => "M78.306 0c-43.178 0.17-78.135 35.127-78.306 78.29l-0 0.016v764.988c2.636 41.27 36.754 73.744 78.456 73.744s75.82-32.474 78.445-73.514l0.012-0.23v-764.988c-0.171-43.284-35.299-78.306-78.606-78.306-0 0-0 0-0.001 0l0 0z"
@@ -588,7 +633,27 @@ fn add_to_library_paths<Ms: 'static>() -> Vec<Node<Ms>> {
     ]
 }
 
-fn trailer_paths<Ms: 'static>() -> Vec<Node<Ms>> {
+fn remove_from_library_paths() -> Vec<Node<Msg>> {
+    vec![
+        path![attrs! {
+            At::D => "M78.306 0c-43.178 0.17-78.135 35.127-78.306 78.29l-0 0.016v764.988c2.636 41.27 36.754 73.744 78.456 73.744s75.82-32.474 78.445-73.514l0.012-0.23v-764.988c-0.171-43.284-35.299-78.306-78.606-78.306-0 0-0 0-0.001 0l0 0z"
+        }],
+        path![attrs! {
+            At::D => "M341.835 153.901c-43.178 0.17-78.135 35.127-78.306 78.29l-0 0.016v611.087c0 43.663 35.396 79.059 79.059 79.059s79.059-35.396 79.059-79.059v0-611.087c-0.166-43.288-35.296-78.315-78.607-78.315-0.424 0-0.847 0.003-1.269 0.010l0.064-0.001z"
+        }],
+        path![attrs! {
+            At::D => "M963.765 421.647c-166.335 0-301.176 134.841-301.176 301.176s134.841 301.176 301.176 301.176c166.335 0 301.176-134.841 301.176-301.176v0c0-166.335-134.841-301.176-301.176-301.176v0zM1156.518 768.602h-386.409v-90.353h385.506z"
+        }],
+        path![attrs! {
+            At::D => "M683.972 465.016v-386.711c-2.636-41.27-36.754-73.744-78.456-73.744s-75.82 32.474-78.445 73.514l-0.012 0.23v764.988c-0 0-0 0-0 0.001 0 43.247 35.059 78.306 78.306 78.306 0.106 0 0.212-0 0.318-0.001l-0.016 0c0.068 0 0.147 0 0.227 0 10.82 0 21.097-2.329 30.355-6.513l-0.465 0.188c-32.753-54.79-52.119-120.857-52.119-191.447 0-99.528 38.499-190.064 101.417-257.529l-0.206 0.223z"
+        }],
+        path![attrs! {
+            At::D => "M817.092 371.351c42.987-18.759 93.047-29.807 145.652-30.117l0.117-0.001h8.433l-60.235-262.325c-8.294-35.054-39.322-60.736-76.348-60.736-43.274 0-78.355 35.081-78.355 78.355 0 6.248 0.731 12.325 2.113 18.151l-0.106-0.532z"
+        }],
+    ]
+}
+
+fn trailer_paths() -> Vec<Node<Msg>> {
     vec![
         path![attrs! {
             At::D => "M813.176 1024h-708.969c-14.3-3.367-24.781-16.017-24.781-31.115 0-0.815 0.031-1.623 0.090-2.422l-0.006 0.107q0-215.642 0-430.984v-4.819c0.015 0 0.033 0 0.051 0 30.976 0 58.991-12.673 79.146-33.116l0.013-0.013c19.218-19.773 31.069-46.796 31.069-76.586 0-1.134-0.017-2.265-0.051-3.391l0.004 0.165h649.939v558.381c-1.037 2.541-2.047 4.621-3.168 6.63l0.157-0.306c-4.8 8.938-13.235 15.394-23.273 17.431l-0.219 0.037zM796.612 481.882h-126.795c-1.944 0.438-3.547 1.646-4.5 3.28l-0.018 0.033-60.235 95.473c-0.466 0.866-0.972 1.957-1.422 3.076l-0.084 0.237h128.301c3.012 0 3.915 0 5.421-3.313l56.922-95.172c0.887-1.056 1.687-2.24 2.356-3.505l0.053-0.11zM393.638 583.078h128.602c0.156 0.017 0.337 0.026 0.52 0.026 2.3 0 4.246-1.517 4.892-3.604l0.010-0.036c18.974-30.118 37.948-62.645 56.621-94.268l2.711-4.518h-125.892c-0.179-0.018-0.387-0.028-0.597-0.028-2.519 0-4.694 1.473-5.711 3.604l-0.016 0.038-58.428 94.268zM377.675 481.882h-126.193c-0.024-0-0.052-0.001-0.080-0.001-2.57 0-4.763 1.609-5.629 3.875l-0.014 0.041-58.428 93.064-2.711 4.216h124.386c0.165 0.018 0.357 0.028 0.551 0.028 2.127 0 3.968-1.225 4.856-3.008l0.014-0.031 60.235-95.473z"
@@ -602,7 +667,7 @@ fn trailer_paths<Ms: 'static>() -> Vec<Node<Ms>> {
     ]
 }
 
-fn share_paths<Ms: 'static>() -> Vec<Node<Ms>> {
+fn share_paths() -> Vec<Node<Msg>> {
     vec![
         path![attrs! {
             At::D => "M846.005 679.454c-62.726 0.19-117.909 32.308-150.171 80.95l-0.417 0.669-295.755-96.979c2.298-11.196 3.614-24.064 3.614-37.239 0-0.038-0-0.075-0-0.113l0 0.006c0-0.039 0-0.085 0-0.132 0-29.541-6.893-57.472-19.159-82.272l0.486 1.086 221.967-143.059c42.092 37.259 97.727 60.066 158.685 60.235l0.035 0c0.81 0.010 1.768 0.016 2.726 0.016 128.794 0 233.38-103.646 234.901-232.079l0.001-0.144c0-131.737-106.794-238.532-238.532-238.532s-238.532 106.794-238.532 238.532h0c0.012 33.532 7.447 65.325 20.752 93.828l-0.573-1.367-227.087 146.372c-32.873-23.074-73.687-36.92-117.729-37.045l-0.031-0c-0.905-0.015-1.974-0.023-3.044-0.023-108.186 0-196.124 86.69-198.139 194.395l-0.003 0.189c2.017 107.893 89.956 194.583 198.142 194.583 1.070 0 2.139-0.008 3.205-0.025l-0.161 0.002c0.108 0 0.235 0 0.363 0 60.485 0 114.818-26.336 152.159-68.168l0.175-0.2 313.826 103.002c-0.004 0.448-0.006 0.976-0.006 1.506 0 98.47 79.826 178.296 178.296 178.296s178.296-79.826 178.296-178.296c0-98.468-79.823-178.293-178.29-178.296l-0-0zM923.106 851.727c0.054 1.079 0.084 2.343 0.084 3.614 0 42.748-34.654 77.402-77.402 77.402s-77.402-34.654-77.402-77.402c0-42.748 34.654-77.402 77.402-77.402 0.076 0 0.152 0 0.229 0l-0.012-0c0.455-0.010 0.99-0.015 1.527-0.015 41.12 0 74.572 32.831 75.572 73.711l0.002 0.093zM626.748 230.4c3.537-73.358 63.873-131.495 137.788-131.495s134.251 58.137 137.776 131.179l0.012 0.316c-3.537 73.358-63.873 131.495-137.788 131.495s-134.251-58.137-137.776-131.179l-0.012-0.316zM301.176 626.748c-1.34 53.35-44.907 96.087-98.456 96.087-0.54 0-1.078-0.004-1.616-0.013l0.081 0.001c-1.607 0.096-3.486 0.151-5.377 0.151-53.061 0-96.075-43.014-96.075-96.075s43.014-96.075 96.075-96.075c1.892 0 3.77 0.055 5.635 0.162l-0.258-0.012c0.459-0.008 1-0.012 1.543-0.012 53.443 0 96.943 42.568 98.445 95.648l0.003 0.139z"
@@ -611,7 +676,13 @@ fn share_paths<Ms: 'static>() -> Vec<Node<Ms>> {
 }
 
 #[view]
-fn action_button<Ms: 'static>(title: &str, view_box: &str, icon: &str, paths: Vec<Node<Ms>>) -> Node<Ms> {
+fn action_button(
+    title: &str, 
+    view_box: &str, 
+    icon: &str, 
+    paths: Vec<Node<Msg>>,
+    on_click: impl Into<Option<EventHandler<Msg>>>
+) -> Node<Msg> {
     div![
         C!["action-button", "action-button-container", "button-container"],
         s()
@@ -634,7 +705,7 @@ fn action_button<Ms: 'static>(title: &str, view_box: &str, icon: &str, paths: Ve
             At::TabIndex => 0,
             At::Title => title,
         },
-        on_click_not_implemented(),
+        on_click.into().unwrap_or_else(on_click_not_implemented),
         div![
             C!["icon-container",],
             s()
