@@ -62,6 +62,10 @@ const TEST_LINKS: &str = "test_links";
 pub enum Actions {
     UpdateCoreModel(Rc<CoreMsg>),
 }
+#[derive(Clone, Copy)]
+pub enum Events {
+    LibraryLoadedFromStorage,
+}
 
 // ------ ------
 //     Init
@@ -239,6 +243,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             if let Some(other_bucket) = other_bucket {
                 ctx.library.merge_bucket(other_bucket);
             };
+            orders.notify(Events::LibraryLoadedFromStorage);
         }
         Msg::CtxStorageResponse(Err(error)) => {
             log!(error.message());
