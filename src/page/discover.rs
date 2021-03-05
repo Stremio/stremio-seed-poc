@@ -2,11 +2,13 @@ use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as Root
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
+use std::collections::HashMap;
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad, ActionCtx};
 use stremio_core::models::common::{Loadable, ResourceError};
 use stremio_core::models::catalog_with_filters::{Selected as CatalogWithFiltersSelected, CatalogWithFilters};
 use stremio_core::types::resource::{MetaItemPreview, PosterShape};
 use stremio_core::types::addon::{ResourceRequest, ResourceResponse, ResourcePath};
+use stremio_core::types::library::LibraryItem;
 use stremio_core::constants::{CATALOG_PAGE_SIZE, SKIP_EXTRA_NAME};
 use seed_styles::{px, pc, rem, em};
 use seed_styles::*;
@@ -108,7 +110,9 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
     SelectMetaItemPreview(MetaItemPreview),
-    SendResourceRequest(ResourceRequest)
+    SendResourceRequest(ResourceRequest),
+    AddToLibrary,
+    RemoveFromLibrary,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -126,6 +130,18 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::SendResourceRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).res_req(&res_req));
+        }
+        Msg::AddToLibrary => {
+            let meta_preview = model.selected_meta_preview.as_ref().cloned().unwrap();
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::AddToLibrary(meta_preview)
+            )))));
+        }
+        Msg::RemoveFromLibrary => {
+            let id = model.selected_meta_preview.as_ref().map(|meta| meta.id.to_owned()).unwrap();
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::RemoveFromLibrary(id)
+            )))));
         }
     }
 }
@@ -147,6 +163,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 
 #[view]
 fn discover_content(model: &Model, context: &Context) -> Node<Msg> {
+    let library = &context.core_model.ctx.library.items;
     div![
         C!["discover-content"],
         s()
@@ -170,12 +187,12 @@ fn discover_content(model: &Model, context: &Context) -> Node<Msg> {
                 )
             }),
         ],
-        meta_preview_container(model.selected_meta_preview.as_ref()),
+        meta_preview_container(model.selected_meta_preview.as_ref(), library),
     ]
 }
 
 #[view]
-fn meta_preview_container(selected_meta_preview: Option<&MetaItemPreview>) -> Node<Msg> {
+fn meta_preview_container(selected_meta_preview: Option<&MetaItemPreview>, library: &HashMap<String, LibraryItem>) -> Node<Msg> {
     div![
         C!["meta-preview-container", "compact"],
         s()
@@ -194,7 +211,7 @@ fn meta_preview_container(selected_meta_preview: Option<&MetaItemPreview>) -> No
             vec![
                 meta_preview_background(selected_meta_preview.poster.as_ref()),
                 meta_preview_info(selected_meta_preview),
-                meta_preview_buttons(selected_meta_preview),
+                meta_preview_buttons(selected_meta_preview, library),
             ]
         })
     ]
@@ -327,7 +344,7 @@ fn meta_preview_info(selected_meta_preview: &MetaItemPreview) -> Node<Msg> {
 }
 
 #[view]
-fn meta_preview_buttons(selected_meta_preview: &MetaItemPreview) -> Node<Msg> {
+fn meta_preview_buttons(selected_meta_preview: &MetaItemPreview, library: &HashMap<String, LibraryItem>) -> Node<Msg> {
     div![
         C!["action-buttons-container"],
         s()
@@ -339,9 +356,21 @@ fn meta_preview_buttons(selected_meta_preview: &MetaItemPreview) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Row)
             .flex_wrap(CssFlexWrap::Wrap)
             .max_height(rem(10)),
-        action_button("Add to library", "0 0 1264 1024", "ic_addlib", add_to_library_paths()),
+        if library.get(&selected_meta_preview.id).map(|library_item| not(library_item.removed)).unwrap_or_default() {
+            action_button(
+                "Remove from Library", "0 0 1264 1024", "ic_removelib", 
+                remove_from_library_paths(), 
+                ev(Ev::Click, move |_| Msg::RemoveFromLibrary)
+            )
+        } else {
+            action_button(
+                "Add to Library", "0 0 1264 1024", "ic_addlib", 
+                add_to_library_paths(),
+                ev(Ev::Click, move |_| Msg::AddToLibrary)
+            )
+        },
         IF!(not(selected_meta_preview.trailer_streams.is_empty()) => {
-            action_button("Trailer", "0 0 840 1024", "ic_movies", trailer_paths())
+            action_button("Trailer", "0 0 840 1024", "ic_movies", trailer_paths(), None)
         }),
     ]
 }
@@ -356,6 +385,26 @@ fn add_to_library_paths<Ms: 'static>() -> Vec<Node<Ms>> {
         }],
         path![attrs! {
             At::D => "M963.765 421.647c-166.335 0-301.176 134.841-301.176 301.176s134.841 301.176 301.176 301.176c166.335 0 301.176-134.841 301.176-301.176v0c0-166.335-134.841-301.176-301.176-301.176v0zM1156.518 768.602h-148.179v147.275h-90.353v-148.179h-147.878v-90.353h147.275v-147.878h90.353v147.275h147.275z"
+        }],
+        path![attrs! {
+            At::D => "M683.972 465.016v-386.711c-2.636-41.27-36.754-73.744-78.456-73.744s-75.82 32.474-78.445 73.514l-0.012 0.23v764.988c-0 0-0 0-0 0.001 0 43.247 35.059 78.306 78.306 78.306 0.106 0 0.212-0 0.318-0.001l-0.016 0c0.068 0 0.147 0 0.227 0 10.82 0 21.097-2.329 30.355-6.513l-0.465 0.188c-32.753-54.79-52.119-120.857-52.119-191.447 0-99.528 38.499-190.064 101.417-257.529l-0.206 0.223z"
+        }],
+        path![attrs! {
+            At::D => "M817.092 371.351c42.987-18.759 93.047-29.807 145.652-30.117l0.117-0.001h8.433l-60.235-262.325c-8.294-35.054-39.322-60.736-76.348-60.736-43.274 0-78.355 35.081-78.355 78.355 0 6.248 0.731 12.325 2.113 18.151l-0.106-0.532z"
+        }],
+    ]
+}
+
+fn remove_from_library_paths() -> Vec<Node<Msg>> {
+    vec![
+        path![attrs! {
+            At::D => "M78.306 0c-43.178 0.17-78.135 35.127-78.306 78.29l-0 0.016v764.988c2.636 41.27 36.754 73.744 78.456 73.744s75.82-32.474 78.445-73.514l0.012-0.23v-764.988c-0.171-43.284-35.299-78.306-78.606-78.306-0 0-0 0-0.001 0l0 0z"
+        }],
+        path![attrs! {
+            At::D => "M341.835 153.901c-43.178 0.17-78.135 35.127-78.306 78.29l-0 0.016v611.087c0 43.663 35.396 79.059 79.059 79.059s79.059-35.396 79.059-79.059v0-611.087c-0.166-43.288-35.296-78.315-78.607-78.315-0.424 0-0.847 0.003-1.269 0.010l0.064-0.001z"
+        }],
+        path![attrs! {
+            At::D => "M963.765 421.647c-166.335 0-301.176 134.841-301.176 301.176s134.841 301.176 301.176 301.176c166.335 0 301.176-134.841 301.176-301.176v0c0-166.335-134.841-301.176-301.176-301.176v0zM1156.518 768.602h-386.409v-90.353h385.506z"
         }],
         path![attrs! {
             At::D => "M683.972 465.016v-386.711c-2.636-41.27-36.754-73.744-78.456-73.744s-75.82 32.474-78.445 73.514l-0.012 0.23v764.988c-0 0-0 0-0 0.001 0 43.247 35.059 78.306 78.306 78.306 0.106 0 0.212-0 0.318-0.001l-0.016 0c0.068 0 0.147 0 0.227 0 10.82 0 21.097-2.329 30.355-6.513l-0.465 0.188c-32.753-54.79-52.119-120.857-52.119-191.447 0-99.528 38.499-190.064 101.417-257.529l-0.206 0.223z"
@@ -381,7 +430,13 @@ fn trailer_paths<Ms: 'static>() -> Vec<Node<Ms>> {
 }
 
 #[view]
-fn action_button(title: &str, view_box: &str, icon: &str, paths: Vec<Node<Msg>>) -> Node<Msg> {
+fn action_button(
+    title: &str,
+    view_box: &str, 
+    icon: &str, 
+    paths: Vec<Node<Msg>>,
+    on_click: impl Into<Option<EventHandler<Msg>>>
+) -> Node<Msg> {
     div![
         C!["action-button", "action-button-container", "button-container"],
         s()
@@ -401,7 +456,7 @@ fn action_button(title: &str, view_box: &str, icon: &str, paths: Vec<Node<Msg>>)
             At::TabIndex => 0,
             At::Title => title,
         },
-        on_click_not_implemented(),
+        on_click.into().unwrap_or_else(on_click_not_implemented),
         div![
             C!["icon-container",],
             s()
