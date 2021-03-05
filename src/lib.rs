@@ -28,6 +28,7 @@ use std::rc::Rc;
 use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails};
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
+use stremio_core::models::library_with_filters::{LibraryWithFilters, NotRemovedFilter};
 use stremio_core::runtime::{Update, Effect};
 use stremio_core::runtime::{Env, EnvError};
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionCtx, Event, CtxStorageResponse};
@@ -163,6 +164,7 @@ struct CoreModel {
     addon_catalog: CatalogWithFilters<DescriptorPreview>,
     installed_addons: InstalledAddonsWithFilters,
     meta_details: MetaDetails,
+    library: LibraryWithFilters<NotRemovedFilter>,
 }
 
 // ------ ------
@@ -236,6 +238,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             if let Some(profile) = profile {
                 ctx.profile = profile;
             }
+            ctx.library.uid = ctx.profile.uid();
             if let Some(recent_bucket) = recent_bucket {
                 ctx.library.merge_bucket(recent_bucket);
             };
