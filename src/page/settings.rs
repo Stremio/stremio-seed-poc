@@ -3,7 +3,9 @@ use seed_hooks::{*, topo::nested as view};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use std::borrow::Cow;
+use std::rc::Rc;
 use stremio_core::types::profile::User;
+use stremio_core::runtime::msg::{Action, ActionCtx, Msg as CoreMsg};
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -67,7 +69,9 @@ pub enum Msg {
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::Logout => {
-            orders.notify(Actions::Logout);
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::Logout
+            )))));
         }
     }
 }
