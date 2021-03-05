@@ -30,7 +30,7 @@ use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
 use stremio_core::runtime::{Update, Effect};
 use stremio_core::runtime::{Env, EnvError};
-use stremio_core::runtime::msg::{Msg as CoreMsg, Event, CtxStorageResponse};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionCtx, Event, CtxStorageResponse};
 use stremio_core::types::addon::DescriptorPreview;
 use stremio_core::types::resource::MetaItemPreview;
 use stremio_core::types::profile::Profile;
@@ -220,6 +220,7 @@ pub enum Msg {
     SearchMsg(page::search::Msg),
     SettingsMsg(page::settings::Msg),
     ToggleFullscreen,
+    Logout,
 }
 
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -414,6 +415,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 open_fullscreen();
                 model.context.fullscreen = true;
             }
+        }
+        Msg::Logout => {
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::Logout
+            )))));
         }
     }
 }

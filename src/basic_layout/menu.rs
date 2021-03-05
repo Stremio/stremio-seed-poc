@@ -4,6 +4,7 @@ use seed_styles::{pc, rem, em};
 use seed_styles::*;
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use std::rc::Rc;
+use std::borrow::Cow;
 use seed_hooks::{*, topo::nested as view, state_access::CloneState};
 use stremio_core::types::profile::User;
 
@@ -111,6 +112,15 @@ fn menu_container(root_base_url: &Url, fullscreen: bool, user: Option<&User>) ->
 
 #[view]
 fn menu_section_user(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
+    let button_title = if user.is_some() { "Log out "} else { "Log in / Sign up" };
+
+    let avatar = user.and_then(|user| user.avatar.as_ref());
+    let image_url: Cow<_> = match (user, avatar) {
+        (None, _) => global::image_url("anonymous.png").into(),
+        (Some(_), None) => global::image_url("default_avatar.png").into(),
+        (Some(_), Some(avatar)) => avatar.into(),
+    };
+
     div![
         C!["user-info-container"],
         s()
@@ -122,7 +132,7 @@ fn menu_section_user(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
         div![
             C!["avatar-container"],
             s()
-                .background_image(format!(r#"url("{}")"#, global::image_url("anonymous.png")).as_str())
+                .background_image(format!(r#"url("{}")"#, image_url).as_str())
                 .background_clip("content-box")
                 .background_origin("content-box")
                 .background_position(CssBackgroundPosition::Center)
@@ -158,7 +168,7 @@ fn menu_section_user(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             C!["logout-button-container", "button-container"],
             attrs!{
                 At::TabIndex => 0,
-                At::Title => "Log in / Sign up",
+                At::Title => button_title,
                 At::Href => RootUrls::new(root_base_url).intro(),
             },
             s()
@@ -169,6 +179,7 @@ fn menu_section_user(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
                 .padding("0 1rem 1rem 0")
                 .cursor(CssCursor::Pointer),
             ev(Ev::Click, |_| Msg::HideMenu),
+            user.map(|_| ev(Ev::Click, |_| Msg::Logout)),
             div![
                 C!["logout-label"],
                 s()
@@ -179,7 +190,7 @@ fn menu_section_user(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
                     .hover()
                     .color(Color::SurfaceLight5_90)
                     .text_decoration(CssTextDecoration::Underline),
-                "Log in / Sign up",
+                button_title,
             ]
         ]
     ]
