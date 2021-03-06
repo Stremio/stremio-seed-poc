@@ -65,6 +65,7 @@ pub enum Actions {
 #[derive(Clone, Copy)]
 pub enum Events {
     LibraryLoadedFromStorage,
+    WindowClicked,
 }
 
 // ------ ------
@@ -337,6 +338,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             model.context.menu_visible = false;
         }
         Msg::WindowClicked => {
+            orders.notify(Events::WindowClicked);
             if not(model.context.menu_visible) {
                 orders.skip();
                 return;
