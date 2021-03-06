@@ -17,6 +17,8 @@ use stremio_core::models::library_with_filters::{
     Sort,
 };
 
+mod type_selector;
+
 // ------ ------
 //     Init
 // ------ ------
@@ -99,6 +101,26 @@ impl<'a> Urls<'a> {
     pub fn root(self) -> Url {
         self.base_url()
     }
+    pub fn library_request(self, library_request: &LibraryRequest) -> Url {
+        let type_ = library_request
+            .r#type
+            .as_ref()
+            .map(String::as_str)
+            .unwrap_or("all");
+
+        let sort = match library_request.sort {
+            Sort::LastWatched => "last_watched",
+            Sort::Name => "name",
+            Sort::TimesWatched => "times_watched",
+        };
+
+        let page = library_request.page.to_string();
+
+        self.base_url()
+            .add_hash_path_part(type_)
+            .add_hash_path_part(sort)
+            .add_hash_path_part(page)
+    }
 }
 
 // ------ ------
@@ -111,6 +133,7 @@ pub enum Msg {
     GoToDetails(Url),
     RemoveLibraryItem(String),
     WindowClicked,
+    SendLibraryRequest(LibraryRequest),
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -131,6 +154,9 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::WindowClicked => {
             model.selected_library_item = None;
+        }
+        Msg::SendLibraryRequest(library_request) => {
+            orders.request_url(Urls::new(&model.base_url).library_request(&library_request));
         }
     }
 }
@@ -162,7 +188,7 @@ fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .width(pc(100)),  
         if context.core_model.ctx.profile.auth.is_some() {
             nodes![
-                selectable_inputs_container(),
+                selectable_inputs(model, context),
                 if library_items.is_empty() {
                     message_container(MessageContainer::EmptyLibrary)
                 } else {
@@ -182,11 +208,165 @@ fn library_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
 }
 
 #[view]
-fn selectable_inputs_container() -> Node<Msg> {
+fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
+    let library = &context.core_model.library;
     div![
-        "selectable inputs container",
+        C!["selectable-inputs-container"],
+        s()
+            .align_self(CssAlignSelf::Stretch)
+            .display(CssDisplay::Flex)
+            .flex(CssFlex::None)
+            .flex_direction(CssFlexDirection::Row)
+            .overflow(CssOverflow::Visible)
+            .padding(rem(1.5)),
+        type_selector::view(library, Msg::SendLibraryRequest),
+        // extra_prop_selector::view(library, Msg::SendResourceRequest),
+        div![
+            C!["spacing"],
+            s()
+                .flex("1"),
+        ],
+        pagination_input(library),
     ]
 }
+
+#[view]
+fn pagination_input<F>(library: &LibraryWithFilters<F>) -> Node<Msg> {
+    div![
+        C!["pagination-input", "pagination-input-container"],
+        s()
+            .flex(CssFlex::None)
+            .height(rem(3.5))
+            .margin_left(rem(1.5))
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row),
+        // pagination_prev_button(library.selectable.prev_page.as_ref().map(|page| &page.request)),
+        // pagination_label(library.selected.as_ref()),
+        // pagination_next_button(library.selectable.next_page.as_ref().map(|page| &page.request)),
+    ]
+}
+
+// #[view]
+// fn pagination_label(catalog_selected: Option<&CatalogWithFiltersSelected>) -> Node<Msg> {
+//     let page_number = catalog_selected.and_then(|selected| {
+//         Some(selected.request.path.get_extra_first_value(SKIP_EXTRA_NAME)?.parse::<usize>().ok()? / CATALOG_PAGE_SIZE)
+//     }).unwrap_or_default() + 1;
+//     div![
+//         C!["label-container"],
+//         s()
+//             .align_items(CssAlignItems::Center)
+//             .align_self(CssAlignSelf::Stretch)
+//             .background_color(Color::BackgroundDark1)
+//             .display(CssDisplay::Flex)
+//             .flex("1")
+//             .justify_content(CssJustifyContent::Center),
+//         attrs!{
+//             At::Title => page_number,
+//         },
+//         div![
+//             C!["label"],
+//             s()
+//                 .width(rem(3))
+//                 .color(Color::SecondaryVariant1_90)
+//                 .flex(CssFlex::None)
+//                 .font_weight("500")
+//                 .max_width(rem(3))
+//                 .min_width(rem(1.2))
+//                 .text_align(CssTextAlign::Center)
+//                 .text_overflow("ellipsis")
+//                 .white_space(CssWhiteSpace::NoWrap),
+//             page_number,
+//         ]
+//     ]
+// }
+
+// #[view]
+// fn pagination_prev_button(previous_page_request: Option<&ResourceRequest>) -> Node<Msg> {
+//     let disabled = previous_page_request.is_none();
+//     div![
+//         C!["prev-button-container", "button-container"],
+//         attrs!{
+//             At::TabIndex => 0,
+//             At::Title => "Previous page",
+//         },
+//         s()
+//             .height(rem(3.5))
+//             .width(rem(3.5))
+//             .align_items(CssAlignItems::Center)
+//             .background_color(Color::Background)
+//             .display(CssDisplay::Flex)
+//             .flex(CssFlex::None)
+//             .justify_content(CssJustifyContent::Center)
+//             .cursor(CssCursor::Pointer),
+//         IF!(disabled => s().pointer_events("none")),
+//         previous_page_request.cloned().map(|request| {
+//             ev(Ev::Click, move |_| Msg::SendResourceRequest(request.clone()))
+//         }),
+//         svg![
+//             C!["icon"],
+//             s()
+//                 .height(rem(1))
+//                 .width(rem(1))
+//                 .display(CssDisplay::Block)
+//                 .fill(Color::SecondaryVariant1_90)
+//                 .overflow(CssOverflow::Visible),
+//             IF!(disabled => s().fill(Color::SurfaceDark5_90)),
+//             attrs!{
+//                 At::ViewBox => "0 0 606 1024",
+//                 At::from("icon") => "ic_arrow_left",
+//             },
+//             path![
+//                 attrs!{
+//                     At::D => "M264.132 512l309.609-319.247c19.848-20.685 32.069-48.821 32.069-79.812s-12.221-59.127-32.107-79.852l0.038 0.040c-19.51-20.447-46.972-33.16-77.402-33.16s-57.892 12.713-77.363 33.118l-0.040 0.042-387.012 399.059c-19.713 20.744-31.839 48.862-31.839 79.812s12.126 59.067 31.886 79.861l-0.047-0.050 387.012 399.059c19.51 20.447 46.972 33.16 77.402 33.16s57.892-12.713 77.363-33.118l0.040-0.042c19.848-20.685 32.069-48.821 32.069-79.812s-12.221-59.127-32.107-79.852l0.038 0.040z",
+//                 }
+//             ]
+//         ]
+//     ]
+// }
+
+// #[view]
+// fn pagination_next_button(next_page_request: Option<&ResourceRequest>) -> Node<Msg> {
+//     let disabled = next_page_request.is_none();
+//     div![
+//         C!["next-button-container", "button-container"],
+//         attrs!{
+//             At::TabIndex => 0,
+//             At::Title => "Next page",
+//         },
+//         s()
+//             .height(rem(3.5))
+//             .width(rem(3.5))
+//             .align_items(CssAlignItems::Center)
+//             .background_color(Color::Background)
+//             .display(CssDisplay::Flex)
+//             .flex(CssFlex::None)
+//             .justify_content(CssJustifyContent::Center)
+//             .cursor(CssCursor::Pointer),
+//         IF!(disabled => s().pointer_events("none")),
+//         next_page_request.cloned().map(|request| {
+//             ev(Ev::Click, move |_| Msg::SendResourceRequest(request.clone()))
+//         }),
+//         svg![
+//             C!["icon"],
+//             s()
+//                 .height(rem(1))
+//                 .width(rem(1))
+//                 .display(CssDisplay::Block)
+//                 .fill(Color::SecondaryVariant1_90)
+//                 .overflow(CssOverflow::Visible),
+//             IF!(disabled => s().fill(Color::SurfaceDark5_90)),
+//             attrs!{
+//                 At::ViewBox => "0 0 606 1024",
+//                 At::from("icon") => "ic_arrow_left",
+//             },
+//             path![
+//                 attrs!{
+//                     At::D => "M341.534 512l-309.609-319.247c-19.713-20.744-31.839-48.862-31.839-79.812s12.126-59.067 31.886-79.861l-0.047 0.050c19.51-20.447 46.972-33.16 77.402-33.16s57.892 12.713 77.363 33.118l0.040 0.042 387.012 399.059c19.848 20.685 32.069 48.821 32.069 79.812s-12.221 59.127-32.107 79.852l0.038-0.040-387.012 399.059c-19.51 20.447-46.972 33.16-77.402 33.16s-57.892-12.713-77.363-33.118l-0.040-0.042c-19.713-20.744-31.839-48.862-31.839-79.812s12.126-59.067 31.886-79.861l-0.047 0.050z",
+//                 }
+//             ]
+//         ]
+//     ]
+// }
 
 #[view]
 fn meta_items_container(library_items: &[LibraryItem], selected_library_item: Option<&String>, root_base_url: &Url) -> Node<Msg> {
