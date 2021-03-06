@@ -18,6 +18,7 @@ use stremio_core::models::library_with_filters::{
 };
 
 mod type_selector;
+mod sort_selector;
 
 // ------ ------
 //     Init
@@ -220,7 +221,7 @@ fn selectable_inputs(model: &Model, context: &Context) -> Node<Msg> {
             .overflow(CssOverflow::Visible)
             .padding(rem(1.5)),
         type_selector::view(library, Msg::SendLibraryRequest),
-        // extra_prop_selector::view(library, Msg::SendResourceRequest),
+        sort_selector::view(library, Msg::SendLibraryRequest),
         div![
             C!["spacing"],
             s()
