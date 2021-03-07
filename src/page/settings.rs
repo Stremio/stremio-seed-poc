@@ -10,6 +10,18 @@ use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as Root
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 
+mod checkbox;
+use checkbox::checkbox;
+
+mod label;
+use label::label;
+
+mod link_label;
+use link_label::link_label;
+
+mod button_label;
+use button_label::button_label;
+
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
 }
@@ -345,27 +357,7 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             ]
         ])}),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Interface language",
-                ]                   
-            ],
+            label("Interface language"),
             div![
                 C!["option-input-container", "multiselect-container", "label-container", "button-container", "disabled"],
                 s()
@@ -414,27 +406,7 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Trakt Scrobbling",
-                ]                   
-            ],
+            label("Trakt Scrobbling"),
             div![
                 C!["option-input-container", "button-container", "disabled"],
                 s()
@@ -503,27 +475,7 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Facebook",
-                ]                   
-            ],
+            label("Facebook"),
             div![
                 C!["option-input-container", "button-container", "disabled"],
                 s()
@@ -577,27 +529,7 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Calendar",
-                ]                   
-            ],
+            label("Calendar"),
             div![
                 C!["option-input-container", "button-container", "disabled"],
                 s()
@@ -651,158 +583,19 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-input-container", "link-container", "button-container", "disabled"],
-                s()
-                    .flex("0 1 auto")
-                    .padding("1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .pointer_events("none")
-                    .cursor(CssCursor::Pointer),
-                s()
-                    .style_other(":hover > .label")
-                    .text_decoration(CssTextDecoration::Underline),
-                attrs!{
-                    At::TabIndex => -1,
-                    At::Title => "Export user data",
-                }, 
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Export user data",
-                ]   
-            ]
+            button_label("Export user data", None, false)
         ]),
         option_container(None, vec![
-            a![
-                C!["option-input-container", "link-container", "button-container"],
-                s()
-                    .flex("0 1 auto")
-                    .padding("1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .cursor(CssCursor::Pointer),
-                s()
-                    .style_other(":hover > .label")
-                    .text_decoration(CssTextDecoration::Underline),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "Contact support",
-                    At::Target => "_blank",
-                    At::Href => "https://stremio.zendesk.com/hc/en-us",
-                },
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Contact support",
-                ]   
-            ]
+            link_label("Contact support", "https://stremio.zendesk.com/hc/en-us")
         ]),
         option_container(None, vec![
-            a![
-                C!["option-input-container", "link-container", "button-container"],
-                s()
-                    .flex("0 1 auto")
-                    .padding("1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .cursor(CssCursor::Pointer),
-                s()
-                    .style_other(":hover > .label")
-                    .text_decoration(CssTextDecoration::Underline),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "Source code",
-                    At::Target => "_blank",
-                    At::Href => "https://github.com/stremio/stremio-web/tree/deb73b6f6f02185bf680fa40cc8023af2060d5c6",
-                },
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Source code",
-                ]   
-            ]
+            link_label("Source code", "https://github.com/stremio/stremio-web/tree/deb73b6f6f02185bf680fa40cc8023af2060d5c6")
         ]),
         option_container(None, vec![
-            a![
-                C!["option-input-container", "link-container", "button-container"],
-                s()
-                    .flex("0 1 auto")
-                    .padding("1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .cursor(CssCursor::Pointer),
-                s()
-                    .style_other(":hover > .label")
-                    .text_decoration(CssTextDecoration::Underline),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "Terms of Service",
-                    At::Target => "_blank",
-                    At::Href => "https://www.stremio.com/tos",
-                },
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Terms of Service",
-                ]   
-            ]
+            link_label("Terms of Service", "https://www.stremio.com/tos")
         ]),
         option_container(Some(s().margin_bottom("0")), vec![
-            a![
-                C!["option-input-container", "link-container", "button-container"],
-                s()
-                    .flex("0 1 auto")
-                    .padding("1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .cursor(CssCursor::Pointer),
-                s()
-                    .style_other(":hover > .label")
-                    .text_decoration(CssTextDecoration::Underline),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "Privacy Policy",
-                    At::Target => "_blank",
-                    At::Href => "https://www.stremio.com/privacy",
-                },
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Privacy Policy",
-                ]   
-            ]
+            link_label("Privacy Policy", "https://www.stremio.com/privacy")
         ]),
     ];
     section_container("General", true, options)
@@ -812,27 +605,7 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
 fn player_section() -> Node<Msg> {
     let options = vec![
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Subtitles language",
-                ]                   
-            ],
+            label("Subtitles language"),
             div![
                 C!["option-input-container", "multiselect-container", "label-container", "button-container"],
                 s()
@@ -881,27 +654,7 @@ fn player_section() -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Subtitles size",
-                ]                   
-            ],
+            label("Subtitles size"),
             div![
                 C!["option-input-container", "multiselect-container", "label-container", "button-container"],
                 s()
@@ -950,27 +703,7 @@ fn player_section() -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Subtitles text color",
-                ]                   
-            ],
+            label("Subtitles text color"),
             div![
                 C!["option-input-container", "color-input-container", "button-container"],
                 s()
@@ -991,27 +724,7 @@ fn player_section() -> Node<Msg> {
             ],
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Subtitles background color",
-                ]                   
-            ],
+            label("Subtitles background color"),
             div![
                 C!["option-input-container", "color-input-container", "button-container"],
                 s()
@@ -1057,27 +770,7 @@ fn player_section() -> Node<Msg> {
             ],
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Subtitles outline color",
-                ]                   
-            ],
+            label("Subtitles outline color"),
             div![
                 C!["option-input-container", "color-input-container", "button-container"],
                 s()
@@ -1123,60 +816,8 @@ fn player_section() -> Node<Msg> {
             ],
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Auto-play next episode",
-                ]                   
-            ],
-            div![
-                C!["option-input-container", "checkbox-container", "button-container"],
-                s()
-                    .justify_content(CssJustifyContent::Center)
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => 0,
-                },
-                on_click_not_implemented(),
-                svg![
-                    C!["icon"],
-                    s()
-                        .height(rem(1.5))
-                        .width(rem(1.5))
-                        .display(CssDisplay::Block)
-                        .fill(Color::SurfaceLight5)
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 1024 1024",
-                        At::from("icon") => "ic_box_empty",
-                    },
-                    path![
-                        attrs!{
-                            At::D => "M843.294 180.706v662.588h-662.588v-662.588h662.588zM1024 0h-1024v1024h1024v-1024z",   
-                        }
-                    ],
-                ]
-            ],
+            label("Auto-play next episode"),
+            checkbox(false, None, true),
         ]),
         option_container(None, vec![
             div![
@@ -1200,164 +841,15 @@ fn player_section() -> Node<Msg> {
                     "Play in background",
                 ]                   
             ],
-            div![
-                C!["option-input-container", "checkbox-container", "button-container", "disabled"],
-                s()
-                    .justify_content(CssJustifyContent::Center)
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .pointer_events("none")
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => -1,
-                },
-                on_click_not_implemented(),
-                svg![
-                    C!["icon"],
-                    s()
-                        .height(rem(1.5))
-                        .width(rem(1.5))
-                        .display(CssDisplay::Block)
-                        .background_color(Color::PrimaryVariant1)
-                        .fill(Color::SurfaceLight5)
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 100 100",
-                    },
-                    svg![
-                        attrs!{
-                            At::ViewBox => "0 0 1331 1024",
-                            At::X => 10,
-                            At::Y => 10,
-                            At::Width => 80,
-                            At::Height => 80,
-                            At::from("icon") => "ic_check",
-                        },
-                        path![
-                            attrs!{
-                                At::D => "M545.129 1024c-40.334-0.026-76.847-16.363-103.306-42.769l-398.755-397.551c-24.752-26.158-39.97-61.56-39.97-100.516 0-80.839 65.533-146.372 146.372-146.372 38.806 0 74.085 15.101 100.281 39.748l-0.075-0.070 288.226 286.118 536.395-612.593c27.002-30.81 66.432-50.158 110.381-50.158 80.929 0 146.535 65.606 146.535 146.535 0 36.98-13.698 70.761-36.298 96.544l0.144-0.168-639.699 731.256c-25.909 29.451-63.15 48.401-104.838 49.987l-0.272 0.008z",   
-                            }
-                        ],
-                    ],
-                ]
-            ],
+            checkbox(true, None, false),
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Play in external player",
-                ]                   
-            ],
-            div![
-                C!["option-input-container", "checkbox-container", "button-container", "disabled"],
-                s()
-                    .justify_content(CssJustifyContent::Center)
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .pointer_events("none")
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => -1,
-                },
-                on_click_not_implemented(),
-                svg![
-                    C!["icon"],
-                    s()
-                        .height(rem(1.5))
-                        .width(rem(1.5))
-                        .display(CssDisplay::Block)
-                        .fill(Color::SurfaceLight5)
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 1024 1024",
-                        At::from("icon") => "ic_box_empty",
-                    },
-                    path![
-                        attrs!{
-                            At::D => "M843.294 180.706v662.588h-662.588v-662.588h662.588zM1024 0h-1024v1024h1024v-1024z",   
-                        }
-                    ],
-                ]
-            ],
+            label("Play in external player"),
+            checkbox(false, None, false),
         ]),
         option_container(Some(s().margin_bottom("0")), vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Hardware-accelerated decoding",
-                ]                   
-            ],
-            div![
-                C!["option-input-container", "checkbox-container", "button-container", "disabled"],
-                s()
-                    .justify_content(CssJustifyContent::Center)
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .pointer_events("none")
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => -1,
-                },
-                on_click_not_implemented(),
-                svg![
-                    C!["icon"],
-                    s()
-                        .height(rem(1.5))
-                        .width(rem(1.5))
-                        .display(CssDisplay::Block)
-                        .fill(Color::SurfaceLight5)
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 1024 1024",
-                        At::from("icon") => "ic_box_empty",
-                    },
-                    path![
-                        attrs!{
-                            At::D => "M843.294 180.706v662.588h-662.588v-662.588h662.588zM1024 0h-1024v1024h1024v-1024z",   
-                        }
-                    ],
-                ]
-            ],
+            label("Hardware-accelerated decoding"),
+            checkbox(false, None, false),
         ]),
     ];
     section_container("Player", true, options)
@@ -1400,27 +892,7 @@ fn streaming_server_section() -> Node<Msg> {
             ]
         ]),
         option_container(None, vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Status",
-                ]                   
-            ],
+            label("Status"),
             div![
                 C!["option-input-container", "info-container"],
                 s()
@@ -1443,27 +915,7 @@ fn streaming_server_section() -> Node<Msg> {
             ],
         ]),
         option_container(Some(s().margin_bottom("0")), vec![
-            div![
-                C!["option-name-container"],
-                s()
-                    .justify_content(CssJustifyContent::FlexStart)
-                    .margin_right(rem(2))
-                    .padding("1rem 1rem 1rem 0")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row),
-                div![
-                    C!["label"],
-                    s()
-                        .color(Color::SurfaceLight5_90)
-                        .flex_basis(CssFlexBasis::Auto)
-                        .flex_grow("0")
-                        .flex_shrink("1")
-                        .line_height(rem(1.5)),
-                    "Url",
-                ]                   
-            ],
+            label("Url"),
             div![
                 C!["option-input-container", "configure-input-container"],
                 s()
