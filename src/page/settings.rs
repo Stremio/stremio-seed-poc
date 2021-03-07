@@ -25,6 +25,12 @@ use button_label::button_label;
 mod connect_button;
 use connect_button::connect_button;
 
+mod dropdown;
+use dropdown::dropdown;
+
+mod color_picker;
+use color_picker::color_picker;
+
 fn on_click_not_implemented() -> EventHandler<Msg> {
     ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
 }
@@ -361,52 +367,7 @@ fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
         ])}),
         option_container(None, vec![
             label("Interface language"),
-            div![
-                C!["option-input-container", "multiselect-container", "label-container", "button-container", "disabled"],
-                s()
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .pointer_events("none")
-                    .background_color(Color::Background)
-                    .overflow(CssOverflow::Visible)
-                    .position(CssPosition::Relative)
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => -1,
-                },
-                div![
-                    C!["label"],
-                    s()
-                        .line_height(rem(1.5))
-                        .max_height(rem(1.5))
-                        .color(Color::SecondaryVariant1_90)
-                        .flex("1")
-                        .font_weight("500"),
-                    "English"
-                ],
-                svg![
-                    C!["icon"],
-                    s()
-                        .fill(Color::SecondaryVariant1_90)
-                        .flex(CssFlex::None)
-                        .height(rem(1))
-                        .margin_left(rem(1))
-                        .width(rem(1))
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 1024 1024",
-                        At::from("icon") => "ic_arrow_thin_down",
-                    },
-                    path![
-                        attrs!{
-                            At::D => "M14.155 314.428l463.511 465.318c8.928 8.731 21.149 14.127 34.63 14.155l0.005 0c0.103 0.001 0.225 0.001 0.348 0.001 13.437 0 25.582-5.534 34.278-14.448l0.009-0.010 462.908-463.812c8.82-9.052 14.26-21.434 14.26-35.087s-5.44-26.035-14.27-35.098l0.010 0.011c-8.905-8.816-21.115-14.308-34.607-14.456l-0.028-0c-13.572 0.165-25.802 5.779-34.629 14.751l-0.006 0.007-428.574 428.273-427.972-429.779c-8.799-8.927-21.024-14.458-34.541-14.458-0.139 0-0.278 0.001-0.417 0.002l0.021-0c-0.043-0-0.094-0-0.145-0-13.595 0-25.899 5.526-34.789 14.455l-0.002 0.002c-8.82 9.052-14.26 21.434-14.26 35.087s5.44 26.035 14.27 35.098l-0.010-0.011z",
-                        }
-                    ],
-                ]
-            ]
+            dropdown("English")
         ]),
         option_container(None, vec![
             label("Trakt Scrobbling"),
@@ -477,214 +438,23 @@ fn player_section() -> Node<Msg> {
     let options = vec![
         option_container(None, vec![
             label("Subtitles language"),
-            div![
-                C!["option-input-container", "multiselect-container", "label-container", "button-container"],
-                s()
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .background_color(Color::Background)
-                    .overflow(CssOverflow::Visible)
-                    .position(CssPosition::Relative)
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => -1,
-                },
-                on_click_not_implemented(),
-                div![
-                    C!["label"],
-                    s()
-                        .line_height(rem(1.5))
-                        .max_height(rem(1.5))
-                        .color(Color::SecondaryVariant1_90)
-                        .flex("1")
-                        .font_weight("500"),
-                    "English"
-                ],
-                svg![
-                    C!["icon"],
-                    s()
-                        .fill(Color::SecondaryVariant1_90)
-                        .flex(CssFlex::None)
-                        .height(rem(1))
-                        .margin_left(rem(1))
-                        .width(rem(1))
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 1024 1024",
-                        At::from("icon") => "ic_arrow_thin_down",
-                    },
-                    path![
-                        attrs!{
-                            At::D => "M14.155 314.428l463.511 465.318c8.928 8.731 21.149 14.127 34.63 14.155l0.005 0c0.103 0.001 0.225 0.001 0.348 0.001 13.437 0 25.582-5.534 34.278-14.448l0.009-0.010 462.908-463.812c8.82-9.052 14.26-21.434 14.26-35.087s-5.44-26.035-14.27-35.098l0.010 0.011c-8.905-8.816-21.115-14.308-34.607-14.456l-0.028-0c-13.572 0.165-25.802 5.779-34.629 14.751l-0.006 0.007-428.574 428.273-427.972-429.779c-8.799-8.927-21.024-14.458-34.541-14.458-0.139 0-0.278 0.001-0.417 0.002l0.021-0c-0.043-0-0.094-0-0.145-0-13.595 0-25.899 5.526-34.789 14.455l-0.002 0.002c-8.82 9.052-14.26 21.434-14.26 35.087s5.44 26.035 14.27 35.098l-0.010-0.011z",
-                        }
-                    ],
-                ]
-            ]
+            dropdown("English")
         ]),
         option_container(None, vec![
             label("Subtitles size"),
-            div![
-                C!["option-input-container", "multiselect-container", "label-container", "button-container"],
-                s()
-                    .padding(rem(1))
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .background_color(Color::Background)
-                    .overflow(CssOverflow::Visible)
-                    .position(CssPosition::Relative)
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => -1,
-                },
-                on_click_not_implemented(),
-                div![
-                    C!["label"],
-                    s()
-                        .line_height(rem(1.5))
-                        .max_height(rem(1.5))
-                        .color(Color::SecondaryVariant1_90)
-                        .flex("1")
-                        .font_weight("500"),
-                    "100%"
-                ],
-                svg![
-                    C!["icon"],
-                    s()
-                        .fill(Color::SecondaryVariant1_90)
-                        .flex(CssFlex::None)
-                        .height(rem(1))
-                        .margin_left(rem(1))
-                        .width(rem(1))
-                        .overflow(CssOverflow::Visible),
-                    attrs!{
-                        At::ViewBox => "0 0 1024 1024",
-                        At::from("icon") => "ic_arrow_thin_down",
-                    },
-                    path![
-                        attrs!{
-                            At::D => "M14.155 314.428l463.511 465.318c8.928 8.731 21.149 14.127 34.63 14.155l0.005 0c0.103 0.001 0.225 0.001 0.348 0.001 13.437 0 25.582-5.534 34.278-14.448l0.009-0.010 462.908-463.812c8.82-9.052 14.26-21.434 14.26-35.087s-5.44-26.035-14.27-35.098l0.010 0.011c-8.905-8.816-21.115-14.308-34.607-14.456l-0.028-0c-13.572 0.165-25.802 5.779-34.629 14.751l-0.006 0.007-428.574 428.273-427.972-429.779c-8.799-8.927-21.024-14.458-34.541-14.458-0.139 0-0.278 0.001-0.417 0.002l0.021-0c-0.043-0-0.094-0-0.145-0-13.595 0-25.899 5.526-34.789 14.455l-0.002 0.002c-8.82 9.052-14.26 21.434-14.26 35.087s5.44 26.035 14.27 35.098l-0.010-0.011z",
-                        }
-                    ],
-                ]
-            ]
+            dropdown("100%")
         ]),
         option_container(None, vec![
             label("Subtitles text color"),
-            div![
-                C!["option-input-container", "color-input-container", "button-container"],
-                s()
-                    .background_color("rgb(255, 255, 255)")
-                    .padding("1.75rem 1rem")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .position(CssPosition::Relative)
-                    .z_index("0")
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "#FFFFFFFF",
-                },
-                on_click_not_implemented(),
-            ],
+            color_picker(Some(("rgb(255, 255, 255)", "#FFFFFFFF"))),
         ]),
         option_container(None, vec![
             label("Subtitles background color"),
-            div![
-                C!["option-input-container", "color-input-container", "button-container"],
-                s()
-                    .padding("1.75rem 1rem")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .position(CssPosition::Relative)
-                    .z_index("0")
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "Transparent",
-                },
-                on_click_not_implemented(),
-                div![
-                    C!["transparent-label-container"],
-                    s()
-                        .align_items(CssAlignItems::Center)
-                        .border("thin solid hsla(0,0%,100%,0.2)")
-                        .bottom("0")
-                        .display(CssDisplay::Flex)
-                        .justify_content(CssJustifyContent::Center)
-                        .left("0")
-                        .padding("0 0.5rem")
-                        .pointer_events("none")
-                        .position(CssPosition::Absolute)
-                        .right("0")
-                        .top("0")
-                        .z_index("0"),
-                    div![
-                        C!["transparent-label"],
-                        s()
-                            .color(Color::SurfaceLight5)
-                            .flex("1")
-                            .text_align(CssTextAlign::Center)
-                            .text_overflow("ellipsis")
-                            .white_space(CssWhiteSpace::NoWrap),
-                        "Transparent",
-                    ]
-                ]
-            ],
+            color_picker(None),
         ]),
         option_container(None, vec![
             label("Subtitles outline color"),
-            div![
-                C!["option-input-container", "color-input-container", "button-container"],
-                s()
-                    .padding("1.75rem 1rem")
-                    .align_items(CssAlignItems::Center)
-                    .display(CssDisplay::Flex)
-                    .flex("1 1 50%")
-                    .flex_direction(CssFlexDirection::Row)
-                    .position(CssPosition::Relative)
-                    .z_index("0")
-                    .cursor(CssCursor::Pointer),
-                attrs!{
-                    At::TabIndex => 0,
-                    At::Title => "Transparent",
-                },
-                on_click_not_implemented(),
-                div![
-                    C!["transparent-label-container"],
-                    s()
-                        .align_items(CssAlignItems::Center)
-                        .border("thin solid hsla(0,0%,100%,0.2)")
-                        .bottom("0")
-                        .display(CssDisplay::Flex)
-                        .justify_content(CssJustifyContent::Center)
-                        .left("0")
-                        .padding("0 0.5rem")
-                        .pointer_events("none")
-                        .position(CssPosition::Absolute)
-                        .right("0")
-                        .top("0")
-                        .z_index("0"),
-                    div![
-                        C!["transparent-label"],
-                        s()
-                            .color(Color::SurfaceLight5)
-                            .flex("1")
-                            .text_align(CssTextAlign::Center)
-                            .text_overflow("ellipsis")
-                            .white_space(CssWhiteSpace::NoWrap),
-                        "Transparent",
-                    ]
-                ]
-            ],
+            color_picker(None),
         ]),
         option_container(None, vec![
             label("Auto-play next episode"),
