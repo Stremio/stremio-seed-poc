@@ -11,7 +11,7 @@ use crate::page::settings::section::{
     option,
     control::{label, dropdown, connect_button, link_label}
 };
-use web_sys::HtmlElement;
+use web_sys::Element;
 
 mod control;
 
@@ -24,16 +24,25 @@ use player::player_section;
 mod streaming_server;
 use streaming_server::streaming_server_section;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Section {
+    General,
+    Player,
+    StreamingServer,
+}
+
 #[derive(Default)]
 pub struct SectionRefs {
-    pub general: ElRef<HtmlElement>,
-    pub player: ElRef<HtmlElement>,
-    pub streaming_server: ElRef<HtmlElement>,
+    pub container: ElRef<Element>,
+    pub general: ElRef<Element>,
+    pub player: ElRef<Element>,
+    pub streaming_server: ElRef<Element>,
 }
 
 #[view]
 pub fn sections(root_base_url: &Url, user: Option<&User>, section_refs: &SectionRefs) -> Node<Msg> {
     div![
+        el_ref(&section_refs.container),
         C!["sections-container"],
         s()
             .align_self(CssAlignSelf::Stretch)
@@ -47,7 +56,7 @@ pub fn sections(root_base_url: &Url, user: Option<&User>, section_refs: &Section
 }
 
 #[view]
-pub fn section(title: &str, bottom_border: bool, section_ref: &ElRef<HtmlElement>, options: Vec<Node<Msg>>) -> Node<Msg> {
+pub fn section(title: &str, bottom_border: bool, section_ref: &ElRef<Element>, options: Vec<Node<Msg>>) -> Node<Msg> {
     div![
         el_ref(section_ref),
         C!["section-container"],

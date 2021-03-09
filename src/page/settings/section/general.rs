@@ -12,10 +12,10 @@ use crate::page::settings::section::{
     section,
     control::{label, dropdown, connect_button, link_label, button_label, user_info, large_button}
 };
-use web_sys::HtmlElement;
+use web_sys::Element;
 
 #[view]
-pub fn general_section(root_base_url: &Url, user: Option<&User>, section_ref: &ElRef<HtmlElement>) -> Node<Msg> {
+pub fn general_section(root_base_url: &Url, user: Option<&User>, section_ref: &ElRef<Element>) -> Node<Msg> {
     let options = nodes![
         section_option(Some(s().height(rem(6))), user_info(root_base_url, user)),
         IF!(user.is_none() => { section_option(None, vec![
