@@ -211,6 +211,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 #[view]
 fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
     let user = context.core_model.ctx.profile.auth.as_ref().map(|auth| &auth.user);
+    let settings = &context.core_model.ctx.profile.settings;
     div![
         C!["settings-content"],
         s()
@@ -219,7 +220,7 @@ fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .height(pc(100))
             .width(pc(100)),            
         side_menu(model.active_section),
-        sections(&context.root_base_url, user, &model.section_refs),
+        sections(settings, &context.root_base_url, user, &model.section_refs),
     ]
 }
 

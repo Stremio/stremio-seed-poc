@@ -3,7 +3,7 @@ use seed_hooks::{*, topo::nested as view};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use std::borrow::Cow;
-use stremio_core::types::profile::User;
+use stremio_core::types::profile::{User, Settings};
 use crate::Urls as RootUrls;
 use crate::styles::{self, themes::Color, global};
 use crate::page::settings::Msg;
@@ -15,7 +15,7 @@ use crate::page::settings::section::{
 use web_sys::Element;
 
 #[view]
-pub fn general_section(root_base_url: &Url, user: Option<&User>, section_ref: &ElRef<Element>) -> Node<Msg> {
+pub fn general_section(settings: &Settings, root_base_url: &Url, user: Option<&User>, section_ref: &ElRef<Element>) -> Node<Msg> {
     let options = nodes![
         section_option(Some(s().height(rem(6))), user_info(root_base_url, user)),
         IF!(user.is_none() => { section_option(None, vec![
@@ -23,7 +23,8 @@ pub fn general_section(root_base_url: &Url, user: Option<&User>, section_ref: &E
         ])}),
         section_option(None, vec![
             label("Interface language"),
-            dropdown("English")
+            // @TODO `settings.interface_language` returns `eng` instead of `English`
+            dropdown(&settings.interface_language)
         ]),
         section_option(None, vec![
             label("Trakt Scrobbling"),
@@ -71,6 +72,7 @@ pub fn general_section(root_base_url: &Url, user: Option<&User>, section_ref: &E
             ])
         ]),
         section_option(None, vec![
+            // @TODO export
             button_label("Export user data", None, false)
         ]),
         section_option(None, vec![
