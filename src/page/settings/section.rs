@@ -11,6 +11,7 @@ use crate::page::settings::section::{
     option,
     control::{label, dropdown, connect_button, link_label}
 };
+use web_sys::HtmlElement;
 
 mod control;
 
@@ -23,8 +24,15 @@ use player::player_section;
 mod streaming_server;
 use streaming_server::streaming_server_section;
 
+#[derive(Default)]
+pub struct SectionRefs {
+    pub general: ElRef<HtmlElement>,
+    pub player: ElRef<HtmlElement>,
+    pub streaming_server: ElRef<HtmlElement>,
+}
+
 #[view]
-pub fn sections(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
+pub fn sections(root_base_url: &Url, user: Option<&User>, section_refs: &SectionRefs) -> Node<Msg> {
     div![
         C!["sections-container"],
         s()
@@ -32,15 +40,16 @@ pub fn sections(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             .flex("1")
             .overflow_y(CssOverflowY::Auto)
             .padding("0 2rem"),
-        general_section(root_base_url, user),
-        player_section(),
-        streaming_server_section(),
+        general_section(root_base_url, user, &section_refs.general),
+        player_section(&section_refs.player),
+        streaming_server_section(&section_refs.streaming_server),
     ]
 }
 
 #[view]
-pub fn section(title: &str, bottom_border: bool, options: Vec<Node<Msg>>) -> Node<Msg> {
+pub fn section(title: &str, bottom_border: bool, section_ref: &ElRef<HtmlElement>, options: Vec<Node<Msg>>) -> Node<Msg> {
     div![
+        el_ref(section_ref),
         C!["section-container"],
         IF!(bottom_border => {
             s()

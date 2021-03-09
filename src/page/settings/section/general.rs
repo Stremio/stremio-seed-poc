@@ -12,9 +12,10 @@ use crate::page::settings::section::{
     section,
     control::{label, dropdown, connect_button, link_label, button_label, user_info, large_button}
 };
+use web_sys::HtmlElement;
 
 #[view]
-pub fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
+pub fn general_section(root_base_url: &Url, user: Option<&User>, section_ref: &ElRef<HtmlElement>) -> Node<Msg> {
     let options = nodes![
         section_option(Some(s().height(rem(6))), user_info(root_base_url, user)),
         IF!(user.is_none() => { section_option(None, vec![
@@ -85,5 +86,5 @@ pub fn general_section(root_base_url: &Url, user: Option<&User>) -> Node<Msg> {
             link_label("Privacy Policy", "https://www.stremio.com/privacy")
         ]),
     ];
-    section("General", true, options)
+    section("General", true, section_ref, options)
 }
