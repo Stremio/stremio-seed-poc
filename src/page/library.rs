@@ -55,10 +55,11 @@ pub fn init(
         library_request: None,
         selected_library_item: None,
         _events_sub_handle: orders.subscribe_with_handle(|events| {
-            match events {
+            Some(match events {
                 Events::LibraryLoadedFromStorage => Msg::ReloadLibrary,
                 Events::WindowClicked => Msg::WindowClicked,
-            }
+                _ => return None
+            })
         }),
     });
     model.library_request = library_request;

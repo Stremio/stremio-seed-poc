@@ -12,10 +12,10 @@ use crate::page::settings::section::{
     section,
     control::{label, dropdown, connect_button, link_label, color_picker, checkbox}
 };
-use web_sys::HtmlElement;
+use web_sys::Element;
 
 #[view]
-pub fn player_section(section_ref: &ElRef<HtmlElement>) -> Node<Msg> {
+pub fn player_section(section_ref: &ElRef<Element>) -> Node<Msg> {
     let options = vec![
         section_option(None, vec![
             label("Subtitles language"),

@@ -66,6 +66,7 @@ pub enum Actions {
 pub enum Events {
     LibraryLoadedFromStorage,
     WindowClicked,
+    PageChanged(PageId),
 }
 
 // ------ ------
@@ -301,6 +302,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 _ => None,
             };
             model.page_id = page_id.or(Some(PageId::NotFound));
+            orders.notify(Events::PageChanged(model.page_id.unwrap()));
         }
         Msg::CoreMsg(core_msg) => {
             let effects = model.context.core_model.update(&core_msg);

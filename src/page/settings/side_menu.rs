@@ -7,16 +7,10 @@ use stremio_core::types::profile::User;
 use crate::Urls as RootUrls;
 use crate::styles::{self, themes::Color, global};
 use crate::page::settings::Msg;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum SideMenuButton {
-    General,
-    Player,
-    StreamingServer,
-}
+use crate::page::settings::section::Section;
 
 #[view]
-pub fn side_menu(active_button: SideMenuButton) -> Node<Msg> {
+pub fn side_menu(active_section: Section) -> Node<Msg> {
     // @TODO: https://academind.com/tutorials/scroll-aware-navigation/ ?
 
     let app_version = "5.0.0";
@@ -31,18 +25,18 @@ pub fn side_menu(active_button: SideMenuButton) -> Node<Msg> {
             .width(rem(20)),
         side_menu_button(
             "General", 
-            active_button == SideMenuButton::General, 
-            || Msg::MenuButtonClicked(SideMenuButton::General)
+            active_section == Section::General, 
+            || Msg::MenuButtonClicked(Section::General)
         ),
         side_menu_button(
             "Player", 
-            active_button == SideMenuButton::Player, 
-            || Msg::MenuButtonClicked(SideMenuButton::Player)
+            active_section == Section::Player, 
+            || Msg::MenuButtonClicked(Section::Player)
         ),
         side_menu_button(
             "Streaming server", 
-            active_button == SideMenuButton::StreamingServer, 
-            || Msg::MenuButtonClicked(SideMenuButton::StreamingServer)
+            active_section == Section::StreamingServer, 
+            || Msg::MenuButtonClicked(Section::StreamingServer)
         ),
         div![
             C!["spacing"],
