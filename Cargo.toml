@@ -51,6 +51,8 @@ features = [
 	'RequestInit',
 	'Response',
 	'Storage',
+	'ScrollBehavior',
+	'ScrollIntoViewOptions',
 ]
 
 

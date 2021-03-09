@@ -12,9 +12,10 @@ use crate::page::settings::section::{
     section,
     control::{label, dropdown, connect_button, link_label, large_button, url, status}
 };
+use web_sys::HtmlElement;
 
 #[view]
-pub fn streaming_server_section() -> Node<Msg> {
+pub fn streaming_server_section(section_ref: &ElRef<HtmlElement>) -> Node<Msg> {
     let options = vec![
         section_option(None, vec![
             large_button("Reload", None)
@@ -28,5 +29,5 @@ pub fn streaming_server_section() -> Node<Msg> {
             url("http://127.0.0.1:11470/", "Configure server url")
         ]),
     ];
-    section("Streaming Server", false, options)
+    section("Streaming Server", false, section_ref, options)
 }

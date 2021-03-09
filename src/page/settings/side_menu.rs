@@ -29,9 +29,21 @@ pub fn side_menu(active_button: SideMenuButton) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Column)
             .padding(rem(3))
             .width(rem(20)),
-        side_menu_button("General", active_button == SideMenuButton::General),
-        side_menu_button("Player", active_button == SideMenuButton::Player),
-        side_menu_button("Streaming server", active_button == SideMenuButton::StreamingServer),
+        side_menu_button(
+            "General", 
+            active_button == SideMenuButton::General, 
+            || Msg::MenuButtonClicked(SideMenuButton::General)
+        ),
+        side_menu_button(
+            "Player", 
+            active_button == SideMenuButton::Player, 
+            || Msg::MenuButtonClicked(SideMenuButton::Player)
+        ),
+        side_menu_button(
+            "Streaming server", 
+            active_button == SideMenuButton::StreamingServer, 
+            || Msg::MenuButtonClicked(SideMenuButton::StreamingServer)
+        ),
         div![
             C!["spacing"],
             s()
@@ -53,7 +65,7 @@ pub fn side_menu(active_button: SideMenuButton) -> Node<Msg> {
 }
 
 #[view]
-fn side_menu_button(title: &str, active: bool) -> Node<Msg> {
+fn side_menu_button(title: &str, active: bool, on_click: fn() -> Msg) -> Node<Msg> {
     div![
         C!["side-menu-button", IF!(active => "selected"), "button-container"],
         s()
@@ -76,6 +88,7 @@ fn side_menu_button(title: &str, active: bool) -> Node<Msg> {
             At::Title => title,
             At::from("data-section") => title,
         },
+        ev(Ev::Click, move |_| on_click()),
         title,
     ]
 }
