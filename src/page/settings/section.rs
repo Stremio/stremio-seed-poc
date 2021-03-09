@@ -3,7 +3,7 @@ use seed_hooks::{*, topo::nested as view};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use std::borrow::Cow;
-use stremio_core::types::profile::User;
+use stremio_core::types::profile::{User, Settings};
 use crate::Urls as RootUrls;
 use crate::styles::{self, themes::Color, global};
 use crate::page::settings::Msg;
@@ -40,7 +40,7 @@ pub struct SectionRefs {
 }
 
 #[view]
-pub fn sections(root_base_url: &Url, user: Option<&User>, section_refs: &SectionRefs) -> Node<Msg> {
+pub fn sections(settings: &Settings, root_base_url: &Url, user: Option<&User>, section_refs: &SectionRefs) -> Node<Msg> {
     div![
         el_ref(&section_refs.container),
         C!["sections-container"],
@@ -49,9 +49,9 @@ pub fn sections(root_base_url: &Url, user: Option<&User>, section_refs: &Section
             .flex("1")
             .overflow_y(CssOverflowY::Auto)
             .padding("0 2rem"),
-        general_section(root_base_url, user, &section_refs.general),
-        player_section(&section_refs.player),
-        streaming_server_section(&section_refs.streaming_server),
+        general_section(settings, root_base_url, user, &section_refs.general),
+        player_section(settings, &section_refs.player),
+        streaming_server_section(settings, &section_refs.streaming_server),
     ]
 }
 
