@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use stremio_core::types::profile::{User, Settings};
 use crate::Urls as RootUrls;
 use crate::styles::{self, themes::Color, global};
-use crate::page::settings::Msg;
+use crate::page::settings::{Msg, UpdateSettingsMsg};
 use crate::page::settings::section::{
     section_option,
     section,
@@ -53,7 +53,14 @@ pub fn player_section(settings: &Settings, section_ref: &ElRef<Element>) -> Node
         ]),
         section_option(None, vec![
             label("Auto-play next episode"),
-            checkbox(settings.binge_watching, None, true),
+            checkbox(
+                settings.binge_watching, 
+                { 
+                    let new_binge_watching = not(settings.binge_watching);  
+                    ev(Ev::Click, move |_| Msg::UpdateSettings(UpdateSettingsMsg::BingeWatching(new_binge_watching)))
+                }, 
+                true
+            ),
         ]),
         section_option(None, vec![
             label("Play in background"),

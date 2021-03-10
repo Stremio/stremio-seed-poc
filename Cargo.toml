@@ -23,6 +23,8 @@ itertools = "0.8.1"
 localsearch = { git = "ssh://git@github.com/MartinKavik/Localsearch.git", branch = "master" }
 indexmap = "1.6.1"
 regex = "1"
+# sync `url` with the `stremio-core`
+url = { version = "2.2.*", features = ["serde"] }
 
 seed = { git = "https://github.com/seed-rs/seed", branch = "master" }
 # seed = { path = "../seed" }

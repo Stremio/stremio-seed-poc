@@ -26,7 +26,7 @@ mod large_button;
 pub use large_button::large_button;
 
 mod url;
-pub use url::url;
+pub use self::url::url;
 
 mod status;
 pub use status::status;
