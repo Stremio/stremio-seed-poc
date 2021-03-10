@@ -173,8 +173,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             let auth_request = AuthRequest::Login {
                 email: email.to_owned(),
                 password: password.to_owned(),
-                // @TODO uncomment with stremio dependencies update
-                // facebook: false,
+                facebook: false,
             };
             orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
                 ActionCtx::Authenticate(auth_request)

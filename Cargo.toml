@@ -32,15 +32,20 @@ seed = { git = "https://github.com/seed-rs/seed", branch = "master" }
 seed_styles = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_styles", branch = "main" }
 # seed_styles = { path = "d:/repos/styles_hooks/seed_styles" }
 
-stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "development" }
+stremio-core = { git = "ssh://git@github.com/Stremio/stremio-core", branch = "development" }
 # stremio-core = { path = "../stremio-core" }
 
-stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core.git", branch = "development" }
+stremio-derive = { git = "ssh://git@github.com/Stremio/stremio-core", branch = "development" }
 # stremio-derive = { path = "../stremio-core/stremio-derive" }
+
+stremio-analytics = { git = "ssh://git@github.com/Stremio/stremio-core", branch = "development" }
 
 # stremio-core-web = { path = "d:/repos/stremio-core-web" }
 chrono = "0.4.19"
 http = "0.2.1"
+hex = "0.4.3"
+lazy_static = "1.4.0"
+getrandom = { version = "0.2.2", features = ["js"] }
 
 seed_hooks = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_hooks", branch = "main" }
 # seed_hooks = { path = "d:/repos/styles_hooks/seed_hooks" }
