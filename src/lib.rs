@@ -158,8 +158,9 @@ pub enum PageId {
 // ------ CoreModel  ------
 
 #[derive(Model, Default)]
+#[model(WebEnv)]
 struct CoreModel {
-    ctx: Ctx<WebEnv>,
+    ctx: Ctx,
     catalog: CatalogWithFilters<MetaItemPreview>,
     addon_catalog: CatalogWithFilters<DescriptorPreview>,
     installed_addons: InstalledAddonsWithFilters,
