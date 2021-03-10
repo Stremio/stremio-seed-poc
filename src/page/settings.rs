@@ -5,6 +5,7 @@ use seed_styles::*;
 use std::borrow::Cow;
 use std::rc::Rc;
 use std::collections::HashMap;
+use url::Url as CoreUrl;
 use stremio_core::types::profile::User;
 use stremio_core::runtime::msg::{Action, ActionCtx, Msg as CoreMsg};
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls, Events};
@@ -95,9 +96,27 @@ pub enum Msg {
     PageChanged(PageId),
     Logout,
     MenuButtonClicked(Section),
+    UpdateSettings(UpdateSettingsMsg)
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub enum UpdateSettingsMsg {
+    InterfaceLanguage(String),
+    StreamingServerUrl(CoreUrl),
+    BingeWatching(bool),
+    PlayInBackground(bool),
+    PlayInExternalPlayer(bool),
+    HardwareDecoding(bool),
+    SubtitlesLanguage(String),
+    SubtitlesSize(u8),
+    SubtitlesFont(String),
+    SubtitlesBold(bool),
+    SubtitlesOffset(u8),
+    SubtitlesTextColor(String),
+    SubtitlesBackgroundColor(String),
+    SubtitlesOutlineColor(String),
+}
+
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::Rendered => {
             orders.skip();
@@ -189,6 +208,29 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             // @TODO: Does it work on Safari?
             options.behavior(ScrollBehavior::Smooth);
             section_ref.get().unwrap().scroll_into_view_with_scroll_into_view_options(&options);
+        }
+        Msg::UpdateSettings(msg) => {
+            use UpdateSettingsMsg::*;
+            let mut settings = context.core_model.ctx.profile.settings.to_owned();
+            match msg {
+                InterfaceLanguage(value) => settings.interface_language = value,
+                StreamingServerUrl(value) => settings.streaming_server_url = value,
+                BingeWatching(value) => settings.binge_watching = value,
+                PlayInBackground(value) => settings.play_in_background = value,
+                PlayInExternalPlayer(value) => settings.play_in_external_player = value,
+                HardwareDecoding(value) => settings.hardware_decoding = value,
+                SubtitlesLanguage(value) => settings.subtitles_language = value,
+                SubtitlesSize(value) => settings.subtitles_size = value,
+                SubtitlesFont(value) => settings.subtitles_font = value,
+                SubtitlesBold(value) => settings.subtitles_bold = value,
+                SubtitlesOffset(value) => settings.subtitles_offset = value,
+                SubtitlesTextColor(value) => settings.subtitles_text_color = value,
+                SubtitlesBackgroundColor(value) => settings.subtitles_background_color = value,
+                SubtitlesOutlineColor(value) => settings.subtitles_outline_color = value,
+            }
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                ActionCtx::UpdateSettings(settings)
+            )))));
         }
     }
 }

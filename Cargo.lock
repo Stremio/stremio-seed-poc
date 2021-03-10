@@ -1319,6 +1319,7 @@ dependencies = [
  "serde_json",
  "stremio-core",
  "stremio-derive",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
