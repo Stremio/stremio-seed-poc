@@ -13,7 +13,7 @@ use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
 }
 
 // ---- url parts ----

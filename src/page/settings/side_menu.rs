@@ -11,8 +11,6 @@ use crate::page::settings::section::Section;
 
 #[view]
 pub fn side_menu(active_section: Section) -> Node<Msg> {
-    // @TODO: https://academind.com/tutorials/scroll-aware-navigation/ ?
-
     let app_version = "5.0.0";
     div![
         C!["side-menu-container"],

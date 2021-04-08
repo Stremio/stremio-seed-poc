@@ -9,7 +9,7 @@ use seed_hooks::{*, topo::nested as view, state_access::CloneState};
 use stremio_core::types::profile::User;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
 }
 
 #[view]

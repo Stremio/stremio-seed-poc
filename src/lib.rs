@@ -25,11 +25,11 @@ use seed_styles::pc;
 use seed_styles::*;
 use core::future;
 use std::rc::Rc;
-use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails};
+use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails, streaming_server::StreamingServer};
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
 use stremio_core::models::library_with_filters::{LibraryWithFilters, NotRemovedFilter};
-use stremio_core::runtime::{Update, Effect};
+use stremio_core::runtime::{Update, Effect, Effects, UpdateWithCtx};
 use stremio_core::runtime::{Env, EnvError};
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionCtx, Event, CtxStorageResponse};
 use stremio_core::types::addon::DescriptorPreview;
@@ -41,6 +41,7 @@ use stremio_core::constants::{
 };
 use stremio_derive::Model;
 use seed_hooks::{*, topo::nested as view};
+use std::ops::Deref;
 
 // ---- url parts ----
 
@@ -166,6 +167,36 @@ struct CoreModel {
     installed_addons: InstalledAddonsWithFilters,
     meta_details: MetaDetails,
     library: LibraryWithFilters<NotRemovedFilter>,
+    streaming_server: MaybeStreamingServer,
+}
+
+// ------ MaybeStreamingServer  ------
+
+#[derive(Default)]
+pub struct MaybeStreamingServer(Option<StreamingServer>);
+
+impl MaybeStreamingServer {
+    pub fn new<E: Env + 'static>(profile: &Profile) -> (Self, Effects) {
+        let (server, effects) = StreamingServer::new::<E>(profile);
+        (Self(Some(server)), effects)
+    }
+}
+
+impl Deref for MaybeStreamingServer {
+    type Target = Option<StreamingServer>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<E: Env + 'static> UpdateWithCtx<E> for MaybeStreamingServer {
+    fn update(&mut self, msg: &CoreMsg, ctx: &Ctx) -> Effects {
+        if let Some(server) = &mut self.0 {
+            return UpdateWithCtx::<E>::update(server, msg, ctx)
+        }
+        Effects::none().unchanged()
+    }
 }
 
 // ------ ------
