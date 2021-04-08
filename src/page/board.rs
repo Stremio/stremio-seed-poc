@@ -14,7 +14,7 @@ use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 const SEARCH_DEBOUNCE_TIME: u32 = 0;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
 }
 
 // ------ ------

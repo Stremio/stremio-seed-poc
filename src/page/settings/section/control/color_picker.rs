@@ -6,7 +6,7 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use crate::page::settings::Msg;
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
 }
 
 #[view]

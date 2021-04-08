@@ -26,7 +26,7 @@ const DEFAULT_ID: &str = "top";
 const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
 }
 
 // ------ ------

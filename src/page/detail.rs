@@ -14,7 +14,7 @@ use stremio_core::types::library::LibraryItem;
 use seed_hooks::{*, topo::nested as view};
 
 fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!"); })
+    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
 }
 
 // ------ ------
