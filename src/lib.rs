@@ -91,9 +91,12 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         ))});
         // @TODO listen for `fullscreenchange` once it's implemented in Safari
 
+    let (core_model, effects) = CoreModel::new();
+    handle_core_effects(effects, orders);
+
     Model {
         context: Context {
-            core_model: CoreModel::default(),
+            core_model,
             root_base_url,
             menu_visible: false,
             fullscreen: false,
@@ -158,7 +161,7 @@ pub enum PageId {
 
 // ------ CoreModel  ------
 
-#[derive(Model, Default)]
+#[derive(Model)]
 #[model(WebEnv)]
 struct CoreModel {
     ctx: Ctx,
@@ -167,37 +170,27 @@ struct CoreModel {
     installed_addons: InstalledAddonsWithFilters,
     meta_details: MetaDetails,
     library: LibraryWithFilters<NotRemovedFilter>,
-    streaming_server: MaybeStreamingServer,
+    streaming_server: StreamingServer,
 }
 
-// ------ MaybeStreamingServer  ------
-
-#[derive(Default)]
-pub struct MaybeStreamingServer(Option<StreamingServer>);
-
-impl MaybeStreamingServer {
-    pub fn new<E: Env + 'static>(profile: &Profile) -> (Self, Effects) {
-        let (server, effects) = StreamingServer::new::<E>(profile);
-        (Self(Some(server)), effects)
+impl CoreModel {
+    fn new() -> (Self, Effects) {
+        let (streaming_server, effects) = StreamingServer::new::<WebEnv>(&Profile::default());
+        (
+            Self {
+                ctx: Ctx::default(),
+                catalog: CatalogWithFilters::default(),
+                addon_catalog: CatalogWithFilters::default(),
+                installed_addons: InstalledAddonsWithFilters::default(),
+                meta_details: MetaDetails::default(),
+                library: LibraryWithFilters::default(),
+                streaming_server,
+            }, 
+            effects
+        )        
     }
 }
 
-impl Deref for MaybeStreamingServer {
-    type Target = Option<StreamingServer>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<E: Env + 'static> UpdateWithCtx<E> for MaybeStreamingServer {
-    fn update(&mut self, msg: &CoreMsg, ctx: &Ctx) -> Effects {
-        if let Some(server) = &mut self.0 {
-            return UpdateWithCtx::<E>::update(server, msg, ctx)
-        }
-        Effects::none().unchanged()
-    }
-}
 
 // ------ ------
 //     Urls
@@ -266,8 +259,13 @@ pub enum Msg {
 fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::CtxStorageResponse(Ok((profile, recent_bucket, other_bucket))) => {
-            let ctx = &mut model.context.core_model.ctx;
+            let core_model = &mut model.context.core_model;
+            let ctx = &mut core_model.ctx;
+
             if let Some(profile) = profile {
+                let (streaming_server, effects) =  StreamingServer::new::<WebEnv>(&profile);
+                handle_core_effects(effects, orders);
+                core_model.streaming_server = streaming_server;
                 ctx.profile = profile;
             }
             ctx.library.uid = ctx.profile.uid();
@@ -338,23 +336,11 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::CoreMsg(core_msg) => {
             let effects = model.context.core_model.update(&core_msg);
-
             if !effects.has_changed {
                 orders.skip();
+                return
             }
-
-            for effect in effects {
-                match effect {
-                    Effect::Msg(core_msg) => {
-                        orders.send_msg(Msg::HandleEffectMsg(Rc::new(core_msg)));
-                    }
-                    Effect::Future(cmd) => {
-                        orders.perform_cmd(async move {
-                            Msg::HandleEffectMsg(Rc::new(cmd.await))
-                        });
-                    }
-                }
-            }
+            handle_core_effects(effects, orders);
         }
         Msg::HandleEffectMsg(core_msg) => {
             if let CoreMsg::Event(Event::UserLoggedOut {..}) = core_msg.as_ref() {
@@ -465,6 +451,21 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
                 ActionCtx::Logout
             )))));
+        }
+    }
+}
+
+fn handle_core_effects(effects: Effects, orders: &mut impl Orders<Msg>) {
+    for effect in effects {
+        match effect {
+            Effect::Msg(core_msg) => {
+                orders.send_msg(Msg::HandleEffectMsg(Rc::new(core_msg)));
+            }
+            Effect::Future(cmd) => {
+                orders.perform_cmd(async move {
+                    Msg::HandleEffectMsg(Rc::new(cmd.await))
+                });
+            }
         }
     }
 }

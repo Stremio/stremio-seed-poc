@@ -4,6 +4,7 @@ use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use std::borrow::Cow;
 use stremio_core::types::profile::{User, Settings};
+use stremio_core::models::streaming_server::StreamingServer;
 use crate::Urls as RootUrls;
 use crate::styles::{self, themes::Color, global};
 use crate::page::settings::Msg;
@@ -40,7 +41,13 @@ pub struct SectionRefs {
 }
 
 #[view]
-pub fn sections(settings: &Settings, root_base_url: &Url, user: Option<&User>, section_refs: &SectionRefs) -> Node<Msg> {
+pub fn sections(
+    settings: &Settings, 
+    root_base_url: &Url, 
+    user: Option<&User>, 
+    section_refs: &SectionRefs, 
+    streaming_server: &StreamingServer
+) -> Node<Msg> {
     div![
         el_ref(&section_refs.container),
         C!["sections-container"],
@@ -51,7 +58,7 @@ pub fn sections(settings: &Settings, root_base_url: &Url, user: Option<&User>, s
             .padding("0 2rem"),
         general_section(settings, root_base_url, user, &section_refs.general),
         player_section(settings, &section_refs.player),
-        streaming_server_section(settings, &section_refs.streaming_server),
+        streaming_server_section(settings, &section_refs.streaming_server, streaming_server),
     ]
 }
 
