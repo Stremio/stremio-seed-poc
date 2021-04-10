@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::collections::HashMap;
 use url::Url as CoreUrl;
 use stremio_core::types::profile::User;
-use stremio_core::runtime::msg::{Action, ActionCtx, Msg as CoreMsg};
+use stremio_core::runtime::msg::{Action, ActionStreamingServer, ActionCtx, Msg as CoreMsg};
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls, Events};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -41,17 +41,19 @@ pub fn init(
     orders
         .after_next_render(|_| Msg::Rendered);
 
-    let model = model.get_or_insert_with(move || Model {
-        active_section: Section::General,
-        section_ratios: vec![
-            (Section::General, 0.),
-            (Section::Player, 0.),
-            (Section::StreamingServer, 0.),
-        ].into_iter().collect(),
-        section_refs: SectionRefs::default(),
-        observer: None,
-        observer_callback: None,
-        page_change_sub_handle: None,
+    let model = model.get_or_insert_with(move || {
+        Model {
+            active_section: Section::General,
+            section_ratios: vec![
+                (Section::General, 0.),
+                (Section::Player, 0.),
+                (Section::StreamingServer, 0.),
+            ].into_iter().collect(),
+            section_refs: SectionRefs::default(),
+            observer: None,
+            observer_callback: None,
+            page_change_sub_handle: None,
+        }
     });
     model.page_change_sub_handle = Some(orders.subscribe_with_handle(|events| {
         if let Events::PageChanged(page_id) = events {
@@ -96,7 +98,8 @@ pub enum Msg {
     PageChanged(PageId),
     Logout,
     MenuButtonClicked(Section),
-    UpdateSettings(UpdateSettingsMsg)
+    UpdateSettings(UpdateSettingsMsg),
+    ReloadStreamingServer,
 }
 
 pub enum UpdateSettingsMsg {
@@ -232,6 +235,11 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 ActionCtx::UpdateSettings(settings)
             )))));
         }
+        Msg::ReloadStreamingServer => {
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::StreamingServer(
+                ActionStreamingServer::Reload,
+            )))));
+        }
     }
 }
 
@@ -262,7 +270,7 @@ fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .height(pc(100))
             .width(pc(100)),            
         side_menu(model.active_section),
-        sections(settings, &context.root_base_url, user, &model.section_refs),
+        sections(settings, &context.root_base_url, user, &model.section_refs, &context.core_model.streaming_server),
     ]
 }
 

@@ -19,7 +19,7 @@ pub fn general_section(settings: &Settings, root_base_url: &Url, user: Option<&U
     let options = nodes![
         section_option(Some(s().height(rem(6))), user_info(root_base_url, user)),
         IF!(user.is_none() => { section_option(None, vec![
-            large_button("Log in / Sign up", RootUrls::new(root_base_url).intro())
+            large_button("Log in / Sign up", RootUrls::new(root_base_url).intro(), None)
         ])}),
         section_option(None, vec![
             label("Interface language"),
