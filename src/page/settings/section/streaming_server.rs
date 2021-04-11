@@ -27,7 +27,7 @@ pub fn streaming_server_section(
 
     let mut options = vec![
         section_option(None, vec![
-            large_button("Reload", None, Rc::new(|| Msg::ReloadStreamingServer) as Rc<dyn Fn() -> Msg>)
+            large_button("Reload", None, Some(|| Msg::ReloadStreamingServer))
         ]),
         section_option(None, vec![
             label("Status"),
