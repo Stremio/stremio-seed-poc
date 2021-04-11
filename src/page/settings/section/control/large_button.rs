@@ -7,7 +7,11 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use crate::page::settings::Msg;
 
 #[view]
-pub fn large_button(title: &str, url: impl Into<Option<Url>>, on_click: impl Into<Option<Rc<dyn Fn() -> Msg>>>) -> Node<Msg> {
+pub fn large_button(
+    title: &str,
+    url: impl Into<Option<Url>>, 
+    on_click: Option<impl FnOnce() -> Msg + 'static + Clone>
+) -> Node<Msg> {
     a![
         C!["option-input-container", "button-container"],
         s()
@@ -31,7 +35,7 @@ pub fn large_button(title: &str, url: impl Into<Option<Url>>, on_click: impl Int
                 At::Href => url,
             }
         }),
-        on_click.into().map(|on_click| {
+        on_click.map(|on_click| {
             ev(Ev::Click, move |_| on_click())
         }),
         div![
