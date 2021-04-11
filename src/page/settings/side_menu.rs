@@ -10,7 +10,7 @@ use crate::page::settings::Msg;
 use crate::page::settings::section::Section;
 
 #[view]
-pub fn side_menu(active_section: Section) -> Node<Msg> {
+pub fn side_menu(active_section: Section, server_version: Option<&str>) -> Node<Msg> {
     let app_version = "5.0.0";
     div![
         C!["side-menu-container"],
@@ -41,18 +41,27 @@ pub fn side_menu(active_section: Section) -> Node<Msg> {
             s()
                 .flex("1"),
         ],
-        div![
-            C!["version-info-label"],
-            s()
-                .color(Color::SecondaryVariant1_90)
-                .flex("0 1 auto")
-                .margin("0.5rem 0"),
-            attrs!{
-                At::Title => app_version,
-            },
-            "App Version: ",
-            app_version,
-        ]
+        version_info("App Version", app_version),
+        server_version.map(|version| {
+            version_info("Server Version", version)
+        }),
+    ]
+}
+
+#[view]
+fn version_info(label: &str, value: &str) -> Node<Msg> {
+    div![
+        C!["version-info-label"],
+        s()
+            .color(Color::SecondaryVariant1_90)
+            .flex("0 1 auto")
+            .margin("0.5rem 0"),
+        attrs!{
+            At::Title => value,
+        },
+        label,
+        ": ",
+        value,
     ]
 }
 

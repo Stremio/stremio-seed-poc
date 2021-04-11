@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use url::Url as CoreUrl;
 use stremio_core::types::profile::User;
 use stremio_core::runtime::msg::{Action, ActionStreamingServer, ActionCtx, Msg as CoreMsg};
+use stremio_core::models::common::Loadable;
 use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls, Events};
 use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 use crate::styles::{self, themes::{Color, Breakpoint}, global};
@@ -262,6 +263,13 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
 fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
     let user = context.core_model.ctx.profile.auth.as_ref().map(|auth| &auth.user);
     let settings = &context.core_model.ctx.profile.settings;
+    
+    let streaming_server_settings = &context.core_model.streaming_server.settings;
+    let server_version = match streaming_server_settings {
+        Loadable::Ready(settings) => Some(settings.server_version.as_str()),
+        _ => None
+    };
+
     div![
         C!["settings-content"],
         s()
@@ -269,7 +277,7 @@ fn settings_content<'a>(model: &Model, context: &Context) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Row)
             .height(pc(100))
             .width(pc(100)),            
-        side_menu(model.active_section),
+        side_menu(model.active_section, server_version),
         sections(settings, &context.root_base_url, user, &model.section_refs, &context.core_model.streaming_server),
     ]
 }
