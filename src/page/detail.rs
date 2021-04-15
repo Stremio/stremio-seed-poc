@@ -1,4 +1,5 @@
 use crate::{PageId, Actions, Context};
+use crate::styles::global;
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use std::collections::HashMap;
@@ -9,7 +10,7 @@ use crate::styles::{self, themes::Color};
 use stremio_core::models::meta_details::Selected as MetaDetailsSelected;
 use stremio_core::models::common::{ResourceLoadable, Loadable};
 use stremio_core::types::addon::ResourcePath;
-use stremio_core::types::resource::{MetaItem, Link, MetaItemPreview};
+use stremio_core::types::resource::{MetaItem, Link, MetaItemPreview, Video};
 use stremio_core::types::library::LibraryItem;
 use seed_hooks::{*, topo::nested as view};
 
@@ -38,7 +39,9 @@ pub fn init(
         ActionLoad::MetaDetails(selected_meta_details)
     )))));
 
-    model.get_or_insert_with(|| Model {});
+    model.get_or_insert_with(|| Model {
+        search_query: String::new(),
+    });
     Some(PageId::Detail)
 }
 
@@ -47,6 +50,7 @@ pub fn init(
 // ------ ------
 
 pub struct Model {
+    search_query: String,
 }
 
 // ------ ------
@@ -75,9 +79,10 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     AddToLibrary(MetaItem),
     RemoveFromLibrary(String),
+    SearchQueryChanged(String),
 }
 
-pub fn update(msg: Msg, _: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::AddToLibrary(meta_item) => {
             let item = MetaItemPreview {
@@ -103,6 +108,9 @@ pub fn update(msg: Msg, _: &mut Model, orders: &mut impl Orders<Msg>) {
                 ActionCtx::RemoveFromLibrary(id)
             )))));
         }
+        Msg::SearchQueryChanged(query) => {
+            model.search_query = query
+        }
     }
 }
 
@@ -111,7 +119,7 @@ pub fn update(msg: Msg, _: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 
 #[view]
-pub fn view(context: &Context) -> Node<Msg> {
+pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     let meta_items = &context.core_model.meta_details.meta_items;
     let library = &context.core_model.ctx.library.items;
     div![
@@ -139,25 +147,25 @@ pub fn view(context: &Context) -> Node<Msg> {
                 s()
                     .flex("1"),
             ],
-            side_bar(meta_items),
+            side_bar(meta_items, &model.search_query),
         ]
     ]
 }
 
 #[view]
-fn side_bar(meta_items: &[ResourceLoadable<MetaItem>]) -> Option<Node<Msg>> {
+fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str) -> Option<Node<Msg>> {
     if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
         match meta_item.r#type.as_str() {
-            "series" => return Some(videos_list(meta_item)),
+            "series" | "other" => return Some(videos_list(&meta_item.videos, search_query)),
             "movie" => return Some(streams_list(meta_item)),
-            _ => (),
+            _ => log!("unknown meta item type"),
         }
     }
     None
 }
 
 #[view]
-fn videos_list(meta_item: &MetaItem) -> Node<Msg> {
+fn videos_list(videos: &[Video], search_query: &str) -> Node<Msg> {
     div![
         C!["videos-list", "videos-list-container"],
         s()
@@ -166,6 +174,162 @@ fn videos_list(meta_item: &MetaItem) -> Node<Msg> {
             .flex("0 0 26.5rem")
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Column),
+        search_bar(search_query),
+        videos_container(videos, search_query),
+    ]
+}
+
+#[view]
+fn videos_container(videos: &[Video], search_query: &str) -> Node<Msg> {
+    div![
+        C!["videos-container"],
+        s()
+            .align_self(CssAlignSelf::Stretch)
+            .flex("1")
+            .overflow_y(CssOverflowY::Auto),
+        videos.iter().filter(|video| video.title.contains(search_query)).map(video),
+    ]
+}
+
+#[view]
+fn video(video: &Video) -> Node<Msg> {
+    a![
+        C!["video-container", "button-container"],
+        s()
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .flex_wrap(CssFlexWrap::Wrap)
+            .padding("0.5rem 1rem")
+            .cursor(CssCursor::Pointer),
+        s()
+            .hover()
+            .background_color(Color::Background),
+        div![
+            C!["info-container"],
+            s()
+                .height(rem(3))
+                .align_self(CssAlignSelf::Stretch)
+                .display(CssDisplay::Flex)
+                .flex("1")
+                .flex_direction(CssFlexDirection::Column)
+                .justify_content(CssJustifyContent::SpaceBetween)
+                .margin("0.5rem 1rem"),
+            div![
+                C!["title-container"],
+                s()
+                    .max_height(em(1.2))
+                    .color(Color::SurfaceLight5_90),
+                &video.title,
+            ],
+            div![
+                C!["flex-row-container"],
+                s()
+                    .align_items(CssAlignItems::Center)
+                    .display(CssDisplay::Flex)
+                    .flex_direction(CssFlexDirection::Row)
+                    .justify_content(CssJustifyContent::FlexEnd),
+                div![
+                    C!["released-container"],
+                    s()
+                        .color(Color::SurfaceDark5_90)
+                        .flex("1")
+                        .font_size(rem(0.8))
+                        .font_weight("500")
+                        .margin_right(rem(0.5))
+                        .text_overflow("ellipsis")
+                        .text_transform(CssTextTransform::Uppercase)
+                        .white_space(CssWhiteSpace::NoWrap),
+                    video.released.as_ref().map(|released| {
+                        // 15 Apr 21
+                        released.format("%e %b %y").to_string()
+                    }),
+                ],
+                div![
+                    C!["upcoming-watched-container"],
+                    s()
+                        .display(CssDisplay::Flex)
+                        .flex("0 1 auto")
+                        .flex_direction(CssFlexDirection::Row),
+                ]
+            ]
+        ]
+    ]
+}
+
+#[view]
+fn search_bar(search_query: &str) -> Node<Msg> {
+    label![
+        C!["search-bar", "search-bar-container"],
+        s()
+            .align_self(CssAlignSelf::Stretch)
+            .flex(CssFlex::None)
+            .margin("1rem 1.5rem 1rem")
+            .align_items(CssAlignItems::Center)
+            .background_color(Color::Background)
+            .border(format!("{} solid transparent", global::FOCUS_OUTLINE_SIZE).as_str())
+            .border_radius(rem(3.5))
+            .cursor(CssCursor::Text)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row)
+            .height(rem(3.5))
+            .padding("0 1rem"),
+        s()
+            .focus_within()
+            .background_color(Color::BackgroundLight1)
+            .border(format!("{} solid hsl(0,0%,100%)", global::FOCUS_OUTLINE_SIZE).as_str()),
+        s()
+            .hover()
+            .background_color(Color::BackgroundLight1),
+        attrs!{
+            At::Title => "Search videos",
+        },
+        input![
+            C!["search-input", "text-input"],
+            s()
+                .color(Color::SurfaceLight5)
+                .flex("1")
+                .font_size(rem(1.1))
+                .margin_right(rem(1))
+                .user_select("text"),
+            s()
+                .style_other("::placeholder")
+                .color(Color::SecondaryVariant1Light1_90)
+                .max_height(em(1.2))
+                .opacity("1"),
+            attrs!{
+                At::from("autocorrect") => "off",
+                At::from("autocapitalize") => "none",
+                At::AutoComplete => "off",
+                At::SpellCheck => "false",
+                At::TabIndex => 0,
+                At::Type => "text",
+                At::Placeholder => "Search videos",
+                At::Value => search_query,
+            },
+            input_ev(Ev::Input, Msg::SearchQueryChanged),
+        ],
+        search_bar_icon()
+    ]
+}
+
+#[view]
+fn search_bar_icon() -> Node<Msg> {
+    svg![
+        C!["icon"],
+        s()
+            .fill(Color::SecondaryVariant1_90)
+            .flex(CssFlex::None)
+            .height(rem(1.5))
+            .width(rem(1.5)),
+        attrs!{
+            At::ViewBox => "0 0 1025 1024",
+            At::from("icon") => "ic_search",
+        },
+        path![
+            attrs!{
+                At::D => "M1001.713 879.736c-48.791-50.899-162.334-163.84-214.438-216.546 43.772-66.969 69.909-148.918 70.174-236.956l0-0.070c-1.877-235.432-193.166-425.561-428.862-425.561-236.861 0-428.875 192.014-428.875 428.875 0 236.539 191.492 428.353 427.909 428.874l0.050 0c1.551 0.021 3.382 0.033 5.216 0.033 85.536 0 165.055-25.764 231.219-69.956l-1.518 0.954 201.487 204.499c16.379 18.259 39.94 29.789 66.201 30.117l0.058 0.001c2.034 0.171 4.401 0.269 6.791 0.269 35.32 0 65.657-21.333 78.83-51.816l0.214-0.556c5.589-10.528 8.87-23.018 8.87-36.275 0-21.857-8.921-41.631-23.32-55.878l-0.007-0.007zM429.478 730.654c-0.004 0-0.008 0-0.012 0-166.335 0-301.176-134.841-301.176-301.176 0-0.953 0.004-1.905 0.013-2.856l-0.001 0.146c0.599-165.882 135.211-300.124 301.176-300.124 166.336 0 301.178 134.842 301.178 301.178 0 0.371-0.001 0.741-0.002 1.111l0-0.057c0 0.179 0.001 0.391 0.001 0.603 0 166.335-134.841 301.176-301.176 301.176-0.106 0-0.212-0-0.318-0l0.016 0z",
+            }
+        ]
     ]
 }
 
