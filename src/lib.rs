@@ -500,7 +500,13 @@ fn view(model: &Model) -> Node<Msg> {
                     } else {
                         vec![]
                     },
-                    PageId::Detail => page::detail::view(&model.context).map_msg(Msg::DetailMsg).into_nodes(),
+                    PageId::Detail => if let Some(page_model) = &model.detail_model {
+                        page::detail::view(page_model, &model.context)
+                            .map_msg(Msg::DetailMsg)
+                            .into_nodes()
+                    } else {
+                        vec![]
+                    },
                     PageId::Discover => {
                         if let Some(page_model) = &model.discover_model {
                             page::discover::view(page_model, &model.context, page_id, Msg::DiscoverMsg)
