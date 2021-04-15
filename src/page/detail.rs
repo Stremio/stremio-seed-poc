@@ -27,6 +27,8 @@ pub fn init(
     model: &mut Option<Model>,
     orders: &mut impl Orders<Msg>,
 ) -> Option<PageId> {
+    let base_url = url.to_hash_base_url();
+
     let type_name = url.next_hash_path_part()?.to_owned();
     let id = url.next_hash_path_part()?.to_owned();
     let video_id = url.next_hash_path_part();
@@ -40,6 +42,7 @@ pub fn init(
     )))));
 
     model.get_or_insert_with(|| Model {
+        base_url,
         search_query: String::new(),
     });
     Some(PageId::Detail)
@@ -50,6 +53,7 @@ pub fn init(
 // ------ ------
 
 pub struct Model {
+    base_url: Url,
     search_query: String,
 }
 
@@ -120,6 +124,9 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
 #[view]
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
+    // let streams = &context.core_model.meta_details.streams;
+    // log!(streams.len());
+
     let meta_items = &context.core_model.meta_details.meta_items;
     let library = &context.core_model.ctx.library.items;
     div![
@@ -147,16 +154,16 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                 s()
                     .flex("1"),
             ],
-            side_bar(meta_items, &model.search_query),
+            side_bar(meta_items, &model.search_query, &model.base_url),
         ]
     ]
 }
 
 #[view]
-fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str) -> Option<Node<Msg>> {
+fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str, base_url: &Url) -> Option<Node<Msg>> {
     if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
         match meta_item.r#type.as_str() {
-            "series" | "other" => return Some(videos_list(&meta_item.videos, search_query)),
+            "series" | "other" => return Some(videos_list(&meta_item, search_query, base_url)),
             "movie" => return Some(streams_list(meta_item)),
             _ => log!("unknown meta item type"),
         }
@@ -165,7 +172,7 @@ fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str) -> Op
 }
 
 #[view]
-fn videos_list(videos: &[Video], search_query: &str) -> Node<Msg> {
+fn videos_list(meta_item: &MetaItem, search_query: &str, base_url: &Url) -> Node<Msg> {
     div![
         C!["videos-list", "videos-list-container"],
         s()
@@ -175,24 +182,28 @@ fn videos_list(videos: &[Video], search_query: &str) -> Node<Msg> {
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Column),
         search_bar(search_query),
-        videos_container(videos, search_query),
+        videos_container(meta_item, search_query, base_url),
     ]
 }
 
 #[view]
-fn videos_container(videos: &[Video], search_query: &str) -> Node<Msg> {
+fn videos_container(meta_item: &MetaItem, search_query: &str, base_url: &Url) -> Node<Msg> {
     div![
         C!["videos-container"],
         s()
             .align_self(CssAlignSelf::Stretch)
             .flex("1")
             .overflow_y(CssOverflowY::Auto),
-        videos.iter().filter(|video| video.title.contains(search_query)).map(video),
+        meta_item
+            .videos
+            .iter()
+            .filter(|video| video.title.contains(search_query))
+            .map(|video| video_container(video, meta_item, base_url)),
     ]
 }
 
 #[view]
-fn video(video: &Video) -> Node<Msg> {
+fn video_container(video: &Video, meta_item: &MetaItem, base_url: &Url) -> Node<Msg> {
     a![
         C!["video-container", "button-container"],
         s()
@@ -204,6 +215,11 @@ fn video(video: &Video) -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::Background),
+        attrs!{
+            At::Title => &video.title,
+            At::TabIndex => 0,
+            At::Href => Urls::new(base_url).with_video_id(&meta_item.r#type, &meta_item.id, &video.id),
+        },
         div![
             C!["info-container"],
             s()
