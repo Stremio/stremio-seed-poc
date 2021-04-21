@@ -167,7 +167,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 // ------ ------
 
 #[view]
-pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
+pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Vec<Node<RootMsg>> {
     let page_content = board_content(
         model.video_groups.values(), 
         !model.video_groups.is_empty(),
@@ -180,6 +180,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         context,
         page_id,
         search_args: None,
+        modal: None,
     })
 }
 

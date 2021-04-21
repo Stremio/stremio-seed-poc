@@ -196,19 +196,24 @@ pub enum Color {
     SurfaceLight1_90,
     SurfaceLight2,
     SurfaceLight2_90,
+    SurfaceLight3,
     SurfaceLight3_90,
+    SurfaceLight4,
     SurfaceLight5,
     SurfaceLight5_20,
     SurfaceLight5_30,
     SurfaceLight5_40,
     SurfaceLight5_60,
     SurfaceLight5_90,
+    SurfaceDark1_90,
+    SurfaceDark2,
     SurfaceDark2_90,
     SurfaceDark3_90,
     SurfaceDark4_90,
     SurfaceDark5,
     SurfaceDark5_10,
     SurfaceDark5_90,
+    Transparent,
 }
 impl ColorTheme for Color {} 
 
@@ -374,19 +379,24 @@ pub fn default_color_theme() -> Theme {
         .set_color(SurfaceLight1_90, hsla(0, 0, 80, 0.9))
         .set_color(SurfaceLight2, hsl(0, 0, 85))
         .set_color(SurfaceLight2_90, hsla(0, 0, 85, 0.9))
+        .set_color(SurfaceLight3, hsl(0, 0, 90))
         .set_color(SurfaceLight3_90, hsla(0, 0, 90, 0.9))
+        .set_color(SurfaceLight4, hsl(0, 0, 95))
         .set_color(SurfaceLight5, hsl(0, 0, 100))
         .set_color(SurfaceLight5_20, hsla(0, 0, 100, 0.2))
         .set_color(SurfaceLight5_30, hsla(0, 0, 100, 0.3))
         .set_color(SurfaceLight5_40, hsla(0, 0, 100, 0.4))
         .set_color(SurfaceLight5_60, hsla(0, 0, 100, 0.6))
         .set_color(SurfaceLight5_90, hsla(0, 0, 100, 0.9))
+        .set_color(SurfaceDark1_90, hsla(0, 0, 70, 0.9))
+        .set_color(SurfaceDark2, hsl(0, 0, 65))
         .set_color(SurfaceDark2_90, hsla(0, 0, 65, 0.9))
         .set_color(SurfaceDark3_90, hsla(0, 0, 60, 0.9))
         .set_color(SurfaceDark4_90, hsla(0, 0, 55, 0.9))
         .set_color(SurfaceDark5, hsl(0, 0, 50))
         .set_color(SurfaceDark5_10, hsla(0, 0, 50, 0.1))
         .set_color(SurfaceDark5_90, hsla(0, 0, 50, 0.9))
+        .set_color(Transparent, "transparent")
 }
 
 // @TODO refactor + hide in the library Styles

@@ -19,6 +19,7 @@ pub struct BasicLayoutArgs<'a> {
     pub context: &'a Context,
     pub page_id: PageId,
     pub search_args: Option<SearchArgs<'a>>,
+    pub modal: Option<Node<Msg>>,
 }
 
 pub struct SearchArgs<'a> {
@@ -28,7 +29,21 @@ pub struct SearchArgs<'a> {
 }
 
 #[view]
-pub fn basic_layout(args: BasicLayoutArgs) -> Node<Msg> {
+pub fn basic_layout(mut args: BasicLayoutArgs) -> Vec<Node<Msg>> {
+    let modal = args.modal.take();
+    vec![
+        route_content(args),
+        // @TODO allow Option<Node<Msg>> in Seed
+        if let Some(modal) = modal {
+            modals_container(modal)
+        } else {
+            empty![]
+        }
+    ]
+}
+
+#[view]
+fn route_content(args: BasicLayoutArgs) -> Node<Msg> {
     div![
         C!["route-content"],
         s()
@@ -74,3 +89,16 @@ fn nav_content_container(page_content: Node<Msg>) -> Node<Msg> {
         page_content,
     ]
 }
+
+#[view]
+fn modals_container(modal: Node<Msg>) -> Node<Msg> {
+    div![
+        C!["modals-container"],
+        s()
+            .height("0")
+            .width("0"),
+        modal,
+    ]
+}
+
+

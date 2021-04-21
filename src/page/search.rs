@@ -220,7 +220,7 @@ fn index(videos: Vec<Video>) -> LocalSearch<Video> {
 // ------ ------
 
 #[view]
-pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
+pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Vec<Node<RootMsg>> {
     let page_content = search_content(
         &model.search_results, 
         !model.video_groups.is_empty(),
@@ -237,6 +237,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
             on_search_query_input_changed: Rc::new(move |query| msg_mapper(Msg::SearchQueryInputChanged(query))),
             on_search: Rc::new(move || msg_mapper(Msg::Search)),
         }),
+        modal: None,
     })
 }
 

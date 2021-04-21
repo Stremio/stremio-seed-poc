@@ -15,6 +15,7 @@ use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 
 mod catalog_selector;
 mod type_selector;
+mod add_addon_modal;
 
 const DEFAULT_RESOURCE: &str = "addon_catalog";
 const DEFAULT_TYPE: &str = "official";
@@ -68,6 +69,7 @@ pub fn init(
     let model = model.get_or_insert_with(move || Model {
         base_url,
         search_query: String::new(),
+        modal: None,
     });
     model.search_query = String::new();
     Some(PageId::Addons)
@@ -122,6 +124,12 @@ pub fn default_resource_request() -> ResourceRequest {
 pub struct Model {
     base_url: Url,
     search_query: String,
+    modal: Option<Modal>,
+}
+
+#[derive(Copy, Clone)]
+pub enum Modal {
+    AddAddon
 }
 
 // ------ ------
@@ -161,6 +169,8 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     SearchQueryChanged(String),
     SendAddonRequest(AddonRequest),
+    OpenModal(Modal),
+    CloseModal,
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -169,6 +179,10 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         Msg::SendAddonRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).addon_request(&res_req));
         }
+        Msg::OpenModal(modal) => {
+            model.modal = Some(modal);
+        }
+        Msg::CloseModal => model.modal = None,
     }
 }
 
@@ -177,13 +191,16 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 
 #[view]
-pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
+pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Vec<Node<RootMsg>> {
     basic_layout(BasicLayoutArgs {
         page_content: addons_content(model, context).map_msg(msg_mapper),
         container_class: "addons-container",
         context,
         page_id,
         search_args: None,
+        modal: model.modal.map(|modal| match modal {
+            Modal::AddAddon => add_addon_modal::modal().map_msg(msg_mapper),
+        }),
     })
 }
 
@@ -256,7 +273,7 @@ fn add_addon_button() -> Node<Msg> {
             At::TabIndex => 0,
             At::Title => "Add addon",
         },
-        on_click_not_implemented(),
+        ev(Ev::Click, |_| Msg::OpenModal(Modal::AddAddon)),
         svg![
             C!["icon",],
             s()
