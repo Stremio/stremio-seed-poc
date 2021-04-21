@@ -151,13 +151,14 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
 // ------ ------
 
 #[view]
-pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
+pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Vec<Node<RootMsg>> {
     basic_layout(BasicLayoutArgs {
         page_content: discover_content(model, context).map_msg(msg_mapper),
         container_class: "discover-container",
         context,
         page_id,
         search_args: None,
+        modal: None,
     })
 }
 

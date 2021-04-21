@@ -168,13 +168,14 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 
 #[view]
-pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Node<RootMsg> {
+pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Msg) -> RootMsg) -> Vec<Node<RootMsg>> {
     basic_layout(BasicLayoutArgs {
         page_content: library_content(model, context).map_msg(msg_mapper),
         container_class: "library-container",
         context,
         page_id,
         search_args: None,
+        modal: None,
     })
 }
 
