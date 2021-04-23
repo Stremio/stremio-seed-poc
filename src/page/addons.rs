@@ -72,6 +72,8 @@ pub fn init(
         base_url,
         search_query: String::new(),
         modal: None,
+        add_addon_url: String::new(),
+        install_addon: None,
         uninstall_addon: None,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
     });
@@ -129,6 +131,8 @@ pub struct Model {
     base_url: Url,
     search_query: String,
     modal: Option<Modal>,
+    add_addon_url: String,
+    install_addon: Option<url::Url>,
     uninstall_addon: Option<url::Url>,
     _core_msg_sub_handle: SubHandle,
 }
@@ -178,6 +182,8 @@ pub enum Msg {
     SendAddonRequest(AddonRequest),
     OpenModal(Modal),
     CloseModal,
+    AddAddonUrlChanged(String),
+    InstallAddon,
     // @TODO DescriptorPreview -> String (transport_url)?
     UninstallAddon(DescriptorPreview)
 }
@@ -196,11 +202,25 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                             model.modal = None;
                             model.uninstall_addon = None;
                         }
-                    } else {
-                        error!("addon details not loaded");
-                    }
+                    } 
+
+                    if let Some(selected_addon) = addon_details.remote_addon.as_ref() {
+                        match &selected_addon.content {
+                            Loadable::Ready(selected_addon) => {
+                                if Some(&selected_addon.transport_url) == model.install_addon.as_ref() {
+                                    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                                        ActionCtx::InstallAddon(selected_addon.clone()),
+                                    )))));
+                                    model.modal = None;
+                                    model.install_addon = None;
+                                }
+                            }
+                            _ => error!("remote_addon not ready")
+                        }
+                    } 
                 }
                 CoreMsg::Event(Event::AddonUninstalled {id, ..}) => log!("addon uninstalled:", id),
+                CoreMsg::Event(Event::AddonInstalled {id, ..}) => log!("addon installed:", id),
                 _ => ()
             }
         }
@@ -212,6 +232,34 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             model.modal = Some(modal);
         }
         Msg::CloseModal => model.modal = None,
+        Msg::AddAddonUrlChanged(url) => model.add_addon_url = url,
+        Msg::InstallAddon => {
+            // @TODO install -> uninstall -> install workflow doesn't work
+            // @TODO Show Uninstall / Install button and make Install button work on an addon preview
+
+            let transport_url = model.add_addon_url.parse::<url::Url>().expect("url parsing failed");
+            model.add_addon_url = String::new();
+
+            let addon_details = &context.core_model.addon_details;
+            if let Some(selected_addon) = addon_details.local_addon.as_ref() {
+                if selected_addon.transport_url == transport_url {
+                    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                        ActionCtx::InstallAddon(selected_addon.clone()),
+                    )))));
+                    model.modal = None;
+                    model.install_addon = None;
+                    return;
+                }
+            }
+
+            model.install_addon = Some(transport_url.clone());
+            let new_selected = AddonDetailsSelected {
+                transport_url
+            };
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+                ActionLoad::AddonDetails(new_selected),
+            )))));
+        } 
         Msg::UninstallAddon(addon) => {
             let addon_details = &context.core_model.addon_details;
             if let Some(selected_addon) = addon_details.local_addon.as_ref() {
@@ -249,7 +297,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         page_id,
         search_args: None,
         modal: model.modal.as_ref().map(|modal| match modal {
-            Modal::AddAddon => add_addon_modal::modal().map_msg(msg_mapper),
+            Modal::AddAddon => add_addon_modal::modal(&model.add_addon_url).map_msg(msg_mapper),
             Modal::AddonDetails(addon) => addon_details_modal::modal(addon).map_msg(msg_mapper),
         }),
     })
