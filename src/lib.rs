@@ -29,6 +29,7 @@ use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails, streaming_server
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
 use stremio_core::models::library_with_filters::{LibraryWithFilters, NotRemovedFilter};
+use stremio_core::models::addon_details::AddonDetails;
 use stremio_core::runtime::{Update, Effect, Effects, UpdateWithCtx};
 use stremio_core::runtime::{Env, EnvError};
 use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionCtx, Event, CtxStorageResponse};
@@ -168,6 +169,7 @@ struct CoreModel {
     catalog: CatalogWithFilters<MetaItemPreview>,
     addon_catalog: CatalogWithFilters<DescriptorPreview>,
     installed_addons: InstalledAddonsWithFilters,
+    addon_details: AddonDetails,
     meta_details: MetaDetails,
     library: LibraryWithFilters<NotRemovedFilter>,
     streaming_server: StreamingServer,
@@ -182,6 +184,7 @@ impl CoreModel {
                 catalog: CatalogWithFilters::default(),
                 addon_catalog: CatalogWithFilters::default(),
                 installed_addons: InstalledAddonsWithFilters::default(),
+                addon_details: AddonDetails::default(),
                 meta_details: MetaDetails::default(),
                 library: LibraryWithFilters::default(),
                 streaming_server,
@@ -414,6 +417,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 page::addons::update(
                     page_msg,
                     page_model,
+                    &mut model.context,
                     &mut orders.proxy(Msg::AddonsMsg),
                 );
             }

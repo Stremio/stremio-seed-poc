@@ -2,9 +2,10 @@ use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as Root
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
-use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, Internal, Event, ActionLoad, ActionCtx};
 use stremio_core::models::catalog_with_filters::Selected as CatalogWithFiltersSelected;
 use stremio_core::models::installed_addons_with_filters::{InstalledAddonsRequest, Selected as InstalledAddonsWithFiltersSelected};
+use stremio_core::models::addon_details::{Selected as AddonDetailsSelected};
 use stremio_core::models::common::{Loadable, ResourceError};
 use stremio_core::types::addon::{Descriptor, DescriptorPreview, ManifestPreview, ResourceRequest, ResourcePath};
 use seed_styles::{em, pc, rem, Style};
@@ -71,6 +72,8 @@ pub fn init(
         base_url,
         search_query: String::new(),
         modal: None,
+        uninstall_addon: None,
+        _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
     });
     model.search_query = String::new();
     Some(PageId::Addons)
@@ -126,12 +129,13 @@ pub struct Model {
     base_url: Url,
     search_query: String,
     modal: Option<Modal>,
+    uninstall_addon: Option<url::Url>,
+    _core_msg_sub_handle: SubHandle,
 }
 
-#[derive(Copy, Clone)]
 pub enum Modal {
     AddAddon,
-    AddonDetails,
+    AddonDetails(DescriptorPreview),
 }
 
 // ------ ------
@@ -169,14 +173,37 @@ impl<'a> Urls<'a> {
 
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
+    CoreMsg(Rc<CoreMsg>),
     SearchQueryChanged(String),
     SendAddonRequest(AddonRequest),
     OpenModal(Modal),
     CloseModal,
+    // @TODO DescriptorPreview -> String (transport_url)?
+    UninstallAddon(DescriptorPreview)
 }
 
-pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
+        Msg::CoreMsg(core_msg) => {
+            match core_msg.as_ref() {
+                CoreMsg::Internal(Internal::ManifestRequestResult(transport_url, _)) => {
+                    let addon_details = &context.core_model.addon_details;
+                    if let Some(selected_addon) = addon_details.local_addon.as_ref() {
+                        if Some(&selected_addon.transport_url) == model.uninstall_addon.as_ref() {
+                            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                                ActionCtx::UninstallAddon(selected_addon.clone()),
+                            )))));
+                            model.modal = None;
+                            model.uninstall_addon = None;
+                        }
+                    } else {
+                        error!("addon details not loaded");
+                    }
+                }
+                CoreMsg::Event(Event::AddonUninstalled {id, ..}) => log!("addon uninstalled:", id),
+                _ => ()
+            }
+        }
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
         Msg::SendAddonRequest(res_req) => {
             orders.request_url(Urls::new(&model.base_url).addon_request(&res_req));
@@ -185,6 +212,27 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             model.modal = Some(modal);
         }
         Msg::CloseModal => model.modal = None,
+        Msg::UninstallAddon(addon) => {
+            let addon_details = &context.core_model.addon_details;
+            if let Some(selected_addon) = addon_details.local_addon.as_ref() {
+                if selected_addon.transport_url == addon.transport_url {
+                    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                        ActionCtx::UninstallAddon(selected_addon.clone()),
+                    )))));
+                    model.modal = None;
+                    model.uninstall_addon = None;
+                    return;
+                }
+            }
+
+            model.uninstall_addon = Some(addon.transport_url.clone());
+            let new_selected = AddonDetailsSelected {
+                transport_url: addon.transport_url
+            };
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+                ActionLoad::AddonDetails(new_selected),
+            )))));
+        }
     }
 }
 
@@ -200,9 +248,9 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         context,
         page_id,
         search_args: None,
-        modal: model.modal.map(|modal| match modal {
+        modal: model.modal.as_ref().map(|modal| match modal {
             Modal::AddAddon => add_addon_modal::modal().map_msg(msg_mapper),
-            Modal::AddonDetails => addon_details_modal::modal().map_msg(msg_mapper),
+            Modal::AddonDetails(addon) => addon_details_modal::modal(addon).map_msg(msg_mapper),
         }),
     })
 }
@@ -407,7 +455,7 @@ fn addons_list(addons: &[DescriptorPreview], search_query: &str) -> Vec<Node<Msg
     addons
         .iter()
         .filter(|addon| is_addon_in_search_results(addon, search_query))
-        .map(|addon| addon_container(&addon.manifest))
+        .map(addon_container)
         .collect()
 }
 
@@ -430,7 +478,7 @@ fn is_addon_in_search_results(addon: &DescriptorPreview, search_query: &str) -> 
 }
 
 #[view]
-fn addon_container(addon: &ManifestPreview) -> Node<Msg> {
+fn addon_container(addon: &DescriptorPreview) -> Node<Msg> {
     div![
         C!["addon", "addon-container", "button-container"],
         s()
@@ -449,7 +497,7 @@ fn addon_container(addon: &ManifestPreview) -> Node<Msg> {
 }
 
 #[view]
-fn addon_logo(addon: &ManifestPreview) -> Node<Msg> {
+fn addon_logo(addon: &DescriptorPreview) -> Node<Msg> {
     div![
         C!["logo-container"],
         s()
@@ -457,7 +505,7 @@ fn addon_logo(addon: &ManifestPreview) -> Node<Msg> {
             .flex(CssFlex::None)
             .height(rem(6))
             .width(rem(6)),
-        if let Some(logo) = addon.logo.as_ref() {
+        if let Some(logo) = addon.manifest.logo.as_ref() {
             img![
                 C!["logo"],
                 s()
@@ -496,7 +544,7 @@ fn addon_logo(addon: &ManifestPreview) -> Node<Msg> {
 }
 
 #[view]
-fn addon_info(addon: &ManifestPreview) -> Node<Msg> {
+fn addon_info(addon: &DescriptorPreview) -> Node<Msg> {
     div![
         C!["info-container"],
         s()
@@ -519,12 +567,12 @@ fn addon_info(addon: &ManifestPreview) -> Node<Msg> {
                 .max_height(em(3.6))
                 .padding("0 0.5rem"),
             attrs!{
-                At::Title => &addon.name,
+                At::Title => &addon.manifest.name,
             },
-            &addon.name,
+            &addon.manifest.name,
         ],
         {
-            let version = format!("v.{}", addon.version.to_string());
+            let version = format!("v.{}", addon.manifest.version.to_string());
             div![
                 C!["version-container"],
                 s()
@@ -552,9 +600,9 @@ fn addon_info(addon: &ManifestPreview) -> Node<Msg> {
                 .max_height(em(2.4))
                 .padding("0 0.5rem")
                 .text_transform(CssTextTransform::Capitalize),
-            format_addon_types(&addon.types),
+            format_addon_types(&addon.manifest.types),
         ],
-        addon.description.as_ref().map(|description| {
+        addon.manifest.description.as_ref().map(|description| {
             div![
                 C!["description-container"],
                 s()
@@ -574,7 +622,7 @@ fn addon_info(addon: &ManifestPreview) -> Node<Msg> {
     ]
 }
 
-fn format_addon_types(types: &[String]) -> String {
+pub fn format_addon_types(types: &[String]) -> String {
     match types.len() {
         0 => "".to_owned(),
         1 => types[0].to_owned(),
@@ -587,19 +635,19 @@ fn format_addon_types(types: &[String]) -> String {
 
 
 #[view]
-fn addon_buttons(addon: &ManifestPreview) -> Node<Msg> {
+fn addon_buttons(addon: &DescriptorPreview) -> Node<Msg> {
     div![
         C!["buttons-container"],
         s()
             .flex(CssFlex::None)
             .width(rem(17)),
-        uninstall_button(),
+        uninstall_button(addon),
         share_button(),
     ]
 }
 
 #[view]
-fn uninstall_button() -> Node<Msg> {
+fn uninstall_button(addon: &DescriptorPreview) -> Node<Msg> {
     div![
         C!["uninstall-button-container", "button-container"],
         attrs!{
@@ -621,7 +669,7 @@ fn uninstall_button() -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::BackgroundLight2),
-        ev(Ev::Click, |_| Msg::OpenModal(Modal::AddonDetails)),
+        ev(Ev::Click, enc!((addon) move |_| Msg::OpenModal(Modal::AddonDetails(addon)))),
         div![
             C!["label"],
             s()
