@@ -16,6 +16,7 @@ use crate::basic_layout::{basic_layout, BasicLayoutArgs};
 mod catalog_selector;
 mod type_selector;
 mod add_addon_modal;
+mod addon_details_modal;
 
 const DEFAULT_RESOURCE: &str = "addon_catalog";
 const DEFAULT_TYPE: &str = "official";
@@ -129,7 +130,8 @@ pub struct Model {
 
 #[derive(Copy, Clone)]
 pub enum Modal {
-    AddAddon
+    AddAddon,
+    AddonDetails,
 }
 
 // ------ ------
@@ -200,6 +202,7 @@ pub fn view(model: &Model, context: &Context, page_id: PageId, msg_mapper: fn(Ms
         search_args: None,
         modal: model.modal.map(|modal| match modal {
             Modal::AddAddon => add_addon_modal::modal().map_msg(msg_mapper),
+            Modal::AddonDetails => addon_details_modal::modal().map_msg(msg_mapper),
         }),
     })
 }
@@ -618,7 +621,7 @@ fn uninstall_button() -> Node<Msg> {
         s()
             .hover()
             .background_color(Color::BackgroundLight2),
-        on_click_not_implemented(),
+        ev(Ev::Click, |_| Msg::OpenModal(Modal::AddonDetails)),
         div![
             C!["label"],
             s()
