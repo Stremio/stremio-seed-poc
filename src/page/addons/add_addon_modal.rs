@@ -7,12 +7,8 @@ use seed_hooks::{*, topo::nested as view};
 use std::rc::Rc;
 use crate::page::addons::Msg;
 
-fn on_click_not_implemented() -> EventHandler<Msg> {
-    ev(Ev::Click, |_| { window().alert_with_message("Not implemented!").unwrap(); })
-}
-
 #[view]
-pub fn modal() -> Node<Msg> {
+pub fn modal(add_addon_url: &str) -> Node<Msg> {
     div![
         C!["add-addon-modal-container", "modal-container"],
         s()
@@ -28,12 +24,12 @@ pub fn modal() -> Node<Msg> {
             .display(CssDisplay::Flex)
             .justify_content(CssJustifyContent::Center),
         ev(Ev::Click, |_| Msg::CloseModal),
-        modal_dialog_container(),
+        modal_dialog_container(add_addon_url),
     ]
 }
 
 #[view]
-fn modal_dialog_container() -> Node<Msg> {
+fn modal_dialog_container(add_addon_url: &str) -> Node<Msg> {
     div![
         C!["modal-dialog-container"],
         s()
@@ -45,7 +41,7 @@ fn modal_dialog_container() -> Node<Msg> {
             .max_width(pc(80)),
         close_button_container(),
         title_container(),
-        modal_dialog_content(),
+        modal_dialog_content(add_addon_url),
         buttons_container(),
         ev(Ev::Click, |event| event.stop_propagation()),
     ]
@@ -111,7 +107,7 @@ fn title_container() -> Node<Msg> {
 }
 
 #[view]
-fn modal_dialog_content() -> Node<Msg> {
+fn modal_dialog_content(add_addon_url: &str) -> Node<Msg> {
     div![
         C!["modal-dialog-content"],
         s()
@@ -154,7 +150,9 @@ fn modal_dialog_content() -> Node<Msg> {
                 At::TabIndex => 0,
                 At::Type => "text",
                 At::Placeholder => "Paste addon URL",
-            }
+                At::Value => add_addon_url,
+            },
+            input_ev(Ev::Input, Msg::AddAddonUrlChanged),
         ]
     ]
 }
@@ -233,7 +231,7 @@ fn add_button() -> Node<Msg> {
             At::TabIndex => 0,
             At::Title => "Add",
         },
-        on_click_not_implemented(),
+        ev(Ev::Click, |_| Msg::InstallAddon),
         div![
             C!["label"],
             s()
