@@ -1,9 +1,9 @@
-use crate::{PageId, Actions, Context};
+use crate::{PageId, Actions, Context, Events};
 use crate::styles::global;
 use seed::{prelude::*, *};
 use std::rc::Rc;
 use std::collections::HashMap;
-use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionLoad, ActionCtx};
+use stremio_core::runtime::msg::{Msg as CoreMsg, Action, ActionLoad, ActionCtx, Internal};
 use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use crate::styles::{self, themes::Color};
@@ -25,6 +25,7 @@ fn on_click_not_implemented() -> EventHandler<Msg> {
 pub fn init(
     mut url: Url,
     model: &mut Option<Model>,
+    context: &mut Context,
     orders: &mut impl Orders<Msg>,
 ) -> Option<PageId> {
     let base_url = url.to_hash_base_url();
@@ -37,14 +38,19 @@ pub fn init(
         meta_path: ResourcePath::without_extra("meta", &type_name, &id),
         stream_path: video_id.map(|video_id| ResourcePath::without_extra("stream", &type_name, video_id)),
     };
-    orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
-        ActionLoad::MetaDetails(selected_meta_details)
-    )))));
+
+    if context.ctx_loaded {
+        orders.send_msg(Msg::LoadDetails(selected_meta_details.clone()));
+    }
 
     model.get_or_insert_with(|| Model {
         base_url,
         search_query: String::new(),
+        _events_sub_handle: orders.subscribe_with_handle(|events| {
+            matches!(events, Events::CtxLoaded).then(|| Msg::LoadDetails(selected_meta_details))
+        }),
     });
+
     Some(PageId::Detail)
 }
 
@@ -55,6 +61,7 @@ pub fn init(
 pub struct Model {
     base_url: Url,
     search_query: String,
+    _events_sub_handle: SubHandle,
 }
 
 // ------ ------
@@ -84,6 +91,7 @@ pub enum Msg {
     AddToLibrary(MetaItem),
     RemoveFromLibrary(String),
     SearchQueryChanged(String),
+    LoadDetails(MetaDetailsSelected),
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -114,6 +122,11 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
         }
         Msg::SearchQueryChanged(query) => {
             model.search_query = query
+        }
+        Msg::LoadDetails(selected_meta_details) => {
+            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Load(
+                ActionLoad::MetaDetails(selected_meta_details)
+            )))));
         }
     }
 }
