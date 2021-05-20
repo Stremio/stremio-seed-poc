@@ -165,7 +165,7 @@ fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str, base_
         match meta_item.r#type.as_str() {
             "series" | "other" => return Some(videos_list(&meta_item, search_query, base_url)),
             "movie" => return Some(streams_list(meta_item)),
-            _ => log!("unknown meta item type"),
+            _ => return Some(videos_list(&meta_item, search_query, base_url)),
         }
     }
     None
