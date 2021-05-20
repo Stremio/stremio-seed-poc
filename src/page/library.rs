@@ -56,7 +56,7 @@ pub fn init(
         selected_library_item: None,
         _events_sub_handle: orders.subscribe_with_handle(|events| {
             Some(match events {
-                Events::LibraryLoadedFromStorage => Msg::ReloadLibrary,
+                Events::CtxLoaded => Msg::ReloadLibrary,
                 Events::WindowClicked => Msg::WindowClicked,
                 _ => return None
             })

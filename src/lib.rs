@@ -66,7 +66,7 @@ pub enum Actions {
 }
 #[derive(Clone, Copy)]
 pub enum Events {
-    LibraryLoadedFromStorage,
+    CtxLoaded,
     WindowClicked,
     PageChanged(PageId),
 }
@@ -98,6 +98,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
     Model {
         context: Context {
             core_model,
+            ctx_loaded: false,
             root_base_url,
             menu_visible: false,
             fullscreen: false,
@@ -138,6 +139,7 @@ pub struct Model {
 
 pub struct Context {
     core_model: CoreModel,
+    ctx_loaded: bool,
     root_base_url: Url,
     menu_visible: bool,
     fullscreen: bool,
@@ -278,7 +280,8 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             if let Some(other_bucket) = other_bucket {
                 ctx.library.merge_bucket(other_bucket);
             };
-            orders.notify(Events::LibraryLoadedFromStorage);
+            model.context.ctx_loaded = true;
+            orders.notify(Events::CtxLoaded);
         }
         Msg::CtxStorageResponse(Err(error)) => {
             log!(error.message());
@@ -299,6 +302,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 Some(DETAIL) => page::detail::init(
                     url,
                     &mut model.detail_model,
+                    &mut model.context,
                     &mut orders.proxy(Msg::DetailMsg),
                 ),
                 Some(INTRO) => page::intro::init(
