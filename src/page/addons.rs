@@ -201,6 +201,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                             )))));
                             model.modal = None;
                             model.uninstall_addon = None;
+                            return;
                         }
                     } 
 
@@ -213,6 +214,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                                     )))));
                                     model.modal = None;
                                     model.install_addon = None;
+                                    return;
                                 }
                             }
                             _ => error!("remote_addon not ready")
@@ -234,9 +236,6 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::CloseModal => model.modal = None,
         Msg::AddAddonUrlChanged(url) => model.add_addon_url = url,
         Msg::InstallAddon => {
-            // @TODO install -> uninstall -> install workflow doesn't work
-            // @TODO Show Uninstall / Install button and make Install button work on an addon preview
-
             let transport_url = model.add_addon_url.parse::<url::Url>().expect("url parsing failed");
             model.add_addon_url = String::new();
 
@@ -251,6 +250,22 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                     return;
                 }
             }
+
+            if let Some(selected_addon) = addon_details.remote_addon.as_ref() {
+                match &selected_addon.content {
+                    Loadable::Ready(selected_addon) => {
+                        if selected_addon.transport_url == transport_url {
+                            orders.notify(Actions::UpdateCoreModel(Rc::new(CoreMsg::Action(Action::Ctx(
+                                ActionCtx::InstallAddon(selected_addon.clone()),
+                            )))));
+                            model.modal = None;
+                            model.install_addon = None;
+                            return;
+                        }
+                    }
+                    _ => error!("remote_addon not ready")
+                }
+            } 
 
             model.install_addon = Some(transport_url.clone());
             let new_selected = AddonDetailsSelected {
