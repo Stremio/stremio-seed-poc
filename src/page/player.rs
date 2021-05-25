@@ -1,4 +1,16 @@
 use seed::{prelude::*, *};
+use stremio_core::types::resource::Stream;
+
+// ------ ------
+//     Urls
+// ------ ------
+
+struct_urls!();
+impl<'a> Urls<'a> {
+    pub fn stream(self, stream: &Stream) -> Url {
+        self.base_url().add_hash_path_part(serde_json::to_string(stream).unwrap())
+    }
+}
 
 // ------ ------
 //     View

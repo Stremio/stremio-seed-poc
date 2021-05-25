@@ -36,9 +36,9 @@ pub fn view<Ms: 'static>(root_base_url: &Url) -> Node<Ms> {
                 St::Padding => px(20),
             },
             attrs! {
-                At::Href => RootUrls::new(root_base_url).player()
+                // At::Href => RootUrls::new(root_base_url).player()
             },
-            "Go to Player ▶"
+            "Go to Player (disabled link) ▶"
         ],
         a![
             style! {

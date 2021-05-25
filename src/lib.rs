@@ -218,8 +218,8 @@ impl<'a> Urls<'a> {
     pub fn library(self) -> Url {
         self.base_url().add_hash_path_part(LIBRARY)
     }
-    pub fn player(self) -> Url {
-        self.base_url().add_hash_path_part(PLAYER)
+    pub fn player(self) -> page::player::Urls<'a> {
+        page::player::Urls::new(self.base_url().add_hash_path_part(PLAYER))
     }
     pub fn addons_urls(self) -> page::addons::Urls<'a> {
         page::addons::Urls::new(self.base_url().add_hash_path_part(ADDONS))
