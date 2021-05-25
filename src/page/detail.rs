@@ -1,4 +1,4 @@
-use crate::{PageId, Actions, Context, Events};
+use crate::{PageId, Actions, Context, Events, Urls as RootUrls};
 use crate::styles::global;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -167,25 +167,25 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
                 s()
                     .flex("1"),
             ],
-            side_bar(meta_items, &model.search_query, &model.base_url),
+            side_bar(meta_items, &model.search_query, &model.base_url, &context.root_base_url),
         ]
     ]
 }
 
 #[view]
-fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str, base_url: &Url) -> Option<Node<Msg>> {
+fn side_bar(meta_items: &[ResourceLoadable<MetaItem>], search_query: &str, base_url: &Url, root_base_url: &Url) -> Option<Node<Msg>> {
     if let Loadable::Ready(meta_item) = &meta_items.first()?.content {
         match meta_item.r#type.as_str() {
-            "series" | "other" => return Some(videos_list(&meta_item, search_query, base_url)),
+            "series" | "other" => return Some(videos_list(&meta_item, search_query, base_url, root_base_url)),
             "movie" => return Some(streams_list(meta_item)),
-            _ => return Some(videos_list(&meta_item, search_query, base_url)),
+            _ => return Some(videos_list(&meta_item, search_query, base_url, root_base_url)),
         }
     }
     None
 }
 
 #[view]
-fn videos_list(meta_item: &MetaItem, search_query: &str, base_url: &Url) -> Node<Msg> {
+fn videos_list(meta_item: &MetaItem, search_query: &str, base_url: &Url, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["videos-list", "videos-list-container"],
         s()
@@ -195,12 +195,12 @@ fn videos_list(meta_item: &MetaItem, search_query: &str, base_url: &Url) -> Node
             .display(CssDisplay::Flex)
             .flex_direction(CssFlexDirection::Column),
         search_bar(search_query),
-        videos_container(meta_item, search_query, base_url),
+        videos_container(meta_item, search_query, base_url, root_base_url),
     ]
 }
 
 #[view]
-fn videos_container(meta_item: &MetaItem, search_query: &str, base_url: &Url) -> Node<Msg> {
+fn videos_container(meta_item: &MetaItem, search_query: &str, base_url: &Url, root_base_url: &Url) -> Node<Msg> {
     div![
         C!["videos-container"],
         s()
@@ -211,12 +211,13 @@ fn videos_container(meta_item: &MetaItem, search_query: &str, base_url: &Url) ->
             .videos
             .iter()
             .filter(|video| video.title.contains(search_query))
-            .map(|video| video_container(video, meta_item, base_url)),
+            .map(|video| video_container(video, meta_item, base_url, root_base_url)),
     ]
 }
 
 #[view]
-fn video_container(video: &Video, meta_item: &MetaItem, base_url: &Url) -> Node<Msg> {
+fn video_container(video: &Video, meta_item: &MetaItem, base_url: &Url, root_base_url: &Url) -> Node<Msg> {
+    // log!(meta_item);
     a![
         C!["video-container", "button-container"],
         s()
@@ -231,11 +232,19 @@ fn video_container(video: &Video, meta_item: &MetaItem, base_url: &Url) -> Node<
         attrs!{
             At::Title => &video.title,
             At::TabIndex => 0,
-            At::Href => Urls::new(base_url).with_video_id(&meta_item.r#type, &meta_item.id, &video.id),
+            At::Href => video_container_url(video, meta_item, base_url, root_base_url),
         },
         video.thumbnail.as_ref().map(video_container_thumbnail),
         video_container_info(video),
     ]
+}
+
+fn video_container_url(video: &Video, meta_item: &MetaItem, base_url: &Url, root_base_url: &Url) -> Url {
+    if video.streams.len() == 1 {
+        RootUrls::new(root_base_url).player().stream(&video.streams[0])
+    } else {
+        Urls::new(base_url).with_video_id(&meta_item.r#type, &meta_item.id, &video.id)
+    }
 }
 
 #[view]
