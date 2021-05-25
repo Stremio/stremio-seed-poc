@@ -233,54 +233,83 @@ fn video_container(video: &Video, meta_item: &MetaItem, base_url: &Url) -> Node<
             At::TabIndex => 0,
             At::Href => Urls::new(base_url).with_video_id(&meta_item.r#type, &meta_item.id, &video.id),
         },
+        video.thumbnail.as_ref().map(video_container_thumbnail),
+        video_container_info(video),
+    ]
+}
+
+#[view]
+fn video_container_info(video: &Video) -> Node<Msg> {
+    div![
+        C!["info-container"],
+        s()
+            .height(rem(3))
+            .align_self(CssAlignSelf::Stretch)
+            .display(CssDisplay::Flex)
+            .flex("1")
+            .flex_direction(CssFlexDirection::Column)
+            .justify_content(CssJustifyContent::SpaceBetween)
+            .margin("0.5rem 1rem"),
         div![
-            C!["info-container"],
+            C!["title-container"],
             s()
-                .height(rem(3))
-                .align_self(CssAlignSelf::Stretch)
+                .max_height(em(1.2))
+                .color(Color::SurfaceLight5_90),
+            &video.title,
+        ],
+        div![
+            C!["flex-row-container"],
+            s()
+                .align_items(CssAlignItems::Center)
                 .display(CssDisplay::Flex)
-                .flex("1")
-                .flex_direction(CssFlexDirection::Column)
-                .justify_content(CssJustifyContent::SpaceBetween)
-                .margin("0.5rem 1rem"),
+                .flex_direction(CssFlexDirection::Row)
+                .justify_content(CssJustifyContent::FlexEnd),
             div![
-                C!["title-container"],
+                C!["released-container"],
                 s()
-                    .max_height(em(1.2))
-                    .color(Color::SurfaceLight5_90),
-                &video.title,
+                    .color(Color::SurfaceDark5_90)
+                    .flex("1")
+                    .font_size(rem(0.8))
+                    .font_weight("500")
+                    .margin_right(rem(0.5))
+                    .text_overflow("ellipsis")
+                    .text_transform(CssTextTransform::Uppercase)
+                    .white_space(CssWhiteSpace::NoWrap),
+                video.released.as_ref().map(|released| {
+                    // 15 Apr 21
+                    released.format("%e %b %y").to_string()
+                }),
             ],
             div![
-                C!["flex-row-container"],
+                C!["upcoming-watched-container"],
                 s()
-                    .align_items(CssAlignItems::Center)
                     .display(CssDisplay::Flex)
-                    .flex_direction(CssFlexDirection::Row)
-                    .justify_content(CssJustifyContent::FlexEnd),
-                div![
-                    C!["released-container"],
-                    s()
-                        .color(Color::SurfaceDark5_90)
-                        .flex("1")
-                        .font_size(rem(0.8))
-                        .font_weight("500")
-                        .margin_right(rem(0.5))
-                        .text_overflow("ellipsis")
-                        .text_transform(CssTextTransform::Uppercase)
-                        .white_space(CssWhiteSpace::NoWrap),
-                    video.released.as_ref().map(|released| {
-                        // 15 Apr 21
-                        released.format("%e %b %y").to_string()
-                    }),
-                ],
-                div![
-                    C!["upcoming-watched-container"],
-                    s()
-                        .display(CssDisplay::Flex)
-                        .flex("0 1 auto")
-                        .flex_direction(CssFlexDirection::Row),
-                ]
+                    .flex("0 1 auto")
+                    .flex_direction(CssFlexDirection::Row),
             ]
+        ]
+    ]
+}
+
+#[view]
+fn video_container_thumbnail(thumbnail: &String) -> Node<Msg> {
+    div![
+        C!["thumbnail-container"],
+        s()
+            .flex(CssFlex::None),
+        img![
+            C!["thumbnail"],
+            s()
+                .display(CssDisplay::Block)
+                .height(rem(5))
+                .raw(r#"object-fit: contain;"#)
+                .raw(r#"object-position: center;"#)
+                .opacity("0.9")
+                .width(rem(5)),
+            attrs!{
+                At::Src => thumbnail,
+                At::Alt => " ",
+            }
         ]
     ]
 }
