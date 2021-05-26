@@ -30,4 +30,12 @@
 ## Deploy (WIP)
 
 - See `/.github/workflows_example/main.yml`
+- Release build
+   - `trunk build --release`
+   - NPM `wasm-opt` command (until `trunk` installs `wasm-opt` automatically):
+      
+```bash
+cd dist
+wasm-opt -Oz index-581317a2fdc60cc_bg.wasm -o index-581317a2fdc60cc_bg.wasm
+```
 
