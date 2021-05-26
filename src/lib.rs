@@ -25,7 +25,7 @@ use seed_styles::pc;
 use seed_styles::*;
 use core::future;
 use std::rc::Rc;
-use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails, streaming_server::StreamingServer};
+use stremio_core::models::{ctx::Ctx, meta_details::MetaDetails, streaming_server::StreamingServer, player::Player};
 use stremio_core::models::catalog_with_filters::CatalogWithFilters;
 use stremio_core::models::installed_addons_with_filters::InstalledAddonsWithFilters;
 use stremio_core::models::library_with_filters::{LibraryWithFilters, NotRemovedFilter};
@@ -177,6 +177,7 @@ struct CoreModel {
     meta_details: MetaDetails,
     library: LibraryWithFilters<NotRemovedFilter>,
     streaming_server: StreamingServer,
+    player: Player,
 }
 
 impl CoreModel {
@@ -192,6 +193,7 @@ impl CoreModel {
                 meta_details: MetaDetails::default(),
                 library: LibraryWithFilters::default(),
                 streaming_server,
+                player: Player::default(),
             }, 
             effects
         )        
@@ -557,7 +559,7 @@ fn view(model: &Model) -> Node<Msg> {
                     }
                     PageId::Player => {
                         if let Some(page_model) = &model.player_model {
-                            page::player::view(page_model)
+                            page::player::view(page_model, &model.context)
                                 .map_msg(Msg::PlayerMsg)
                                 .into_nodes()
                         } else {
