@@ -14,7 +14,7 @@ pub fn status(streaming_server: &StreamingServer) -> Node<Msg> {
         Loadable::Loading => "Loading...",
         Loadable::Ready(_) => "Online",
         Loadable::Err(error) => {
-            error!(error);
+            error!(error.code(), error.message());
             "Error"
         }
     };
