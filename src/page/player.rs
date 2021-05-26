@@ -1,5 +1,35 @@
 use seed::{prelude::*, *};
+use crate::{PageId, Context};
 use stremio_core::types::resource::Stream;
+
+// ------ ------
+//     Init
+// ------ ------
+
+pub fn init(
+    mut url: Url,
+    model: &mut Option<Model>,
+    context: &mut Context,
+    orders: &mut impl Orders<Msg>,
+) -> Option<PageId> {
+    let base_url = url.to_hash_base_url();
+
+    let stream: Stream = serde_json::from_str(url.next_hash_path_part()?).ok()?;
+    log!(stream);
+
+    let mut model = model.get_or_insert_with(move || Model {
+        base_url,
+    });
+    Some(PageId::Player)
+}
+
+// ------ ------
+//     Model
+// ------ ------
+
+pub struct Model {
+    base_url: Url,
+}
 
 // ------ ------
 //     Urls
@@ -13,10 +43,24 @@ impl<'a> Urls<'a> {
 }
 
 // ------ ------
+//    Update
+// ------ ------
+
+pub enum Msg {
+
+}
+
+pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
+    match msg {
+
+    }
+}
+
+// ------ ------
 //     View
 // ------ ------
 
-pub fn view<Ms: 'static>() -> Node<Ms> {
+pub fn view(model: &Model) -> Node<Msg> {
     div![video![
         style! {
             St::MaxWidth => unit!(100, %),

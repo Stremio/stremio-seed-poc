@@ -109,6 +109,7 @@ fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
         detail_model: None,
         intro_model: None,
         library_model: None,
+        player_model: None,
         discover_model: None,
         addons_model: None,
         search_model: None,
@@ -129,6 +130,7 @@ pub struct Model {
     detail_model: Option<page::detail::Model>,
     intro_model: Option<page::intro::Model>,
     library_model: Option<page::library::Model>,
+    player_model: Option<page::player::Model>,
     discover_model: Option<page::discover::Model>,
     addons_model: Option<page::addons::Model>,
     search_model: Option<page::search::Model>,
@@ -254,6 +256,7 @@ pub enum Msg {
     DetailMsg(page::detail::Msg),
     IntroMsg(page::intro::Msg),
     LibraryMsg(page::library::Msg),
+    PlayerMsg(page::player::Msg),
     AddonsMsg(page::addons::Msg),
     SearchMsg(page::search::Msg),
     SettingsMsg(page::settings::Msg),
@@ -317,7 +320,12 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     &mut model.context,
                     &mut orders.proxy(Msg::LibraryMsg),
                 ),
-                Some(PLAYER) => Some(PageId::Player),
+                Some(PLAYER) => page::player::init(
+                    url,
+                    &mut model.player_model,
+                    &mut model.context,
+                    &mut orders.proxy(Msg::PlayerMsg),
+                ),
                 Some(ADDONS) => page::addons::init(
                     url,
                     &mut model.addons_model,
@@ -413,6 +421,15 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     page_msg,
                     page_model,
                     &mut orders.proxy(Msg::LibraryMsg),
+                );
+            }
+        }
+        Msg::PlayerMsg(page_msg) => {
+            if let Some(page_model) = &mut model.player_model {
+                page::player::update(
+                    page_msg,
+                    page_model,
+                    &mut orders.proxy(Msg::PlayerMsg),
                 );
             }
         }
@@ -538,7 +555,15 @@ fn view(model: &Model) -> Node<Msg> {
                             vec![]
                         }
                     }
-                    PageId::Player => page::player::view().into_nodes(),
+                    PageId::Player => {
+                        if let Some(page_model) = &model.player_model {
+                            page::player::view(page_model)
+                                .map_msg(Msg::PlayerMsg)
+                                .into_nodes()
+                        } else {
+                            vec![]
+                        }
+                    }
                     PageId::Addons => {
                         if let Some(page_model) = &model.addons_model {
                             page::addons::view(page_model, &model.context, page_id, Msg::AddonsMsg)
