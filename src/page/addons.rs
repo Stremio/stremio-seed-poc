@@ -1,4 +1,4 @@
-use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Urls as RootUrls};
+use crate::{multi_select, Msg as RootMsg, Context, PageId, Actions, Events, Urls as RootUrls};
 use enclose::enc;
 use seed::{prelude::*, *};
 use std::rc::Rc;
@@ -24,6 +24,7 @@ const DEFAULT_TYPE: &str = "official";
 const DEFAULT_ID: &str = "all";
 const BASE: &str = "https://v4-cinemeta.strem.io/manifest.json";
 
+#[derive(Clone)]
 pub enum AddonRequest {
     Remote(ResourceRequest),
     Installed(InstalledAddonsRequest)
@@ -66,22 +67,28 @@ pub fn init(
         _ => None,
     };
 
-    load_catalog(addon_request.unwrap_or_default(), context, orders);
+    load_catalog(addon_request.clone(), context, orders);
 
     let model = model.get_or_insert_with(move || Model {
         base_url,
+        addon_request: None,
         search_query: String::new(),
         modal: None,
         add_addon_url: String::new(),
         install_addon: None,
         uninstall_addon: None,
         _core_msg_sub_handle: orders.subscribe_with_handle(Msg::CoreMsg),
+        _events_sub_handle: orders.subscribe_with_handle(|events| {
+            matches!(events, Events::CtxLoaded).then(|| Msg::ReloadAddons)
+        }),
     });
     model.search_query = String::new();
+    model.addon_request = addon_request;
     Some(PageId::Addons)
 }
 
-fn load_catalog(addon_request: AddonRequest, context: &mut Context, orders: &mut impl Orders<Msg>) {
+fn load_catalog(addon_request: Option<AddonRequest>, context: &mut Context, orders: &mut impl Orders<Msg>) {
+    let addon_request = addon_request.unwrap_or_default();
     match addon_request {
         AddonRequest::Remote(res_req) => {
             let installed_addons = &mut context.core_model.installed_addons;
@@ -129,12 +136,14 @@ pub fn default_resource_request() -> ResourceRequest {
 
 pub struct Model {
     base_url: Url,
+    addon_request: Option<AddonRequest>,
     search_query: String,
     modal: Option<Modal>,
     add_addon_url: String,
     install_addon: Option<url::Url>,
     uninstall_addon: Option<url::Url>,
     _core_msg_sub_handle: SubHandle,
+    _events_sub_handle: SubHandle,
 }
 
 pub enum Modal {
@@ -178,6 +187,7 @@ impl<'a> Urls<'a> {
 #[allow(clippy::pub_enum_variant_names, clippy::large_enum_variant)]
 pub enum Msg {
     CoreMsg(Rc<CoreMsg>),
+    ReloadAddons,
     SearchQueryChanged(String),
     SendAddonRequest(AddonRequest),
     OpenModal(Modal),
@@ -225,6 +235,9 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 CoreMsg::Event(Event::AddonInstalled {id, ..}) => log!("addon installed:", id),
                 _ => ()
             }
+        }
+        Msg::ReloadAddons => {
+            load_catalog(model.addon_request.clone(), context, orders);
         }
         Msg::SearchQueryChanged(search_query) => model.search_query = search_query,
         Msg::SendAddonRequest(res_req) => {
