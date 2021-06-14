@@ -431,6 +431,7 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                 page::player::update(
                     page_msg,
                     page_model,
+                    &mut model.context,
                     &mut orders.proxy(Msg::PlayerMsg),
                 );
             }
