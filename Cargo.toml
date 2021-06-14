@@ -13,11 +13,11 @@ wasm-bindgen-test = "0.3.13"
 
 [dependencies]
 serde = { version = "1.0.102", features = ["derive"] }
-wasm-bindgen = { version = "0.2.69", features = ["serde-serialize"]  }
+wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"]  }
 futures = { version = "0.3", features = [ "compat" ] }
 serde_json = "1.0.41"
 wasm-bindgen-futures = "0.4.19"
-js-sys = "0.3.46"
+js-sys = "0.3.51"
 enclose = "1.1.8"
 itertools = "0.8.1"
 localsearch = { git = "ssh://git@github.com/MartinKavik/Localsearch.git", branch = "master" }
@@ -46,12 +46,13 @@ http = "0.2.1"
 hex = "0.4.3"
 lazy_static = "1.4.0"
 getrandom = { version = "0.2.2", features = ["js"] }
+serde-wasm-bindgen = "0.3.0"
 
 seed_hooks = { git = "https://github.com/seed-rs/styles_hooks", package = "seed_hooks", branch = "main" }
 # seed_hooks = { path = "d:/repos/styles_hooks/seed_hooks" }
 
 [dependencies.web-sys]
-version = "0.3.46"
+version = "0.3.51"
 features = [
 	'CssStyleDeclaration',
 	'HtmlScriptElement',
