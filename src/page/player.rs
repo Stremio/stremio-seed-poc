@@ -13,6 +13,12 @@ use stremio_core::types::resource::{Stream, StreamSource};
 use stremio_core::models::player::Selected as PlayerSelected;
 use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg, Internal};
 
+mod nav_bar;
+mod control_bar;
+
+use nav_bar::nav_bar;
+use control_bar::control_bar;
+
 // ------ ------
 //     Init
 // ------ ------
@@ -97,6 +103,7 @@ pub enum Msg {
     Rendered,
     YoutubeReady(Rc<HtmlElement>, String),
     DestroyPlayer,
+    ToggleFullscreen,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -142,6 +149,9 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 youtube.video_container.remove();
                 youtube.api_script.remove();
             }
+        }
+        Msg::ToggleFullscreen => {
+            orders.notify(Actions::ToggleFullscreen);
         }
     }
 }
@@ -246,15 +256,21 @@ struct PlayerVars {
 
 #[view]
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
-    if context.core_model.player.selected.is_some() {
-        route_content(model)
+    if let Some(player) = &context.core_model.player.selected {
+
+        route_content(
+            &model.video_ref, 
+            // @TODO make sure `selected` contains `title`
+            player.stream.title.as_ref().unwrap_or(&String::new()), 
+            context.fullscreen
+        )
     } else {
         div!["Loading..."]
     }
 }
 
 #[view]
-fn route_content(model: &Model) -> Node<Msg> {
+fn route_content(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool) -> Node<Msg> {
     div![
         C!["route-content"],
         s()
@@ -265,12 +281,12 @@ fn route_content(model: &Model) -> Node<Msg> {
             .right("0")
             .top("0")
             .z_index("0"),
-        player_container(model),
+        player_container(video_ref, title, fullscreen),
     ]
 }
 
 #[view]
-fn player_container(model: &Model) -> Node<Msg> {
+fn player_container(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool) -> Node<Msg> {
     div![
         C!["player-container"],
         s()
@@ -279,16 +295,17 @@ fn player_container(model: &Model) -> Node<Msg> {
             .position(CssPosition::Relative)
             .width(pc(100))
             .z_index("0"),
-        video_container(model),
-        nav_bar(),
+        video_container(video_ref),
+        overlay(),
+        nav_bar(title, fullscreen),
         control_bar(),
     ]
 }
 
 #[view]
-fn video_container(model: &Model) -> Node<Msg> {
+fn video_container(video_ref: &ElRef<HtmlElement>) -> Node<Msg> {
     div![
-        C!["video-container"],
+        C!["layer", "video-container"],
         s()
             .bottom("0")
             .left("0")
@@ -296,15 +313,15 @@ fn video_container(model: &Model) -> Node<Msg> {
             .right("0")
             .top("0")
             .z_index("0"),
-        video(model),
+        video(video_ref),
     ]
 }
 
 #[view]
-fn video(model: &Model) -> Node<Msg> {
+fn video(video_ref: &ElRef<HtmlElement>) -> Node<Msg> {
     div![
         C!["video"],
-        el_ref(&model.video_ref),
+        el_ref(video_ref),
         s()
             .position(CssPosition::Relative)
             .width(pc(100))
@@ -313,39 +330,16 @@ fn video(model: &Model) -> Node<Msg> {
 }
 
 #[view]
-fn nav_bar() -> Node<Msg> {
-    nav![
-        C!["nav-bar-layer", "horizontal-nav-bar-container"],
-        s()
-            .background_color("transparent")
-            .bottom("initial")
-            .overflow(CssOverflow::Visible)
-            .left("0")
-            .position(CssPosition::Absolute)
-            .right("0")
-            .top("0")
-            .z_index("0")
-            .align_items(CssAlignItems::Center)
-            .display(CssDisplay::Flex)
-            .flex_direction(CssFlexDirection::Row)
-            .height(global::HORIZONTAL_NAV_BAR_SIZE)
-            .padding_right(rem(1)),
-    ]
-}
-
-#[view]
-fn control_bar() -> Node<Msg> {
+fn overlay() -> Node<Msg> {
     div![
-        C!["control-bar-layer", "control-bar-container"],
+        C!["layer", "overlay"],
         s()
-            .overflow(CssOverflow::Visible)
-            .top("initial")
             .bottom("0")
             .left("0")
             .position(CssPosition::Absolute)
             .right("0")
-            .z_index("0")
-            .padding("0 1.5rem"),
+            .top("0")
+            .z_index("0"),
     ]
 }
 
