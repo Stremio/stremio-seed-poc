@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::array;
 use enclose::enc;
 use serde::Serialize;
-use crate::{PageId, Context, Actions};
+use crate::{PageId, Context, Actions, Events};
 use stremio_core::types::resource::{Stream, StreamSource};
 use stremio_core::models::player::Selected as PlayerSelected;
 use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg, Internal};
@@ -33,11 +33,19 @@ pub fn init(
     let mut model = model.get_or_insert_with(move || Model {
         base_url,
         container_ref: ElRef::new(),
+        yt_video_container: None,
+        yt_api_script: None,
         yt_on_api_loaded: None,
         yt_on_api_error: None,
         yt_on_ready: None,
-        stream,
+        yt_player: None,
+        stream: None,
+        page_change_sub_handle: orders.subscribe_with_handle(|events| {
+            matches!(events, Events::PageChanged(page_id) if page_id != PageId::Player)
+                .then(|| Msg::DestroyPlayer)
+        }),
     });
+    model.stream = Some(stream);
     Some(PageId::Player)
 }
 
@@ -60,10 +68,14 @@ fn load_player(stream: Stream, orders: &mut impl Orders<Msg>) {
 pub struct Model {
     base_url: Url,
     container_ref: ElRef<HtmlElement>,
+    yt_video_container: Option<Rc<web_sys::HtmlElement>>,
+    yt_api_script: Option<web_sys::HtmlScriptElement>,
     yt_on_api_loaded: Option<Closure<dyn Fn()>>,
     yt_on_api_error: Option<Closure<dyn Fn()>>,
     yt_on_ready: Option<Rc<Closure<dyn Fn()>>>,
-    stream: Stream,
+    yt_player: Option<Player>,
+    stream: Option<Stream>,
+    page_change_sub_handle: SubHandle,
 }
 
 // ------ ------
@@ -84,12 +96,13 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     Rendered,
     YoutubeReady(Rc<HtmlElement>, String),
+    DestroyPlayer,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::Rendered => {
-            match model.stream.source.clone() {
+            match model.stream.as_ref().unwrap().source.clone() {
                 StreamSource::YouTube { yt_id } => {
                     init_youtube(model, yt_id, orders)
                 }
@@ -117,7 +130,18 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             };
             let config = serde_wasm_bindgen::to_value(&config).unwrap();
             log!("Youtube config:", config);
-            let video = Player::new(&video_container, &config);
+            model.yt_player = Some(Player::new(&video_container, &config));
+        }
+        Msg::DestroyPlayer => {
+            if let Some(yt_player) = model.yt_player.take() {
+                yt_player.destroy();
+            }
+            if let Some(yt_video_container) = model.yt_video_container.take() {
+                yt_video_container.remove();
+            }
+            if let Some(yt_api_script) = model.yt_api_script.take() {
+                yt_api_script.remove();
+            }
         }
     }
 }
@@ -159,11 +183,15 @@ fn init_youtube(model: &mut Model, yt_id: String, orders: &mut impl Orders<Msg>)
 
     container.append_child(&api_script).unwrap();
     container.append_child(&video_container).unwrap();
+
+    model.yt_video_container = Some(video_container);
+    model.yt_api_script = Some(api_script);
 }
 
 #[wasm_bindgen]
 extern "C" {
     type YT;
+
     #[wasm_bindgen(static_method_of = YT)]
     pub fn ready(ready: &js_sys::Function);
 }
@@ -171,8 +199,12 @@ extern "C" {
 #[wasm_bindgen]
 extern "C" {
     type Player;
+
     #[wasm_bindgen(constructor, js_namespace = YT)]
     pub fn new(video_container: &web_sys::HtmlElement, config: &JsValue) -> Player;
+
+    #[wasm_bindgen(method)]
+    pub fn destroy(this: &Player);
 }
 
 #[derive(Serialize)]
