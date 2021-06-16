@@ -32,7 +32,7 @@ pub fn init(
     
     let mut model = model.get_or_insert_with(move || Model {
         base_url,
-        container_ref: ElRef::new(),
+        video_ref: ElRef::new(),
         youtube: None,
         stream: None,
         page_change_sub_handle: orders.subscribe_with_handle(|events| {
@@ -62,7 +62,7 @@ fn load_player(stream: Stream, orders: &mut impl Orders<Msg>) {
 
 pub struct Model {
     base_url: Url,
-    container_ref: ElRef<HtmlElement>,
+    video_ref: ElRef<HtmlElement>,
     youtube: Option<Youtube>,
     stream: Option<Stream>,
     page_change_sub_handle: SubHandle,
@@ -103,7 +103,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::Rendered => {
             match &model.stream.as_ref().unwrap().source {
                 StreamSource::YouTube { yt_id } => {
-                    model.youtube = Some(init_youtube(&model.container_ref, yt_id.clone(), orders));
+                    model.youtube = Some(init_youtube(&model.video_ref, yt_id.clone(), orders));
                 }
                 stream_source => error!("Unhandled stream source:", stream_source),
             }
@@ -145,8 +145,8 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
     }
 }
 
-fn init_youtube(container_ref: &ElRef<HtmlElement>, yt_id: String, orders: &mut impl Orders<Msg>) -> Youtube {
-    let container = container_ref.get().expect("video container");
+fn init_youtube(video_ref: &ElRef<HtmlElement>, yt_id: String, orders: &mut impl Orders<Msg>) -> Youtube {
+    let container = video_ref.get().expect("video container");
 
     // -- video_container --
     let video_container = document().create_element("div").unwrap().unchecked_into::<web_sys::HtmlElement>();
@@ -246,16 +246,66 @@ struct PlayerVars {
 #[view]
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     if context.core_model.player.selected.is_some() {
-        div![
-            el_ref(&model.container_ref),
-            s()
-                .background("black")
-                .width(pc(100))
-                .height(pc(100))
-                .color("white"),
-        ]
+        route_content(model)
     } else {
         div!["Loading..."]
     }
+}
+
+#[view]
+fn route_content(model: &Model) -> Node<Msg> {
+    div![
+        C!["route-content"],
+        s()
+            .bottom("0")
+            .left("0")
+            .overflow(CssOverflow::Hidden)
+            .position(CssPosition::Absolute)
+            .right("0")
+            .top("0")
+            .z_index("0"),
+        player_container(model),
+    ]
+}
+
+#[view]
+fn player_container(model: &Model) -> Node<Msg> {
+    div![
+        C!["player-container"],
+        s()
+            .background_color(hsl(0, 0, 0))
+            .height(pc(100))
+            .position(CssPosition::Relative)
+            .width(pc(100))
+            .z_index("0"),
+        video_container(model),
+    ]
+}
+
+#[view]
+fn video_container(model: &Model) -> Node<Msg> {
+    div![
+        C!["video-container"],
+        s()
+            .bottom("0")
+            .left("0")
+            .position(CssPosition::Absolute)
+            .right("0")
+            .top("0")
+            .z_index("0"),
+        video(model),
+    ]
+}
+
+#[view]
+fn video(model: &Model) -> Node<Msg> {
+    div![
+        C!["video"],
+        el_ref(&model.video_ref),
+        s()
+            .position(CssPosition::Relative)
+            .width(pc(100))
+            .height(pc(100)),
+    ]
 }
 
