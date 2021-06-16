@@ -33,12 +33,7 @@ pub fn init(
     let mut model = model.get_or_insert_with(move || Model {
         base_url,
         container_ref: ElRef::new(),
-        yt_video_container: None,
-        yt_api_script: None,
-        yt_on_api_loaded: None,
-        yt_on_api_error: None,
-        yt_on_ready: None,
-        yt_player: None,
+        youtube: None,
         stream: None,
         page_change_sub_handle: orders.subscribe_with_handle(|events| {
             matches!(events, Events::PageChanged(page_id) if page_id != PageId::Player)
@@ -68,14 +63,18 @@ fn load_player(stream: Stream, orders: &mut impl Orders<Msg>) {
 pub struct Model {
     base_url: Url,
     container_ref: ElRef<HtmlElement>,
-    yt_video_container: Option<Rc<web_sys::HtmlElement>>,
-    yt_api_script: Option<web_sys::HtmlScriptElement>,
-    yt_on_api_loaded: Option<Closure<dyn Fn()>>,
-    yt_on_api_error: Option<Closure<dyn Fn()>>,
-    yt_on_ready: Option<Rc<Closure<dyn Fn()>>>,
-    yt_player: Option<Player>,
+    youtube: Option<Youtube>,
     stream: Option<Stream>,
     page_change_sub_handle: SubHandle,
+}
+
+pub struct Youtube {
+    video_container: Rc<web_sys::HtmlElement>,
+    api_script: web_sys::HtmlScriptElement,
+    on_api_loaded: Closure<dyn Fn()>,
+    on_api_error: Closure<dyn Fn()>,
+    on_ready: Rc<Closure<dyn Fn()>>,
+    player: Option<Player>,
 }
 
 // ------ ------
@@ -102,9 +101,9 @@ pub enum Msg {
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
     match msg {
         Msg::Rendered => {
-            match model.stream.as_ref().unwrap().source.clone() {
+            match &model.stream.as_ref().unwrap().source {
                 StreamSource::YouTube { yt_id } => {
-                    init_youtube(model, yt_id, orders)
+                    model.youtube = Some(init_youtube(&model.container_ref, yt_id.clone(), orders));
                 }
                 stream_source => error!("Unhandled stream source:", stream_source),
             }
@@ -130,25 +129,26 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             };
             let config = serde_wasm_bindgen::to_value(&config).unwrap();
             log!("Youtube config:", config);
-            model.yt_player = Some(Player::new(&video_container, &config));
+            if let Some(youtube) = model.youtube.as_mut() {
+                youtube.player = Some(Player::new(&video_container, &config));
+            }
         }
         Msg::DestroyPlayer => {
-            if let Some(yt_player) = model.yt_player.take() {
-                yt_player.destroy();
-            }
-            if let Some(yt_video_container) = model.yt_video_container.take() {
-                yt_video_container.remove();
-            }
-            if let Some(yt_api_script) = model.yt_api_script.take() {
-                yt_api_script.remove();
+            if let Some(mut youtube) = model.youtube.take() {
+                if let Some(player) = youtube.player.take() {
+                    player.destroy();
+                }
+                youtube.video_container.remove();
+                youtube.api_script.remove();
             }
         }
     }
 }
 
-fn init_youtube(model: &mut Model, yt_id: String, orders: &mut impl Orders<Msg>) {
-    let container = model.container_ref.get().expect("video container");
+fn init_youtube(container_ref: &ElRef<HtmlElement>, yt_id: String, orders: &mut impl Orders<Msg>) -> Youtube {
+    let container = container_ref.get().expect("video container");
 
+    // -- video_container --
     let video_container = document().create_element("div").unwrap().unchecked_into::<web_sys::HtmlElement>();
     let video_container_style = video_container.style();
     video_container_style.set_property("width", "100%").unwrap();
@@ -156,36 +156,44 @@ fn init_youtube(model: &mut Model, yt_id: String, orders: &mut impl Orders<Msg>)
     video_container_style.set_property("backgroundColor", "black").unwrap();
     let video_container = Rc::new(video_container);
 
+    // -- api_script --
     let api_script = document().create_element("script").unwrap().unchecked_into::<web_sys::HtmlScriptElement>();
     api_script.set_type("text/javascript");
     api_script.set_src("https://www.youtube.com/iframe_api");
 
+    // -- on_ready --
     let sender = orders.msg_sender();
     let on_ready = enc!((video_container) move || {
         sender(Some(Msg::YoutubeReady(video_container.clone(), yt_id.clone())));
     });
     let on_ready = Rc::new(Closure::wrap(Box::new(on_ready) as Box<dyn Fn()>));
 
+    // -- on_api_loaded --
     let on_api_loaded = enc!((on_ready) move || {
         YT::ready(on_ready.as_ref().as_ref().unchecked_ref());
     });
     let on_api_loaded = Closure::wrap(Box::new(on_api_loaded) as Box<dyn Fn()>);
     api_script.set_onload(Some(on_api_loaded.as_ref().unchecked_ref()));
-    model.yt_on_api_loaded = Some(on_api_loaded);
-    model.yt_on_ready = Some(on_ready);
 
+    // -- on_api_error --
     let on_api_error = || {
         error!("Youtube error");
     };
     let on_api_error = Closure::wrap(Box::new(on_api_error) as Box<dyn Fn()>);
     api_script.set_onerror(None);
-    model.yt_on_api_error = Some(on_api_error);
 
+    // -- append --
     container.append_child(&api_script).unwrap();
     container.append_child(&video_container).unwrap();
 
-    model.yt_video_container = Some(video_container);
-    model.yt_api_script = Some(api_script);
+    Youtube {
+        video_container,
+        api_script,
+        on_api_loaded,
+        on_api_error,
+        on_ready,
+        player: None,
+    }
 }
 
 #[wasm_bindgen]
