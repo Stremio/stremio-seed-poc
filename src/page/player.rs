@@ -104,6 +104,7 @@ pub enum Msg {
     YoutubeReady(Rc<HtmlElement>, String),
     DestroyPlayer,
     ToggleFullscreen,
+    TogglePlay,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -152,6 +153,9 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         }
         Msg::ToggleFullscreen => {
             orders.notify(Actions::ToggleFullscreen);
+        }
+        Msg::TogglePlay => {
+            log!("toggle play");
         }
     }
 }
@@ -257,12 +261,12 @@ struct PlayerVars {
 #[view]
 pub fn view(model: &Model, context: &Context) -> Node<Msg> {
     if let Some(player) = &context.core_model.player.selected {
-
         route_content(
             &model.video_ref, 
             // @TODO make sure `selected` contains `title`
             player.stream.title.as_ref().unwrap_or(&String::new()), 
-            context.fullscreen
+            context.fullscreen,
+            false,
         )
     } else {
         div!["Loading..."]
@@ -270,7 +274,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
 }
 
 #[view]
-fn route_content(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool) -> Node<Msg> {
+fn route_content(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool, playing: bool) -> Node<Msg> {
     div![
         C!["route-content"],
         s()
@@ -281,12 +285,12 @@ fn route_content(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool) 
             .right("0")
             .top("0")
             .z_index("0"),
-        player_container(video_ref, title, fullscreen),
+        player_container(video_ref, title, fullscreen, playing),
     ]
 }
 
 #[view]
-fn player_container(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool) -> Node<Msg> {
+fn player_container(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool, playing: bool) -> Node<Msg> {
     div![
         C!["player-container"],
         s()
@@ -298,7 +302,7 @@ fn player_container(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: boo
         video_container(video_ref),
         overlay(),
         nav_bar(title, fullscreen),
-        control_bar(),
+        control_bar(playing),
     ]
 }
 
