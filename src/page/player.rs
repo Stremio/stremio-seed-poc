@@ -12,6 +12,7 @@ use crate::styles::{self, themes::{Color, Breakpoint}, global};
 use stremio_core::types::resource::{Stream, StreamSource};
 use stremio_core::models::player::Selected as PlayerSelected;
 use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg, Internal};
+use js_sys::Reflect;
 
 mod nav_bar;
 mod control_bar;
@@ -82,6 +83,8 @@ pub struct Youtube {
     on_api_error: Closure<dyn Fn()>,
     on_ready: Rc<Closure<dyn Fn()>>,
     player: Option<Player>,
+    on_player_ready: Option<Closure<dyn Fn()>>,
+    on_player_state_change: Option<Closure<dyn Fn(JsValue)>>,
 }
 
 // ------ ------
@@ -118,28 +121,51 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             }
         }
         Msg::YoutubeReady(video_container, yt_id) => {
-            let config = PlayerConfig {
-                width: "100%",
-                height: "100%",
-                video_id: &yt_id,
-                player_vars: PlayerVars {
-                    autoplay: 1,
-                    cc_load_policy: 3,
-                    controls: 0,
-                    disablekb: 1,
-                    enablejsapi: 1,
-                    fs: 0,
-                    iv_load_policy: 3,
-                    r#loop: 0,
-                    modestbranding: 1,
-                    playsinline: 1,
-                    rel: 0
-                },
+            // -- player_vars --
+            let player_vars = PlayerVars {
+                autoplay: 1,
+                cc_load_policy: 3,
+                controls: 0,
+                disablekb: 1,
+                enablejsapi: 1,
+                fs: 0,
+                iv_load_policy: 3,
+                r#loop: 0,
+                modestbranding: 1,
+                playsinline: 1,
+                rel: 0
             };
-            let config = serde_wasm_bindgen::to_value(&config).unwrap();
+            let player_vars = serde_wasm_bindgen::to_value(&player_vars).unwrap();
+
+            // -- on_ready --
+            let on_ready = || log!("PlayerEvent ready");
+            let on_ready = Closure::wrap(Box::new(on_ready) as Box<dyn Fn()>);
+
+            // -- on_state_change --
+            let on_state_change = |event: JsValue| {
+                let state = Reflect::get(&event, &"data".into()).unwrap().as_f64().unwrap() as i8;
+                log!("PlayerEvent on_state_change", state);
+            };
+            let on_state_change = Closure::wrap(Box::new(on_state_change) as Box<dyn Fn(JsValue)>);
+
+            // -- events --
+            let events = js_sys::Object::new();
+            Reflect::set(&events, &"onReady".into(), on_ready.as_ref()).unwrap();
+            Reflect::set(&events, &"onStateChange".into(), on_state_change.as_ref()).unwrap();
+
+            // -- config --
+            let config = js_sys::Object::new();
+            Reflect::set(&config, &"width".into(), &"100%".into()).unwrap();
+            Reflect::set(&config, &"height".into(), &"100%".into()).unwrap();
+            Reflect::set(&config, &"videoId".into(), &yt_id.into()).unwrap();
+            Reflect::set(&config, &"playerVars".into(), &player_vars).unwrap();
+            Reflect::set(&config, &"events".into(), &events).unwrap();
+
             log!("Youtube config:", config);
             if let Some(youtube) = model.youtube.as_mut() {
-                youtube.player = Some(Player::new(&video_container, &config));
+                youtube.player = Some(Player::new(&video_container, config));
+                youtube.on_player_ready = Some(on_ready);
+                youtube.on_player_state_change = Some(on_state_change);
             }
         }
         Msg::DestroyPlayer => {
@@ -208,6 +234,8 @@ fn init_youtube(video_ref: &ElRef<HtmlElement>, yt_id: String, orders: &mut impl
         on_api_error,
         on_ready,
         player: None,
+        on_player_ready: None,
+        on_player_state_change: None,
     }
 }
 
@@ -224,23 +252,15 @@ extern "C" {
     type Player;
 
     #[wasm_bindgen(constructor, js_namespace = YT)]
-    pub fn new(video_container: &web_sys::HtmlElement, config: &JsValue) -> Player;
+    pub fn new(video_container: &web_sys::HtmlElement, config: js_sys::Object) -> Player;
 
     #[wasm_bindgen(method)]
     pub fn destroy(this: &Player);
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PlayerConfig<'a> {
-    width: &'static str,
-    height: &'static str,
-    video_id: &'a str,
-    player_vars: PlayerVars,
-}
-
-#[derive(Serialize)]
-struct PlayerVars {
+#[derive(Debug)]
+pub struct PlayerVars {
     autoplay: u8,
     cc_load_policy: u8,
     controls: u8,
@@ -253,6 +273,10 @@ struct PlayerVars {
     playsinline: u8,
     rel: u8,
 }
+
+// struct PlayerEvents<'a> {
+//     on_ready: &'a JsValue,
+// }
 
 // ------ ------
 //     View
