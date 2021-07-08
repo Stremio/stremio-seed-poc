@@ -5,6 +5,7 @@ use seed_styles::*;
 use web_sys::HtmlElement;
 use std::rc::Rc;
 use std::array;
+use std::convert::{TryFrom, TryInto};
 use enclose::enc;
 use serde::Serialize;
 use crate::{PageId, Context, Actions, Events};
@@ -47,8 +48,10 @@ pub fn init(
             matches!(events, Events::PageChanged(page_id) if page_id != PageId::Player)
                 .then(|| Msg::DestroyPlayer)
         }),
+        playing: false,
     });
     model.stream = Some(stream);
+    model.playing = false;
     Some(PageId::Player)
 }
 
@@ -74,6 +77,7 @@ pub struct Model {
     youtube: Option<Youtube>,
     stream: Option<Stream>,
     page_change_sub_handle: SubHandle,
+    playing: bool,
 }
 
 pub struct Youtube {
@@ -105,6 +109,7 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     Rendered,
     YoutubeReady(Rc<HtmlElement>, String),
+    YoutubePlayerStateChanged(YoutubePlayerState),
     DestroyPlayer,
     ToggleFullscreen,
     TogglePlay,
@@ -138,13 +143,15 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             let player_vars = serde_wasm_bindgen::to_value(&player_vars).unwrap();
 
             // -- on_ready --
-            let on_ready = || log!("PlayerEvent ready");
+            let on_ready = || log!("Youtube player ready");
             let on_ready = Closure::wrap(Box::new(on_ready) as Box<dyn Fn()>);
 
             // -- on_state_change --
-            let on_state_change = |event: JsValue| {
+            let sender = orders.msg_sender();
+            let on_state_change = move |event: JsValue| {
                 let state = Reflect::get(&event, &"data".into()).unwrap().as_f64().unwrap() as i8;
-                log!("PlayerEvent on_state_change", state);
+                let state = YoutubePlayerState::try_from(state).unwrap();
+                sender(Some(Msg::YoutubePlayerStateChanged(state)));
             };
             let on_state_change = Closure::wrap(Box::new(on_state_change) as Box<dyn Fn(JsValue)>);
 
@@ -177,11 +184,45 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 youtube.api_script.remove();
             }
         }
+        Msg::YoutubePlayerStateChanged(state) => {
+            match state {
+                YoutubePlayerState::Playing => model.playing = true,
+                YoutubePlayerState::Paused | YoutubePlayerState::Ended => model.playing = false,
+                _ => (),
+            }
+            log!(state);
+        }
         Msg::ToggleFullscreen => {
             orders.notify(Actions::ToggleFullscreen);
         }
         Msg::TogglePlay => {
             log!("toggle play");
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum YoutubePlayerState {
+    Unstarted,
+    Ended,
+    Playing,
+    Paused,
+    Buffering,
+    Cued,
+}
+
+impl TryFrom<i8> for YoutubePlayerState {
+    type Error = &'static str;
+
+    fn try_from(state: i8) -> Result<Self, Self::Error> {
+        match state {
+            -1 => Ok(Self::Unstarted),
+            0 => Ok(Self::Ended),
+            1 => Ok(Self::Playing),
+            2 => Ok(Self::Paused),
+            3 => Ok(Self::Buffering),
+            5 => Ok(Self::Cued),
+            _ => Err("Unknown YT.PlayerState value")
         }
     }
 }
@@ -274,10 +315,6 @@ pub struct PlayerVars {
     rel: u8,
 }
 
-// struct PlayerEvents<'a> {
-//     on_ready: &'a JsValue,
-// }
-
 // ------ ------
 //     View
 // ------ ------
@@ -290,7 +327,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
             // @TODO make sure `selected` contains `title`
             player.stream.title.as_ref().unwrap_or(&String::new()), 
             context.fullscreen,
-            false,
+            model.playing,
         )
     } else {
         div!["Loading..."]
