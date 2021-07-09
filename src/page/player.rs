@@ -113,6 +113,7 @@ pub enum Msg {
     DestroyPlayer,
     ToggleFullscreen,
     TogglePlay,
+    ToggleMute,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -205,6 +206,9 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             } else {
                 player.play_video();
             }
+        }
+        Msg::ToggleMute => {
+            log!("ToggleMute");
         }
     }
 }
@@ -419,6 +423,7 @@ fn overlay() -> Node<Msg> {
             .right("0")
             .top("0")
             .z_index("0"),
+        ev(Ev::Click, |_| Msg::TogglePlay),
     ]
 }
 
