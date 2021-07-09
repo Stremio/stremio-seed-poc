@@ -17,6 +17,8 @@ pub const HORIZONTAL_NAV_BAR_SIZE: &str = "4rem";
 pub const VERTICAL_NAV_BAR_SIZE: &str = "5.2rem";
 // @TODO 4rem is HORIZONTAL_NAV_BAR_SIZE - refactor
 pub const SEARCH_BAR_SIZE: &str = "calc(4rem - 1.2rem)";
+pub const THUMB_SIZE: &str = "1.3rem";
+pub const TRACK_SIZE: &str = "0.4rem";
 
 pub fn image_url(image: &str) -> String {
     format!("/images/{}", image)
