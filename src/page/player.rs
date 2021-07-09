@@ -196,7 +196,15 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             orders.notify(Actions::ToggleFullscreen);
         }
         Msg::TogglePlay => {
-            log!("toggle play");
+            let player = match model.youtube.as_ref() {
+                Some(Youtube { player: Some(player), .. }) => player,
+                _ => return
+            };
+            if model.playing {
+                player.pause_video();
+            } else {
+                player.play_video();
+            }
         }
     }
 }
@@ -297,6 +305,12 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     pub fn destroy(this: &Player);
+
+    #[wasm_bindgen(method, js_name = pauseVideo)]
+    pub fn pause_video(this: &Player);
+
+    #[wasm_bindgen(method, js_name = playVideo)]
+    pub fn play_video(this: &Player);
 }
 
 #[derive(Serialize)]
