@@ -17,7 +17,7 @@ use super::Msg;
 #[view]
 pub fn play_button(playing: bool) -> Node<Msg> {
     div![
-        C!["control-bar-buitton", "button-container"],
+        C!["control-bar-button", "button-container"],
         s()
             .align_items(CssAlignItems::Center)
             .display(CssDisplay::Flex)

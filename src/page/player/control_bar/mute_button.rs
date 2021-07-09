@@ -17,7 +17,7 @@ use super::Msg;
 #[view]
 pub fn mute_button(muted: bool, volume: u32) -> Node<Msg> {
     div![
-        C!["control-bar-buitton", "button-container"],
+        C!["control-bar-button", "button-container"],
         s()
             .align_items(CssAlignItems::Center)
             .display(CssDisplay::Flex)
