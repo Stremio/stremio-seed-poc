@@ -52,18 +52,18 @@ pub fn init(
         muted: false,
         volume: 100,
         active_volume_slider: false,
-        active_seek_bar: false, 
-        video_position: 0, 
-        video_length: 0,
+        active_seek_slider: false, 
+        time: None, 
+        duration: None,
     });
     model.stream = Some(stream);
     model.playing = false;
     model.muted = false;
     model.volume = 100;
     model.active_volume_slider = false;
-    model.active_seek_bar = false;
-    model.video_position = 0;
-    model.video_length = 0;
+    model.active_seek_slider = false;
+    model.time = None;
+    model.duration = None;
     Some(PageId::Player)
 }
 
@@ -93,9 +93,9 @@ pub struct Model {
     muted: bool,
     volume: u32,
     active_volume_slider: bool,
-    active_seek_bar: bool, 
-    video_position: u32, 
-    video_length: u32,
+    active_seek_slider: bool, 
+    time: Option<u32>, 
+    duration: Option<u32>,
 }
 
 pub struct Youtube {
@@ -107,6 +107,7 @@ pub struct Youtube {
     player: Option<Player>,
     on_player_ready: Option<Closure<dyn Fn()>>,
     on_player_state_change: Option<Closure<dyn Fn(JsValue)>>,
+    time_updater_handle: Option<StreamHandle>,
 }
 
 // ------ ------
@@ -127,6 +128,7 @@ impl<'a> Urls<'a> {
 pub enum Msg {
     Rendered,
     YoutubeReady(Rc<HtmlElement>, String),
+    YoutubePlayerReady,
     YoutubePlayerStateChanged(YoutubePlayerState),
     DestroyPlayer,
     ToggleFullscreen,
@@ -135,6 +137,10 @@ pub enum Msg {
     ActivateVolumeSlider(u32),
     VolumeSliderMoved(u32),
     DeactivateVolumeSlider,
+    ActivateSeekSlider(u32),
+    SeekSliderMoved(u32),
+    DeactivateSeekSlider,
+    OnTimerUpdaterTick,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -165,7 +171,8 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
             let player_vars = serde_wasm_bindgen::to_value(&player_vars).unwrap();
 
             // -- on_ready --
-            let on_ready = || log!("Youtube player ready");
+            let sender = orders.msg_sender();
+            let on_ready = move || sender(Some(Msg::YoutubePlayerReady));
             let on_ready = Closure::wrap(Box::new(on_ready) as Box<dyn Fn()>);
 
             // -- on_state_change --
@@ -197,14 +204,21 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 youtube.on_player_state_change = Some(on_state_change);
             }
         }
-        Msg::DestroyPlayer => {
-            if let Some(mut youtube) = model.youtube.take() {
-                if let Some(player) = youtube.player.take() {
-                    player.destroy();
-                }
-                youtube.video_container.remove();
-                youtube.api_script.remove();
-            }
+        Msg::YoutubePlayerReady => {
+            let youtube = match model.youtube.as_mut() {
+                Some(youtube) => youtube,
+                _ => return
+            }; 
+            let player = match youtube.player.as_ref() {
+                Some(player) => player,
+                _ => return
+            };
+            log!("Youtube player ready");
+            model.time = Some(player.get_current_time());
+            model.duration = Some(player.get_duration());
+            youtube.time_updater_handle = Some(orders.stream_with_handle(
+                streams::interval(100, || Msg::OnTimerUpdaterTick)
+            ));
         }
         Msg::YoutubePlayerStateChanged(state) => {
             match state {
@@ -213,6 +227,15 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 _ => (),
             }
             log!(state);
+        }
+        Msg::DestroyPlayer => {
+            if let Some(mut youtube) = model.youtube.take() {
+                if let Some(player) = youtube.player.take() {
+                    player.destroy();
+                }
+                youtube.video_container.remove();
+                youtube.api_script.remove();
+            }
         }
         Msg::ToggleFullscreen => {
             orders.notify(Actions::ToggleFullscreen);
@@ -251,6 +274,28 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
         Msg::DeactivateVolumeSlider => {
             model.active_volume_slider = false;
         }
+        Msg::ActivateSeekSlider(time) => {
+            model.active_seek_slider = true;
+            set_time(time, model);
+        }
+        Msg::SeekSliderMoved(time) => {
+            set_time(time, model);
+        }
+        Msg::DeactivateSeekSlider => {
+            model.active_seek_slider = false;
+        }
+        Msg::OnTimerUpdaterTick => {
+            let player = match model.youtube.as_ref() {
+                Some(Youtube { player: Some(player), .. }) => player,
+                _ => return
+            };
+            let time = Some(player.get_current_time());
+            if time == model.time {
+                orders.skip();
+            } else {
+                model.time = time;
+            }
+        }
     }
 }
 
@@ -261,6 +306,15 @@ fn set_volume(volume: u32, model: &mut Model) {
     };
     player.set_volume(volume);
     model.volume = volume;
+}
+
+fn set_time(time: u32, model: &mut Model) {
+    let player = match model.youtube.as_ref() {
+        Some(Youtube { player: Some(player), .. }) => player,
+        _ => return
+    };
+    player.seek_to(time);
+    model.time = Some(time);
 }
 
 
@@ -340,6 +394,7 @@ fn init_youtube(video_ref: &ElRef<HtmlElement>, yt_id: String, orders: &mut impl
         player: None,
         on_player_ready: None,
         on_player_state_change: None,
+        time_updater_handle: None,
     }
 }
 
@@ -375,6 +430,15 @@ extern "C" {
 
     #[wasm_bindgen(method, js_name = setVolume)]
     pub fn set_volume(this: &Player, volume: u32);
+
+    #[wasm_bindgen(method, js_name = getCurrentTime)]
+    pub fn get_current_time(this: &Player) -> u32;
+
+    #[wasm_bindgen(method, js_name = getDuration)]
+    pub fn get_duration(this: &Player) -> u32;
+
+    #[wasm_bindgen(method, js_name = seekTo)]
+    pub fn seek_to(this: &Player, position: u32);
 }
 
 #[derive(Serialize)]
@@ -409,9 +473,9 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
             model.muted,
             model.volume,
             model.active_volume_slider,
-            model.active_seek_bar, 
-            model.video_position, 
-            model.video_length,
+            model.active_seek_slider, 
+            model.time, 
+            model.duration,
         )
     } else {
         div!["Loading..."]
@@ -427,9 +491,9 @@ fn route_content(
     muted: bool, 
     volume: u32,
     active_volume_slider: bool,
-    active_seek_bar: bool, 
-    video_position: u32, 
-    video_length: u32
+    active_seek_slider: bool, 
+    time: Option<u32>, 
+    duration: Option<u32>,
 ) -> Node<Msg> {
     div![
         C!["route-content"],
@@ -449,9 +513,9 @@ fn route_content(
             muted, 
             volume, 
             active_volume_slider,
-            active_seek_bar,
-            video_position,
-            video_length,
+            active_seek_slider,
+            time,
+            duration,
         ),
     ]
 }
@@ -465,9 +529,9 @@ fn player_container(
     muted: bool, 
     volume: u32,
     active_volume_slider: bool,
-    active_seek_bar: bool, 
-    video_position: u32, 
-    video_length: u32
+    active_seek_slider: bool, 
+    time: Option<u32>, 
+    duration: Option<u32>,
 ) -> Node<Msg> {
     div![
         C!["player-container"],
@@ -485,9 +549,9 @@ fn player_container(
             muted, 
             volume, 
             active_volume_slider,
-            active_seek_bar,
-            video_position,
-            video_length,
+            active_seek_slider,
+            time,
+            duration,
         ),
     ]
 }

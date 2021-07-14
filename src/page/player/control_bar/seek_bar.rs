@@ -4,6 +4,7 @@ use seed_styles::{em, pc, rem, Style};
 use seed_styles::*;
 use web_sys::HtmlElement;
 use std::rc::Rc;
+use std::borrow::Cow;
 use std::array;
 use enclose::enc;
 use serde::Serialize;
@@ -15,7 +16,11 @@ use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg, Internal};
 use super::Msg;
 
 #[view]
-pub fn seek_bar(active: bool, video_position: u32, video_length: u32) -> Node<Msg> {
+pub fn seek_bar(active: bool, time: Option<u32>, duration: Option<u32>) -> Node<Msg> {
+    let position_percent = match (time, duration) {
+        (Some(time), Some(duration)) => time as f32 / duration as f32 * 100.,
+        _ => 0.,
+    };
     div![
         C!["seek-bar", "seek-bar-container"],
         s()
@@ -29,14 +34,25 @@ pub fn seek_bar(active: bool, video_position: u32, video_length: u32) -> Node<Ms
         s()
             .style_other(":hover .track-before")
             .background_color(Color::PrimaryLight5),
-        label("00:00:51"),
-        slider(),
-        label("00:03:19"),
+        label(format_time(time)),
+        slider(active, position_percent, duration),
+        label(format_time(duration)),
     ]
 }
 
+fn format_time(seconds: Option<u32>) -> Cow<'static, str> {
+    let seconds = match seconds {
+        None => return "--:--:--".into(),
+        Some(seconds) => seconds,
+    }; 
+    let hours = seconds / 3600;
+    let minutes = (seconds % 3600) / 60;
+    let seconds = seconds % 60;
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds).into()
+}
+
 #[view]
-fn label(text: &str) -> Node<Msg> {
+fn label(text: Cow<'static, str>) -> Node<Msg> {
     div![
         C!["label"],
         s()
@@ -52,8 +68,7 @@ fn label(text: &str) -> Node<Msg> {
 }
 
 #[view]
-fn slider() -> Node<Msg> {
-    let position_percent = 26;
+fn slider(active: bool, position_percent: f32, duration: Option<u32>) -> Node<Msg> {
     div![
         C!["slider", "slider-container"],
         s()
@@ -67,7 +82,25 @@ fn slider() -> Node<Msg> {
         layer(track()),
         layer(track_before(position_percent)),
         layer(thumb(position_percent)),
+        mouse_ev(Ev::MouseDown, move |event| {
+            Msg::ActivateSeekSlider(get_time(event, duration))
+        }),
+        active.then(|| {
+            mouse_ev(Ev::MouseMove, move |event| {
+                Msg::SeekSliderMoved(get_time(event, duration))
+            })
+        }),
+        ev(Ev::MouseUp, |_| Msg::DeactivateSeekSlider),
+        ev(Ev::MouseLeave, |_| Msg::DeactivateSeekSlider),
     ]
+}
+
+fn get_time(event: web_sys::MouseEvent, duration: Option<u32>) -> u32 {
+    let duration = duration.unwrap_or_default() as f32;
+    let offset = event.offset_x();
+    let width = event.target().unwrap().unchecked_into::<web_sys::Element>().client_width();
+    let time = offset as f32 / width as f32 * duration;
+    time as u32
 }
 
 #[view]
@@ -84,7 +117,8 @@ fn layer(content: Node<Msg>) -> Node<Msg> {
             .position(CssPosition::Absolute)
             .right("0")
             .top("0")
-            .z_index("0"),
+            .z_index("0")
+            .pointer_events("none"),
         content,
     ]
 }
@@ -101,7 +135,7 @@ pub fn track() -> Node<Msg> {
 }
 
 #[view]
-pub fn track_before(position_percent: u32) -> Node<Msg> {
+pub fn track_before(position_percent: f32) -> Node<Msg> {
     div![
         C!["track-before"],
         s()
@@ -113,7 +147,7 @@ pub fn track_before(position_percent: u32) -> Node<Msg> {
 }
 
 #[view]
-fn thumb(position_percent: u32) -> Node<Msg> {
+fn thumb(position_percent: f32) -> Node<Msg> {
     svg![
         C!["thumb"],
         s()
