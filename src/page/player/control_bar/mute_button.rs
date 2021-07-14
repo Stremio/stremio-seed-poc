@@ -34,8 +34,11 @@ pub fn mute_button(muted: bool, volume: u32) -> Node<Msg> {
         if muted {
             volume_0_icon()
         } else {
-            // @TODO match / else ifs
-            volume_3_icon()
+            match volume {
+                0..=33 => volume_1_icon(),
+                34..=66 => volume_2_icon(),
+                _ => volume_3_icon(),
+            }
         }
     ]
 }
