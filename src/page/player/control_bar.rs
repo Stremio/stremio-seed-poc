@@ -24,7 +24,7 @@ mod volume_slider;
 use volume_slider::volume_slider;
 
 #[view]
-pub fn control_bar(playing: bool, muted: bool, volume: u32) -> Node<Msg> {
+pub fn control_bar(playing: bool, muted: bool, volume: u32, active_volume_slider: bool) -> Node<Msg> {
     div![
         C!["layer", "control-bar-layer", "control-bar-container"],
         s()
@@ -46,7 +46,7 @@ pub fn control_bar(playing: bool, muted: bool, volume: u32) -> Node<Msg> {
             .right("0")
             .z_index("-1"),
         seek_bar(),
-        control_bar_buttons(playing, muted, volume),
+        control_bar_buttons(playing, muted, volume, active_volume_slider),
     ]
 }
 
@@ -58,7 +58,7 @@ fn seek_bar() -> Node<Msg> {
 }
 
 #[view]
-fn control_bar_buttons(playing: bool, muted: bool, volume: u32) -> Node<Msg> {
+fn control_bar_buttons(playing: bool, muted: bool, volume: u32, active_volume_slider: bool) -> Node<Msg> {
     div![
         s()
             .align_items(CssAlignItems::Center)
@@ -66,6 +66,6 @@ fn control_bar_buttons(playing: bool, muted: bool, volume: u32) -> Node<Msg> {
             .flex_direction(CssFlexDirection::Row),
         play_button(playing),
         mute_button(muted, volume),
-        volume_slider(volume),
+        volume_slider(volume, active_volume_slider),
     ]
 }

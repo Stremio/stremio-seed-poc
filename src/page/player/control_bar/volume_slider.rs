@@ -15,9 +15,9 @@ use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg, Internal};
 use super::Msg;
 
 #[view]
-pub fn volume_slider(volume: u32) -> Node<Msg> {
+pub fn volume_slider(volume: u32, active: bool) -> Node<Msg> {
     div![
-        C!["volume-slider", "slider-container"],
+        C!["volume-slider", "slider-container", IF!(active => "active")],
         s()
             .flex("0 1 16rem")
             .height(rem(4))
@@ -31,7 +31,24 @@ pub fn volume_slider(volume: u32) -> Node<Msg> {
         layer(track()),
         layer(track_before(volume)),
         layer(thumb(volume)),
+        mouse_ev(Ev::MouseDown, |event| {
+            Msg::ActivateVolumeSlider(get_volume(event))
+        }),
+        active.then(|| {
+            mouse_ev(Ev::MouseMove, |event| {
+                Msg::VolumeSliderMoved(get_volume(event))
+            })
+        }),
+        ev(Ev::MouseUp, |_| Msg::DeactivateVolumeSlider),
+        ev(Ev::MouseLeave, |_| Msg::DeactivateVolumeSlider),
     ]
+}
+
+fn get_volume(event: web_sys::MouseEvent) -> u32 {
+    let offset = event.offset_x();
+    let width = event.target().unwrap().unchecked_into::<web_sys::Element>().client_width();
+    let volume = offset as f32 / width as f32 * 100.;
+    volume as u32
 }
 
 #[view]
@@ -48,7 +65,8 @@ pub fn layer(content: Node<Msg>) -> Node<Msg> {
             .position(CssPosition::Absolute)
             .right("0")
             .top("0")
-            .z_index("0"),
+            .z_index("0")
+            .pointer_events("none"),
         content
     ]
 }

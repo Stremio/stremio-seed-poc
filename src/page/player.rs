@@ -51,11 +51,13 @@ pub fn init(
         playing: false,
         muted: false,
         volume: 100,
+        active_volume_slider: false,
     });
     model.stream = Some(stream);
     model.playing = false;
     model.muted = false;
     model.volume = 100;
+    model.active_volume_slider = false;
     Some(PageId::Player)
 }
 
@@ -84,6 +86,7 @@ pub struct Model {
     playing: bool,
     muted: bool,
     volume: u32,
+    active_volume_slider: bool,
 }
 
 pub struct Youtube {
@@ -120,7 +123,9 @@ pub enum Msg {
     ToggleFullscreen,
     TogglePlay,
     ToggleMute,
-    SetVolume(u32),
+    ActivateVolumeSlider(u32),
+    VolumeSliderMoved(u32),
+    DeactivateVolumeSlider,
 }
 
 pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut impl Orders<Msg>) {
@@ -227,16 +232,28 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 player.mute();
             }
         }
-        Msg::SetVolume(volume) => {
-            let player = match model.youtube.as_ref() {
-                Some(Youtube { player: Some(player), .. }) => player,
-                _ => return
-            };
-            player.set_volume(volume);
-            model.volume = volume;
+        Msg::ActivateVolumeSlider(volume) => {
+            model.active_volume_slider = true;
+            set_volume(volume, model);
+        }
+        Msg::VolumeSliderMoved(volume) => {
+            set_volume(volume, model);
+        }
+        Msg::DeactivateVolumeSlider => {
+            model.active_volume_slider = false;
         }
     }
 }
+
+fn set_volume(volume: u32, model: &mut Model) {
+    let player = match model.youtube.as_ref() {
+        Some(Youtube { player: Some(player), .. }) => player,
+        _ => return
+    };
+    player.set_volume(volume);
+    model.volume = volume;
+}
+
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum YoutubePlayerState {
@@ -382,6 +399,7 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
             model.playing,
             model.muted,
             model.volume,
+            model.active_volume_slider,
         )
     } else {
         div!["Loading..."]
@@ -389,7 +407,15 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
 }
 
 #[view]
-fn route_content(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool, playing: bool, muted: bool, volume: u32) -> Node<Msg> {
+fn route_content(
+    video_ref: &ElRef<HtmlElement>, 
+    title: &str, 
+    fullscreen: bool, 
+    playing: bool, 
+    muted: bool, 
+    volume: u32,
+    active_volume_slider: bool,
+) -> Node<Msg> {
     div![
         C!["route-content"],
         s()
@@ -400,12 +426,20 @@ fn route_content(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool, 
             .right("0")
             .top("0")
             .z_index("0"),
-        player_container(video_ref, title, fullscreen, playing, muted, volume),
+        player_container(video_ref, title, fullscreen, playing, muted, volume, active_volume_slider),
     ]
 }
 
 #[view]
-fn player_container(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: bool, playing: bool, muted: bool, volume: u32) -> Node<Msg> {
+fn player_container(
+    video_ref: &ElRef<HtmlElement>, 
+    title: &str, 
+    fullscreen: bool, 
+    playing: bool, 
+    muted: bool, 
+    volume: u32,
+    active_volume_slider: bool,
+) -> Node<Msg> {
     div![
         C!["player-container"],
         s()
@@ -417,7 +451,7 @@ fn player_container(video_ref: &ElRef<HtmlElement>, title: &str, fullscreen: boo
         video_container(video_ref),
         overlay(),
         nav_bar(title, fullscreen),
-        control_bar(playing, muted, volume),
+        control_bar(playing, muted, volume, active_volume_slider),
     ]
 }
 
