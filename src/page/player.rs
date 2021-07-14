@@ -52,12 +52,18 @@ pub fn init(
         muted: false,
         volume: 100,
         active_volume_slider: false,
+        active_seek_bar: false, 
+        video_position: 0, 
+        video_length: 0,
     });
     model.stream = Some(stream);
     model.playing = false;
     model.muted = false;
     model.volume = 100;
     model.active_volume_slider = false;
+    model.active_seek_bar = false;
+    model.video_position = 0;
+    model.video_length = 0;
     Some(PageId::Player)
 }
 
@@ -87,6 +93,9 @@ pub struct Model {
     muted: bool,
     volume: u32,
     active_volume_slider: bool,
+    active_seek_bar: bool, 
+    video_position: u32, 
+    video_length: u32,
 }
 
 pub struct Youtube {
@@ -400,6 +409,9 @@ pub fn view(model: &Model, context: &Context) -> Node<Msg> {
             model.muted,
             model.volume,
             model.active_volume_slider,
+            model.active_seek_bar, 
+            model.video_position, 
+            model.video_length,
         )
     } else {
         div!["Loading..."]
@@ -415,6 +427,9 @@ fn route_content(
     muted: bool, 
     volume: u32,
     active_volume_slider: bool,
+    active_seek_bar: bool, 
+    video_position: u32, 
+    video_length: u32
 ) -> Node<Msg> {
     div![
         C!["route-content"],
@@ -426,7 +441,18 @@ fn route_content(
             .right("0")
             .top("0")
             .z_index("0"),
-        player_container(video_ref, title, fullscreen, playing, muted, volume, active_volume_slider),
+        player_container(
+            video_ref, 
+            title, 
+            fullscreen, 
+            playing, 
+            muted, 
+            volume, 
+            active_volume_slider,
+            active_seek_bar,
+            video_position,
+            video_length,
+        ),
     ]
 }
 
@@ -439,6 +465,9 @@ fn player_container(
     muted: bool, 
     volume: u32,
     active_volume_slider: bool,
+    active_seek_bar: bool, 
+    video_position: u32, 
+    video_length: u32
 ) -> Node<Msg> {
     div![
         C!["player-container"],
@@ -451,7 +480,15 @@ fn player_container(
         video_container(video_ref),
         overlay(),
         nav_bar(title, fullscreen),
-        control_bar(playing, muted, volume, active_volume_slider),
+        control_bar(
+            playing, 
+            muted, 
+            volume, 
+            active_volume_slider,
+            active_seek_bar,
+            video_position,
+            video_length,
+        ),
     ]
 }
 

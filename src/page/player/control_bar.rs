@@ -38,8 +38,19 @@ use subtitles_button::subtitles_button;
 mod videos_button;
 use videos_button::videos_button;
 
+mod seek_bar;
+use seek_bar::seek_bar;
+
 #[view]
-pub fn control_bar(playing: bool, muted: bool, volume: u32, active_volume_slider: bool) -> Node<Msg> {
+pub fn control_bar(
+    playing: bool, 
+    muted: bool, 
+    volume: u32, 
+    active_volume_slider: bool, 
+    active_seek_bar: bool, 
+    video_position: u32, 
+    video_length: u32
+) -> Node<Msg> {
     div![
         C!["layer", "control-bar-layer", "control-bar-container"],
         s()
@@ -60,15 +71,8 @@ pub fn control_bar(playing: bool, muted: bool, volume: u32, active_volume_slider
             .position(CssPosition::Absolute)
             .right("0")
             .z_index("-1"),
-        seek_bar(),
+        seek_bar(active_seek_bar, video_position, video_length),
         control_bar_buttons(playing, muted, volume, active_volume_slider),
-    ]
-}
-
-#[view]
-fn seek_bar() -> Node<Msg> {
-    div![
-        
     ]
 }
 
