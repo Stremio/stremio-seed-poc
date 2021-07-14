@@ -47,9 +47,9 @@ pub fn control_bar(
     muted: bool, 
     volume: u32, 
     active_volume_slider: bool, 
-    active_seek_bar: bool, 
-    video_position: u32, 
-    video_length: u32
+    active_seek_slider: bool, 
+    time: Option<u32>, 
+    duration: Option<u32>,
 ) -> Node<Msg> {
     div![
         C!["layer", "control-bar-layer", "control-bar-container"],
@@ -71,7 +71,7 @@ pub fn control_bar(
             .position(CssPosition::Absolute)
             .right("0")
             .z_index("-1"),
-        seek_bar(active_seek_bar, video_position, video_length),
+        seek_bar(active_seek_slider, time, duration),
         control_bar_buttons(playing, muted, volume, active_volume_slider),
     ]
 }
