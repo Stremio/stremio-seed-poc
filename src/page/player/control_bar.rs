@@ -23,6 +23,21 @@ use mute_button::mute_button;
 mod volume_slider;
 use volume_slider::volume_slider;
 
+mod network_button;
+use network_button::network_button;
+
+mod info_button;
+use info_button::info_button;
+
+mod screencast_button;
+use screencast_button::screencast_button;
+
+mod subtitles_button;
+use subtitles_button::subtitles_button;
+
+mod videos_button;
+use videos_button::videos_button;
+
 #[view]
 pub fn control_bar(playing: bool, muted: bool, volume: u32, active_volume_slider: bool) -> Node<Msg> {
     div![
@@ -67,5 +82,20 @@ fn control_bar_buttons(playing: bool, muted: bool, volume: u32, active_volume_sl
         play_button(playing),
         mute_button(muted, volume),
         volume_slider(volume, active_volume_slider),
+        spacer(),
+        network_button(),
+        info_button(),
+        screencast_button(),
+        subtitles_button(),
+        videos_button(),
+    ]
+}
+
+#[view]
+fn spacer() -> Node<Msg> {
+    div![
+        C!["spacing"],
+        s()
+            .flex("1"), 
     ]
 }
