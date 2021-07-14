@@ -150,7 +150,7 @@ pub fn update(msg: Msg, model: &mut Model, context: &mut Context, orders: &mut i
                 StreamSource::YouTube { yt_id } => {
                     model.youtube = Some(init_youtube(&model.video_ref, yt_id.clone(), orders));
                 }
-                stream_source => error!("Unhandled stream source:", stream_source),
+                stream_source => error!("Unhandled stream source"),
             }
         }
         Msg::YoutubeReady(video_container, yt_id) => {
