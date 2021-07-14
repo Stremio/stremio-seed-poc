@@ -15,44 +15,63 @@ use stremio_core::runtime::msg::{Action, ActionLoad, Msg as CoreMsg, Internal};
 use super::Msg;
 
 #[view]
-pub fn volume_slider(volume: u32, active: bool) -> Node<Msg> {
+pub fn seek_bar(active: bool, video_position: u32, video_length: u32) -> Node<Msg> {
     div![
-        C!["volume-slider", "slider-container", IF!(active => "active")],
+        C!["seek-bar", "seek-bar-container"],
         s()
-            .flex("0 1 16rem")
-            .height(rem(4))
-            .margin("0 1rem")
-            .min_width(rem(10))
+            .height(rem(2.5))
             .align_items(CssAlignItems::Center)
+            .display(CssDisplay::Flex)
+            .flex_direction(CssFlexDirection::Row),
+        s()
+            .style_other(":hover .thumb")
+            .fill(hsl(0, 0, 100)),
+        s()
+            .style_other(":hover .track-before")
+            .background_color(Color::PrimaryLight5),
+        label("00:00:51"),
+        slider(),
+        label("00:03:19"),
+    ]
+}
+
+#[view]
+fn label(text: &str) -> Node<Msg> {
+    div![
+        C!["label"],
+        s()
+            .color(hsl(0, 0, 100))
+            .direction(CssDirection::Rtl)
+            .flex(CssFlex::None)
+            .max_width(rem(5))
+            .text_align(CssTextAlign::Left)
+            .text_overflow("ellipsis")
+            .white_space(CssWhiteSpace::NoWrap),
+        text,
+    ]
+}
+
+#[view]
+fn slider() -> Node<Msg> {
+    let position_percent = 26;
+    div![
+        C!["slider", "slider-container"],
+        s()
+            .align_self(CssAlignSelf::Stretch)
+            .flex("1")
+            .margin(format!("0 {}", global::THUMB_SIZE).as_str())
             .cursor(CssCursor::Pointer)
             .overflow(CssOverflow::Visible)
             .position(CssPosition::Relative)
             .z_index("0"),
         layer(track()),
-        layer(track_before(volume)),
-        layer(thumb(volume)),
-        mouse_ev(Ev::MouseDown, |event| {
-            Msg::ActivateVolumeSlider(get_volume(event))
-        }),
-        active.then(|| {
-            mouse_ev(Ev::MouseMove, |event| {
-                Msg::VolumeSliderMoved(get_volume(event))
-            })
-        }),
-        ev(Ev::MouseUp, |_| Msg::DeactivateVolumeSlider),
-        ev(Ev::MouseLeave, |_| Msg::DeactivateVolumeSlider),
+        layer(track_before(position_percent)),
+        layer(thumb(position_percent)),
     ]
 }
 
-fn get_volume(event: web_sys::MouseEvent) -> u32 {
-    let offset = event.offset_x();
-    let width = event.target().unwrap().unchecked_into::<web_sys::Element>().client_width();
-    let volume = offset as f32 / width as f32 * 100.;
-    volume as u32
-}
-
 #[view]
-pub fn layer(content: Node<Msg>) -> Node<Msg> {
+fn layer(content: Node<Msg>) -> Node<Msg> {
     div![
         C!["layer"],
         s()
@@ -65,9 +84,8 @@ pub fn layer(content: Node<Msg>) -> Node<Msg> {
             .position(CssPosition::Absolute)
             .right("0")
             .top("0")
-            .z_index("0")
-            .pointer_events("none"),
-        content
+            .z_index("0"),
+        content,
     ]
 }
 
@@ -76,31 +94,31 @@ pub fn track() -> Node<Msg> {
     div![
         C!["track"],
         s()
-            .background_color(hsl(0, 0, 50))
+            .background_color(Color::PrimaryDark3)
             .flex("1")
             .height(global::TRACK_SIZE),
     ]
 }
 
 #[view]
-pub fn track_before(volume: u32) -> Node<Msg> {
+pub fn track_before(position_percent: u32) -> Node<Msg> {
     div![
         C!["track-before"],
         s()
-            .width(format!("calc({}%)", volume).as_str())
-            .background_color(hsl(0, 0, 90))
+            .width(format!("calc({}%)", position_percent).as_str())
+            .background_color(Color::PrimaryLight3)
             .flex(CssFlex::None)
             .height(global::TRACK_SIZE),
     ]
 }
 
 #[view]
-fn thumb(volume: u32) -> Node<Msg> {
+fn thumb(position_percent: u32) -> Node<Msg> {
     svg![
         C!["thumb"],
         s()
-            .margin_left(format!("calc({}%)", volume).as_str())
-            .fill(hsl(0, 0, 100))
+            .margin_left(format!("calc({}%)", position_percent).as_str())
+            .fill("transparent")
             .flex(CssFlex::None)
             .height(global::THUMB_SIZE)
             .transform("translateX(-50%)")
